@@ -15,6 +15,7 @@ authors = [
 keywords = [
     "embedding", "clip", "siglip", "qwen", "visual-rag",
     "multimodal", "retrieval", "fine-tuning", "contrastive-learning",
+    "multimodal-embedding", "visual-retrieval",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

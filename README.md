@@ -13,6 +13,18 @@
 </p>
 
 <p align="center">
+    <a href="https://github.com/topics/multimodal-embedding">
+        <img src="https://img.shields.io/badge/Topic-Multimodal_Embedding-blue.svg" alt="Topic: Multimodal Embedding">
+    </a>
+    <a href="https://github.com/topics/visual-rag">
+        <img src="https://img.shields.io/badge/Topic-Visual_RAG-green.svg" alt="Topic: Visual RAG">
+    </a>
+    <a href="https://github.com/topics/contrastive-learning">
+        <img src="https://img.shields.io/badge/Topic-Contrastive_Learning-orange.svg" alt="Topic: Contrastive Learning">
+    </a>
+</p>
+
+<p align="center">
   <a href="https://github.com/fangzhensheng/vembed-factory/actions/workflows/ci.yml"><img src="https://github.com/fangzhensheng/vembed-factory/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
   <a href="https://colab.research.google.com/github/fangzhensheng/vembed-factory/blob/main/notebooks/vembed-factory_colab.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
