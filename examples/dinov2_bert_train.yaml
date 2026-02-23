@@ -1,0 +1,18 @@
+# DINOv2 + BERT Composed Training Configuration
+
+# --- Model ---
+model_type: "dinov2_bert"
+encoder_mode: "composed"
+use_lora: true
+
+# --- Data ---
+data_path: "data/train.jsonl"
+val_data_path: "data/val.jsonl"
+image_root: "data/images"
+
+# --- Training ---
+output_dir: "experiments/output_dinov2_bert"
+epochs: 3
+
+# --- Memory ---
+use_gradient_cache: true

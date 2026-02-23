@@ -1,0 +1,24 @@
+name: visual-rag
+channels:
+  - pytorch
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch>=2.0.0
+  - pytorch-cuda=12.1
+  - pip
+  - pip:
+    - transformers>=4.37.0
+    - accelerate>=0.27.0
+    - datasets>=2.16.0
+    - scikit-learn
+    - numpy
+    - tqdm
+    - Pillow
+    - PyYAML
+    - sentencepiece
+    - packaging
+    - matplotlib
+    - requests
+    - -e .

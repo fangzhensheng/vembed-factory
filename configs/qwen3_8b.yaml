@@ -1,0 +1,7 @@
+# Qwen3-VL-8B Preset
+model_name: "Qwen/Qwen3-VL-Embedding-8B"
+encoder_mode: "qwen3_vl"
+batch_size: 1
+lr: 1.0e-5
+gradient_cache_chunk_size: 1
+mrl_dims: [3584]

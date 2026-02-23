@@ -1,0 +1,47 @@
+# ===========================================================================
+# docker-compose.yaml — vembed-factory
+# ===========================================================================
+# Usage:
+#   docker compose up -d          # Start container (detached)
+#   docker compose exec vembed bash  # Enter shell
+#   docker compose down           # Stop and remove
+# ===========================================================================
+
+services:
+  vembed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vembed-factory:latest
+    container_name: vembed-factory
+
+    # GPU access (requires nvidia-container-toolkit)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
+    volumes:
+      # Mount data directory (datasets, images)
+      - ./data:/app/data
+      # Mount output directory (checkpoints, logs)
+      - ./output:/app/output
+      # Optional: mount HuggingFace cache to avoid re-downloading models
+      - ${HF_HOME:-~/.cache/huggingface}:/root/.cache/huggingface
+
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - HF_HOME=/root/.cache/huggingface
+      # Uncomment to set HuggingFace mirror (for China mainland)
+      # - HF_ENDPOINT=https://hf-mirror.com
+
+      # Keep container alive (use `docker compose exec vembed bash` to enter)
+    stdin_open: true
+    tty: true
+    command: [ "bash" ]
+
+    # Shared memory for PyTorch DataLoader (multi-worker)
+    shm_size: "8gb"

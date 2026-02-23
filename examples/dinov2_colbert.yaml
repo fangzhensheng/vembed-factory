@@ -1,0 +1,31 @@
+# DINOv2 ColBERT Image-to-Image Training Configuration
+# Trained on Stanford Online Products (SOP)
+
+# --- Model ---
+model_type: "custom"
+model_name: "facebook/dinov2-base"
+retrieval_mode: "i2i"
+use_lora: true
+topk_tokens: 32
+projection_dim: 128
+pooling_strategy: "none"
+
+# --- Data ---
+data_path: "data/stanford_online_products/train.jsonl"
+val_data_path: "data/stanford_online_products/val.jsonl"
+image_root: "data/stanford_online_products"
+
+# --- Training ---
+output_dir: "output_sop_dinov2_colbert"
+epochs: 20
+batch_size: 128
+learning_rate: 5.0e-5
+loss_type: "colbert"
+
+# --- Memory ---
+use_gradient_cache: true
+
+# --- Logging ---
+report_to: "none"
+logging_steps: 10
+save_steps: 1000

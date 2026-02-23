@@ -1,0 +1,73 @@
+# vembed-factory — Default Configuration
+#
+# All values here can be overridden by:
+#   1. Model-type presets (e.g. clip.yaml, qwen3.yaml)
+#   2. CLI arguments (--config_override key=value)
+#   3. Python API parameters
+
+# Training Setup
+output_dir: "output"
+overwrite_output_dir: true
+epochs: 3
+batch_size: 32
+save_strategy: "epoch"
+save_steps: 0              # Save every N steps. 0 = disabled.
+logging_steps: 10
+
+# Data
+data_path: "data/train.jsonl"
+val_data_path: null
+image_root: ""
+max_seq_length: 128
+max_image_size: 224        # For CLIP/SigLIP. Qwen-VL handles dynamic resolution.
+
+# Optimizer
+lr: 2.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0         # Gradient clipping. 0 = disabled.
+
+# Learning Rate Scheduler
+scheduler_type: "cosine"   # Options: cosine, linear, constant, constant_with_warmup
+warmup_ratio: 0.1          # Fraction of total steps for warmup
+warmup_steps: 0            # If > 0, overrides warmup_ratio
+
+# Precision & Memory
+fp16: true
+torch_dtype: null              # float16, bfloat16, float32, auto, or null (framework default)
+attn_implementation: null      # flash_attention_2, sdpa, eager, or null (auto)
+use_gradient_cache: true
+gradient_cache_chunk_size: 8   # Micro-batch size for Gradient Cache
+
+# Model Defaults (overridden by presets)
+model_name_or_path: "openai/clip-vit-base-patch32"
+encoder_mode: "auto"       # auto, composed, vlm_generic
+projection_dim: null       # Optional output dimension projection (Linear layer)
+
+# Token Pruning (for late-interaction / ColBERT models)
+topk_tokens: 0             # 0 = keep all tokens; >0 = attention-guided top-K pruning (e.g. 32, 64)
+
+# Loss Configuration
+loss_type: "infonce"       # Options: infonce, mrl, triplet, cosent, colbert
+temperature: 0.05
+use_mrl: false
+mrl_dims: [768, 512, 256, 128]
+mrl_weights: [1.0, 1.0, 1.0, 1.0]
+
+# Distillation
+teacher_model_name: null   # If set, enables knowledge distillation
+distillation_alpha: 0.5    # Weight for task loss; (1-alpha) for distillation
+distillation_temperature: 1.0
+distillation_loss_type: "kl"
+
+# LoRA (requires `pip install peft`)
+use_lora: false
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: null  # null = auto-detect; or list like ["q_proj", "v_proj"]
+
+# Retrieval Mode
+retrieval_mode: "t2i"      # Options: t2i, i2i, i2t, t2t, m2i, m2t
+
+# Experiment Tracking
+report_to: "none"          # Options: wandb, tensorboard, swanlab, all, none

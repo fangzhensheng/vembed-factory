@@ -1,0 +1,14 @@
+# BGE-M3 Text-to-Text Training Configuration
+
+# --- Model ---
+model_type: "bge_m3"
+retrieval_mode: "t2t"
+use_lora: true
+
+# --- Data ---
+data_path: "data/train.jsonl"
+val_data_path: "data/val.jsonl"
+
+# --- Training ---
+output_dir: "experiments/output_bge_t2t"
+epochs: 3

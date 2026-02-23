@@ -1,0 +1,69 @@
+# ===========================================================================
+# .dockerignore — Keep Docker build context small and fast
+# ===========================================================================
+
+# Version control
+.git
+.gitignore
+.github
+
+# Virtual environments
+.venv
+.env
+env/
+venv/
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+build/
+dist/
+*.egg
+
+# IDE & Editor
+.idea/
+.vscode/
+.cursor/
+*.swp
+*.swo
+
+# Training outputs & model weights (can be very large)
+output/
+output_*/
+logs/
+checkpoints/
+results/
+wandb/
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.safetensors
+*.onnx
+
+# Data (mount at runtime instead)
+data/
+!data/dummy/
+
+# Test & coverage
+htmlcov/
+.coverage
+coverage.xml
+.pytest_cache
+.mypy_cache
+
+# Docker (avoid recursive context)
+Dockerfile
+docker-compose*.yaml
+.dockerignore
+
+# Docs & non-essential
+*.md
+!README.md
+!LICENSE
+notebooks/
+MANIFEST.in
+Makefile
+

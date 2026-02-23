@@ -1,0 +1,22 @@
+# Qwen2-VL ColBERT Training Configuration
+# Uses late-interaction loss (multi-vector)
+
+# --- Model ---
+model_type: "qwen"
+use_lora: true
+
+# --- Data ---
+data_path: "data/train.jsonl"
+val_data_path: "data/val.jsonl"
+image_root: "data/images"
+
+# --- Training ---
+output_dir: "experiments/output_qwen_colbert"
+epochs: 3
+batch_size: 64
+loss_type: "colbert"
+pooling_strategy: "colbert"
+
+# --- Memory ---
+use_gradient_cache: true
+gradient_cache_chunk_size: 4

@@ -1,0 +1,28 @@
+# CLIP Distillation Training Configuration
+# Distill knowledge from CLIP-Large to CLIP-Base
+
+# --- Model ---
+model_type: "clip"
+model_name: "openai/clip-vit-base-patch32"  # Student
+use_lora: true
+use_mrl: true
+
+# --- Data ---
+data_path: "data/train.jsonl"
+val_data_path: "data/val.jsonl"
+image_root: "data/images"
+
+# --- Training ---
+output_dir: "experiments/output_distill"
+epochs: 5
+batch_size: 64
+learning_rate: 5.0e-5
+
+# --- Distillation ---
+teacher_model_name: "openai/clip-vit-large-patch14"
+distillation_alpha: 0.5
+distillation_temperature: 2.0
+distillation_loss_type: "kl"
+
+# --- Distributed ---
+num_gpus: 2

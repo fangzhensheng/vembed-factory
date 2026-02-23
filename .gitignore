@@ -1,0 +1,76 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE & Editors
+.idea/
+.vscode/
+.cursor/
+.trae/
+*.swp
+*.swo
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# Project Specific
+output/
+output_*/
+benchmark_output*/
+logs/
+checkpoints/
+results/
+wandb/
+examples/data/
+examples/prepare_data_local.py
+test_output/
+
+# Model Weights & Large Files
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.safetensors
+*.onnx
+
+# Data (exclude large datasets, keep example data)
+/data/
+
+# Documentation
+site/
+
+# New Project Organization
+experiments/
+models/
+*.log
+result_inference.txt

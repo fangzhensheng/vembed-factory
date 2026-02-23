@@ -1,0 +1,32 @@
+# Qwen3-VL-Embedding-2B Training Configuration
+# Replaces run_qwen3_2b.sh mixed arguments
+
+# --- Model ---
+model_name: "models/Qwen/Qwen3-VL-Embedding-2B"
+encoder_mode: "qwen3_vl"
+use_lora: true
+attn_implementation: "flash_attention_2"
+torch_dtype: "bfloat16"
+gradient_checkpointing: true
+
+# --- Data ---
+# Note: Paths will be overridden by CLI or environment variables if needed
+# But for a pure config approach, we should set defaults here
+data_path: "data/train.jsonl"
+val_data_path: "data/val.jsonl"
+image_root: "data/images"
+
+# --- Training ---
+output_dir: "experiments/output_qwen3_2b"
+epochs: 3
+batch_size: 128
+learning_rate: 2.0e-5  # Default from preset qwen3
+loss_type: "infonce"
+
+# --- Memory Optimization ---
+use_gradient_cache: true
+gradient_cache_chunk_size: 16
+
+# --- MRL ---
+use_mrl: true
+mrl_dims: [1536, 1024, 768, 512, 256, 128, 64]  # Default MRL dims for Qwen3 preset

@@ -1,0 +1,8 @@
+# Composed Model: BGE + BGE (Text-to-Text)
+encoder_mode: "composed"
+text_model_name: "BAAI/bge-base-en-v1.5"
+image_model_name: "BAAI/bge-base-en-v1.5" # Using text model as "image" encoder for t2t symmetry
+batch_size: 64
+lr: 2.0e-5
+gradient_cache_chunk_size: 16
+mrl_dims: [768, 384]

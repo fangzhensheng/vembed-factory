@@ -1,0 +1,7 @@
+# Qwen3-VL-2B Preset
+model_name: "Qwen/Qwen3-VL-Embedding-2B"
+encoder_mode: "qwen3_vl"
+batch_size: 32
+lr: 2.0e-5
+gradient_cache_chunk_size: 2
+mrl_dims: [1536, 1024, 768, 512, 256, 128, 64]

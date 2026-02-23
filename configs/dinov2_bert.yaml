@@ -1,0 +1,12 @@
+# Composed Model: BERT + DINOv2  [EXPERIMENTAL]
+# Two independent encoders aligned via learnable projection heads.
+# For production use-cases, prefer CLIP/SigLIP or Qwen3-VL.
+encoder_mode: "composed"
+text_model_name: "bert-base-uncased"
+image_model_name: "facebook/dinov2-base"
+batch_size: 64
+lr: 5.0e-5
+gradient_cache_chunk_size: 16
+projection_dim: 512          # shared embedding dimension for cross-modal alignment
+projection_layers: 2         # 1 = linear, 2 = MLP (Linear→GELU→Linear)
+mrl_dims: [512, 256]         # must be ≤ projection_dim

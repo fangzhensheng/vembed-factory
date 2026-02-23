@@ -1,0 +1,21 @@
+# Qwen3-VL-Embedding-8B FSDP Training Configuration
+
+# --- Model ---
+model_type: "qwen3_8b"
+use_lora: true
+attn_implementation: "flash_attention_2"
+torch_dtype: "bfloat16"
+gradient_checkpointing: true
+
+# --- Data ---
+data_path: "data/train.jsonl"
+val_data_path: "data/val.jsonl"
+image_root: "data/images"
+
+# --- Training ---
+output_dir: "experiments/output_qwen3_8b_fsdp"
+epochs: 3
+
+# --- Distributed (FSDP) ---
+use_fsdp: true
+num_gpus: 4

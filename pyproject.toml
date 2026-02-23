@@ -1,0 +1,163 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vembed-factory"
+version = "0.1.0"
+description = "A Factory for Visual & Multimodal Embeddings — Fine-tune CLIP, SigLIP, Qwen-VL for Visual RAG."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Fang Zhensheng", email = "1613220541@qq.com"}
+]
+keywords = [
+    "embedding", "clip", "siglip", "qwen", "visual-rag",
+    "multimodal", "retrieval", "fine-tuning", "contrastive-learning",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "torch>=2.0.0",
+    "transformers>=4.37.0",
+    "accelerate>=0.27.0",
+    "datasets>=2.16.0",
+    "scikit-learn",
+    "numpy",
+    "tqdm",
+    "Pillow",
+    "PyYAML",
+    "sentencepiece",
+    "packaging",
+    "matplotlib",
+    "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black==24.4.2",
+    "isort",
+    "ruff",
+    "mypy",
+    "pre-commit",
+]
+demo = [
+    "gradio>=4.0",
+]
+lora = [
+    "peft>=0.7.0",
+]
+tracking = [
+    "wandb",
+    "tensorboard",
+    "swanlab",
+]
+flash = [
+    "flash-attn",
+]
+all = [
+    "vembed-factory[demo,lora,tracking,flash]",
+]
+
+[project.urls]
+Homepage = "https://github.com/fangzhensheng/vembed-factory"
+Documentation = "https://github.com/fangzhensheng/vembed-factory#readme"
+Repository = "https://github.com/fangzhensheng/vembed-factory"
+Issues = "https://github.com/fangzhensheng/vembed-factory/issues"
+Changelog = "https://github.com/fangzhensheng/vembed-factory/blob/main/CHANGELOG.md"
+
+[project.scripts]
+vembed = "vembed.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["vembed*"]
+
+[tool.setuptools.package-data]
+vembed = ["configs/*.yaml"]
+
+# ---------------------------------------------------------------------------
+# Tool configurations
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# uv configuration
+# ---------------------------------------------------------------------------
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "black==24.4.2",
+    "isort",
+    "ruff",
+    "mypy",
+    "pre-commit",
+]
+lora = [
+    "peft>=0.7.0",
+]
+tracking = [
+    "wandb",
+    "tensorboard",
+    "swanlab",
+]
+
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+
+[tool.uv]
+# Default groups to install with `uv sync`
+# Includes dev tools + common training deps (lora, tracking).
+# For flash-attn, use: uv sync --extra flash
+default-groups = ["dev", "lora", "tracking"]
+
+[tool.uv.sources]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["vembed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = ["vembed/grad_cache"]  # vendored third-party, do not lint
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]  # line length handled by black
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["F401"]  # re-exports are intentional
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

@@ -1,0 +1,3 @@
+# Loading
+
+::: vembed.data.loading

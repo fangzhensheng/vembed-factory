@@ -1,0 +1,22 @@
+# Core dependencies
+torch>=2.0.0
+transformers>=4.37.0
+accelerate>=0.27.0
+datasets>=2.16.0
+numpy
+tqdm
+Pillow
+pyyaml
+sentencepiece
+packaging
+matplotlib
+requests
+scikit-learn
+
+# Optional — uncomment as needed:
+# peft>=0.7.0              # LoRA fine-tuning
+# wandb                    # Weights & Biases tracking
+# tensorboard              # TensorBoard tracking
+# swanlab                  # SwanLab tracking
+# flash-attn               # FlashAttention-2 (pip install flash-attn --no-build-isolation)
+# gradio>=4.0              # Interactive demo app

@@ -1,0 +1,6 @@
+# SigLIP Base Preset
+model_name: "google/siglip-base-patch16-224"
+batch_size: 64
+lr: 5.0e-5
+gradient_cache_chunk_size: 16
+mrl_dims: [768, 512, 256]

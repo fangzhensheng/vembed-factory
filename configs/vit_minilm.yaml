@@ -1,0 +1,8 @@
+# Composed Model: MiniLM + ViT
+encoder_mode: "composed"
+text_model_name: "sentence-transformers/all-MiniLM-L6-v2"
+image_model_name: "google/vit-base-patch16-224"
+batch_size: 64
+lr: 5.0e-5
+gradient_cache_chunk_size: 16
+mrl_dims: [768, 384, 192]
