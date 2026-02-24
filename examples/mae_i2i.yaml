@@ -4,8 +4,9 @@
 # --- Model ---
 model_type: "custom"
 model_name: "facebook/vit-mae-base"
+pooling_method: "mean"
 retrieval_mode: "i2i"
-use_lora: true
+use_lora: false
 
 # --- Data ---
 data_path: "data/stanford_online_products/train.jsonl"
@@ -14,9 +15,9 @@ image_root: "data/stanford_online_products"
 
 # --- Training ---
 output_dir: "experiments/output_sop_mae_i2i"
-epochs: 20
+epochs: 50
 batch_size: 128
-learning_rate: 5.0e-5
+learning_rate: 1.0e-4
 loss_type: "infonce"
 
 # --- Logging ---

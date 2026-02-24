@@ -100,7 +100,7 @@ uv run vembed train --config examples/clip_train.yaml
 
 ## Tutorials
 
-- **[DINOv2 Image Retrieval (Image-to-Image)](docs/guides/dinov2_finetune_zh.md)**: A step-by-step guide to fine-tuning DINOv2 on the SOP dataset for high-precision image search. (Chinese)
+- **[DINOv2 Image Retrieval (Image-to-Image)](docs/guides/dinov2_finetune.md)**: A step-by-step guide to fine-tuning DINOv2 on the SOP dataset for high-precision image search.
 
 
 **Option 2: pip**

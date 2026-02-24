@@ -32,7 +32,7 @@ fi
 MODEL_BEFORE="$1"
 MODEL_AFTER="$2"
 SIMILARITY_MODE="${3:-cosine}"
-BATCH_SIZE="${4:-64}"
+BATCH_SIZE="${4:-256}"
 TOPK="${5:-100}"
 MRL_DIMS="${6:-}"
 
