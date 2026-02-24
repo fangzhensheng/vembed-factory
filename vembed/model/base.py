@@ -60,10 +60,10 @@ def _extract_hidden_state(outputs):
     raise AttributeError(f"Cannot extract hidden states from {type(outputs).__name__}")
 
 
-def pool(outputs, attention_mask, method: str = "mean"):
+def pool(outputs, attention_mask, method: str = "cls"):
     """Unified pooling over encoder outputs.
 
-    Supports: cls, mean, last_token, none.
+    Supports: cls (default), mean, last_token, none.
     Falls back to pooler_output when available (except for ``none``).
 
     When ``method="none"`` the full token-level hidden states ``[B, L, D]``

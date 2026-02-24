@@ -90,7 +90,7 @@ class AutoEmbeddingModel(BaseEmbeddingModel):
             config.get("pooling_method")
             or config.get("pooling_strategy")
             or config.get("pooling")
-            or "mean"
+            or "cls"
         )
         self.use_mrl = config.get("use_mrl", False)
 

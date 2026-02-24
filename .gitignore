@@ -74,6 +74,4 @@ experiments/
 models/
 *.log
 result_inference.txt
-
-# Scripts
 scripts/download_dinov3.py
