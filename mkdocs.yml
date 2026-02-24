@@ -42,10 +42,13 @@ plugins:
 nav:
   - Home: index.md
   - API Reference:
+      - Configuration:
+          - Hyperparameters: api/hparams.md
+          - Config Management: api/config.md
+          - CLI: api/cli.md
       - Data:
           - Dataset: api/data/dataset.md
           - Loading: api/data/loading.md
-          - Processors: api/data/processors.md
           - Collators: api/data/collators.md
           - Registry: api/data/registry.md
       - Model:
@@ -53,9 +56,14 @@ nav:
           - Modeling: api/model/modeling.md
           - Encoders Factory: api/model/encoders_factory.md
           - Backbones: api/model/backbones.md
+          - Processors:
+              - Overview: api/data/processors.md
+              - Implementations: api/model/processors.md
+          - Registry: api/model/registry.md
       - Losses:
           - Factory: api/losses/factory.md
           - Functions: api/losses/functions.md
+          - Registry: api/losses/registry.md
       - Training:
           - Trainer: api/training/trainer.md
           - Gradient Cache: api/training/gradient_cache.md

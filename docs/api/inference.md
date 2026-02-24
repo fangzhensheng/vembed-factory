@@ -1,3 +1,3 @@
 # Inference
 
-::: vembed.inference
+::: vembed.inference.VEmbedFactoryPredictor

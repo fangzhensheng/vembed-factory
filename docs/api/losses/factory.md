@@ -1,3 +1,4 @@
 # Loss Factory
 
-::: vembed.losses.factory
+::: vembed.losses.factory.LossFactory
+::: vembed.losses.factory.get_loss

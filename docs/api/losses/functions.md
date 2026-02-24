@@ -1,8 +1,9 @@
 # Loss Functions
 
-::: vembed.losses.functions.infonce
-::: vembed.losses.functions.triplet
-::: vembed.losses.functions.cosent
-::: vembed.losses.functions.distillation
-::: vembed.losses.functions.matryoshka
-::: vembed.losses.functions.colbert
+::: vembed.losses.functions.infonce.InfoNCELoss
+::: vembed.losses.functions.triplet.TripletLoss
+::: vembed.losses.functions.cosent.CosentLoss
+::: vembed.losses.functions.distillation.DistillationLoss
+::: vembed.losses.functions.matryoshka.MatryoshkaLoss
+::: vembed.losses.functions.colbert.ColBERTLoss
+::: vembed.losses.functions.sigmoid.SigmoidContrastiveLoss

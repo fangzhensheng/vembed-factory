@@ -47,7 +47,6 @@ There are excellent embedding libraries out there. Here's where **vembed-factory
 | **Knowledge Distillation** | ✅ | ✅ | ✅ |
 | **LoRA fine-tuning** | ✅ | ❌ | ❌ |
 | **W&B / TensorBoard** | ✅ | ✅ | ❌ |
-| **Pure training focus** | ✅ | ❌ | ❌ |
 
 **Core philosophy**: *"Do one thing and do it well."* We focus solely on **Training** and **Evaluation**, and output standard HuggingFace weights that you can deploy anywhere — LangChain, Milvus, Vespa, or any vector database.
 
@@ -96,8 +95,13 @@ uv sync --all-extras       # (Optional) Include all optional deps (LoRA, W&B, et
 
 # Run commands
 uv run python examples/quick_start.py
-uv run vembed train --config examples/train_config.yaml
+uv run vembed train --config examples/clip_train.yaml
 ```
+
+## Tutorials
+
+- **[DINOv2 Image Retrieval (Image-to-Image)](docs/guides/dinov2_finetune_zh.md)**: A step-by-step guide to fine-tuning DINOv2 on the SOP dataset for high-precision image search. (Chinese)
+
 
 **Option 2: pip**
 

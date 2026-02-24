@@ -1,3 +1,5 @@
 # Dataset
 
-::: vembed.data.dataset
+The core dataset class for retrieval tasks.
+
+::: vembed.data.dataset.GenericRetrievalDataset

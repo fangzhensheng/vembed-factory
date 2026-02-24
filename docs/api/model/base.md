@@ -1,3 +1,3 @@
 # Base Model
 
-::: vembed.model.base
+::: vembed.model.base.BaseEmbeddingModel

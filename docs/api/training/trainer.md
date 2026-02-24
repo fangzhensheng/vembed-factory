@@ -1,3 +1,3 @@
 # Trainer
 
-::: vembed.trainer
+::: vembed.trainer.VEmbedFactoryTrainer

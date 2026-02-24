@@ -1,3 +1,4 @@
-# Modeling
+# Model Architecture
 
-::: vembed.model.modeling
+::: vembed.model.modeling.VisualRetrievalModel
+::: vembed.model.modeling.ForwardOutput

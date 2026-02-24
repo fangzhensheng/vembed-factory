@@ -1,3 +1,5 @@
-# Loading
+# Data Loading
 
-::: vembed.data.loading
+Functions for loading datasets from various formats.
+
+::: vembed.data.loading.load_data

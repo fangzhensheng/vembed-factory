@@ -1,3 +1,4 @@
-# Report
+# Evaluation Report
 
-::: vembed.evaluation.report
+::: vembed.evaluation.report.EvaluationReport
+::: vembed.evaluation.report.generate_report
