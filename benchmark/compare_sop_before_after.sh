@@ -1,20 +1,26 @@
 #!/usr/bin/env bash
 # SOP before/after comparison (Image-to-Image retrieval)
-# Unified script for DINOv2, MAE, and ColBERT evaluation on Stanford Online Products.
+# Unified script for DINOv2, MAE, DINOv3, and ColBERT evaluation on Stanford Online Products.
 #
 # Usage:
 #   ./compare_sop_before_after.sh <BEFORE_MODEL> <AFTER_MODEL> [SIMILARITY_MODE] [BATCH_SIZE] [TOPK]
 #
 # Modes (SIMILARITY_MODE):
-#   cosine   : (Default) Standard dense retrieval (DINOv2, MAE, CLIP).
+#   cosine   : (Default) Standard dense retrieval (DINOv2, MAE, CLIP, DINOv3).
 #   colbert  : Before runs 'cosine' (baseline), After runs 'colbert' (MaxSim).
 #
 # Examples:
-#   # DINOv2 / MAE (Cosine)
-#   ./benchmark/compare_sop_before_after.sh facebook/dinov2-small ./experiments/output_sop/best cosine
+#   # 1. DINOv2 (Cosine)
+#   ./benchmark/compare_sop_before_after.sh facebook/dinov2-small ./experiments/output_sop_dinov2_i2i/checkpoint-epoch-3 cosine
 #
-#   # ColBERT (Before=Cosine, After=MaxSim)
-#   ./benchmark/compare_sop_before_after.sh facebook/dinov2-base ./experiments/output_colbert/best colbert
+#   # 2. MAE (Cosine)
+#   ./benchmark/compare_sop_before_after.sh facebook/vit-mae-base ./experiments/output_sop_mae_i2i/checkpoint-epoch-3 cosine
+#
+#   # 3. DINOv3 (Cosine)
+#   ./benchmark/compare_sop_before_after.sh models/dinov3-vitb16-pretrain-lvd1689m ./experiments/output_sop_dinov3_i2i/checkpoint-epoch-3 cosine
+#
+#   # 4. ColBERT (Before=Cosine, After=MaxSim)
+#   ./benchmark/compare_sop_before_after.sh facebook/dinov2-base ./experiments/output_sop_dinov2_colbert/checkpoint-epoch-3 colbert
 
 set -euo pipefail
 

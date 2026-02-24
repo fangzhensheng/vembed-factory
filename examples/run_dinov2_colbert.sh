@@ -25,7 +25,7 @@ fi
 # Training Configuration
 # Use dinov2-base to match the InfoNCE baseline (dinov2-small also works but weaker)
 MODEL_NAME="facebook/dinov2-base"
-OUTPUT_DIR="output_sop_dinov2_colbert"
+OUTPUT_DIR="experiments/output_sop_dinov2_colbert"
 
 echo "Model: $MODEL_NAME | projection_dim=128, pooling=none, topk_tokens=32"
 

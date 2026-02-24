@@ -30,7 +30,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "torch>=2.0.0",
+    "torch==2.7.*",
+    "torchvision",
     "transformers>=4.37.0",
     "accelerate>=0.27.0",
     "datasets>=2.16.0",

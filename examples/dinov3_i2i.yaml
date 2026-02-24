@@ -1,0 +1,30 @@
+# DINOv3 Image-to-Image Training Configuration
+# Trained on Stanford Online Products (SOP)
+
+# --- Model ---
+# Using "auto" mode since DINOv3 is supported via AutoModel/AutoProcessor
+encoder_mode: "auto"
+model_name: "models/dinov3-vitb16-pretrain-lvd1689m"
+retrieval_mode: "i2i"
+use_lora: true      # Fine-tuning with LoRA
+lora_r: 16
+lora_alpha: 32
+lora_target_modules: ["q_proj", "v_proj", "query", "value", "key", "dense"]
+
+# --- Data ---
+data_path: "data/stanford_online_products/train.jsonl"
+val_data_path: "data/stanford_online_products/val.jsonl"
+image_root: "data/stanford_online_products"
+
+# --- Training ---
+output_dir: "experiments/output_sop_dinov3_i2i"
+epochs: 10          # Reduced epochs for larger model
+batch_size: 128      # Reduced batch size for larger model
+learning_rate: 2.0e-5 # Slightly lower LR for fine-tuning
+loss_type: "infonce"
+gradient_checkpointing: true # Save memory
+
+# --- Logging ---
+report_to: "none"
+logging_steps: 10
+save_steps: 500

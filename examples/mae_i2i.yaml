@@ -13,7 +13,7 @@ val_data_path: "data/stanford_online_products/val.jsonl"
 image_root: "data/stanford_online_products"
 
 # --- Training ---
-output_dir: "output_sop_mae_i2i"
+output_dir: "experiments/output_sop_mae_i2i"
 epochs: 20
 batch_size: 128
 learning_rate: 5.0e-5

@@ -24,7 +24,7 @@ fi
 
 # Training Configuration
 MODEL_NAME="facebook/vit-mae-base"
-OUTPUT_DIR="output_sop_mae_i2i"
+OUTPUT_DIR="experiments/output_sop_mae_i2i"
 
 # Launch training
 python run.py examples/mae_i2i.yaml \
