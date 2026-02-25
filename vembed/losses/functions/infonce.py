@@ -51,15 +51,30 @@ class InfoNCELoss(BaseLoss):
                 logits = logits - logits_max.detach()
 
                 # Denominator: sum of exp(logits) for ALL samples (positives + negatives)
-                exp_logits = torch.exp(logits)
+                # Exclude the diagonal (self) from the denominator to follow SupCon Eq 2
+                eye = torch.eye(batch_size, device=query_emb.device)
+                logits_masked = logits.masked_fill(eye > 0, -1e9)
+
+                exp_logits = torch.exp(logits_masked)
                 log_prob = logits - torch.log(exp_logits.sum(dim=1, keepdim=True))
 
                 # Compute mean of log-likelihood over positive set
                 # mask[i, j] = 1 if i and j have same label
-                # We need to normalize by the number of positives for each anchor
-                mean_log_prob_pos = (mask * log_prob).sum(dim=1) / mask.sum(dim=1)
+                # Exclude the diagonal from the POSITIVE set to avoid optimizing trivial self-similarity
+                mask_pos = mask * (1 - eye)
 
-                return -mean_log_prob_pos.mean()
+                # Normalize by the number of positives for each anchor (excluding self)
+                num_pos = mask_pos.sum(dim=1)
+                num_pos = torch.where(num_pos > 0, num_pos, torch.ones_like(num_pos))
+
+                mean_log_prob_pos = (mask_pos * log_prob).sum(dim=1) / num_pos
+
+                # Only average over anchors that actually had positives
+                valid_anchors = mask_pos.sum(dim=1) > 0
+                if valid_anchors.sum() > 0:
+                    return -mean_log_prob_pos[valid_anchors].mean()
+                else:
+                    return torch.tensor(0.0, device=logits.device, requires_grad=True)
 
             target_labels = torch.arange(batch_size, device=query_emb.device)
             return self.cross_entropy(logits, target_labels)
