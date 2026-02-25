@@ -12,7 +12,7 @@ class VisualRetrievalModel(nn.Module):
     def __init__(
         self,
         model_name_or_path: str,
-        pooling_method: str = "mean",
+        pooling_method: str | None = None,
         use_mrl: bool = False,
         mrl_dims: list[int] | None = None,
         encoder_mode: str = "auto",

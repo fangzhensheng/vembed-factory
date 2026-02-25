@@ -307,7 +307,7 @@ def main():
 
     model = VisualRetrievalModel(
         model_name,
-        pooling_method=config.get("pooling", "mean"),
+        pooling_method=config.get("pooling"),
         use_mrl=config.get("use_mrl", False),
         mrl_dims=[int(d) for d in config.get("mrl_dims", [768])],
         encoder_mode=encoder_mode,
@@ -417,7 +417,7 @@ def main():
         accelerator.print(f"Loading teacher: {config['teacher_model_name']}")
         teacher_model = VisualRetrievalModel(
             config["teacher_model_name"],
-            pooling_method=config.get("pooling", "mean"),
+            pooling_method=config.get("pooling"),
             use_mrl=False,
             encoder_mode=encoder_mode,
             text_model_name=text_model_name,
@@ -461,7 +461,7 @@ def main():
         import json
 
         vembed_cfg = {
-            "pooling_method": config.get("pooling", "mean"),
+            "pooling_method": config.get("pooling"),
             "projection_dim": config.get("projection_dim"),
             "topk_tokens": int(config.get("topk_tokens", 0)),
             "retrieval_mode": config.get("retrieval_mode", "t2i"),
