@@ -42,15 +42,24 @@ class InfoNCELoss(BaseLoss):
             logits = query_emb @ positive_emb.T / self.temperature
 
             if labels is not None:
-                # Mask out same-label samples (Supervised Contrastive Loss style)
+                # Supervised Contrastive Loss: Treat same-label samples as positives
                 labels = labels.view(-1, 1)
                 mask = torch.eq(labels, labels.T).float()
 
-                # Exclude false negatives (same label but different index) from denominator
-                eye = torch.eye(batch_size, device=query_emb.device)
-                false_negative_mask = (mask - eye) > 0
+                # For numerical stability
+                logits_max, _ = torch.max(logits, dim=1, keepdim=True)
+                logits = logits - logits_max.detach()
 
-                logits = logits.masked_fill(false_negative_mask, -1e9)
+                # Denominator: sum of exp(logits) for ALL samples (positives + negatives)
+                exp_logits = torch.exp(logits)
+                log_prob = logits - torch.log(exp_logits.sum(dim=1, keepdim=True))
+
+                # Compute mean of log-likelihood over positive set
+                # mask[i, j] = 1 if i and j have same label
+                # We need to normalize by the number of positives for each anchor
+                mean_log_prob_pos = (mask * log_prob).sum(dim=1) / mask.sum(dim=1)
+
+                return -mean_log_prob_pos.mean()
 
             target_labels = torch.arange(batch_size, device=query_emb.device)
             return self.cross_entropy(logits, target_labels)

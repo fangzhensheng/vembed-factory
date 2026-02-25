@@ -35,7 +35,7 @@ warmup_steps: 0            # If > 0, overrides warmup_ratio
 fp16: true
 torch_dtype: null              # float16, bfloat16, float32, auto, or null (framework default)
 attn_implementation: null      # flash_attention_2, sdpa, eager, or null (auto)
-use_gradient_cache: true
+use_gradient_cache: false
 gradient_cache_chunk_size: 8   # Micro-batch size for Gradient Cache
 
 # Model Defaults (overridden by presets)

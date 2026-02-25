@@ -27,7 +27,8 @@ from vembed.data.dataset import VisualRetrievalDataset
 from vembed.data.registry import CollatorRegistry
 from vembed.losses.factory import LossFactory
 from vembed.model.modeling import VisualRetrievalModel
-from vembed.training.gradient_cache import GradientCache
+from vembed.core.gradient_cache import GradientCache
+from vembed.evaluation.metrics import compute_recall_metrics
 
 # Post-init accelerate logger — only use after Accelerator() is created
 logger = get_logger(__name__)
@@ -496,15 +497,38 @@ def main():
                 all_q_embs.append(accelerator.gather_for_metrics(q_embs).cpu())
                 all_p_embs.append(accelerator.gather_for_metrics(p_embs).cpu())
 
-                # Gather labels if available
+                # Gather labels if available (for recall calculation)
                 if "labels" in batch:
                     all_q_labels.append(accelerator.gather_for_metrics(batch["labels"]).cpu())
                     all_p_labels.append(accelerator.gather_for_metrics(batch["labels"]).cpu())
 
         avg_loss = total_loss / max(num_batches, 1)
-        accelerator.print(f"Validation loss: {avg_loss:.4f}\n")
+        accelerator.print(f"Validation loss: {avg_loss:.4f}")
+
+        # Compute recall metrics if labels are available
+        recall_metrics = {}
+        if all_q_labels:
+            recall_metrics = compute_recall_metrics(
+                all_q_embs,
+                all_p_embs,
+                all_q_labels,
+                all_p_labels if all_p_labels else None,
+                k_list=[1, 10, 100],
+                exclude_diagonal=True,
+            )
+            # Print recall metrics
+            accelerator.print("Validation recalls:")
+            for metric_name, metric_val in recall_metrics.items():
+                accelerator.print(f"  {metric_name}: {metric_val:.4f}")
+            accelerator.print()
+
+        # Log metrics
         if log_with is not None:
-            accelerator.log({"val/loss": avg_loss}, step=global_step)
+            log_dict = {"val/loss": avg_loss}
+            # Add recall metrics to logging
+            log_dict.update(recall_metrics)
+            accelerator.log(log_dict, step=global_step)
+
         model.train()
         return avg_loss
 
