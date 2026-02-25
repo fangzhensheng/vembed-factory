@@ -69,5 +69,8 @@ lora_target_modules: null  # null = auto-detect; or list like ["q_proj", "v_proj
 # Retrieval Mode
 retrieval_mode: "t2i"      # Options: t2i, i2i, i2t, t2t, m2i, m2t
 
+# Pooling Method
+pooling_method: null       # Options: mean, cls, null (to use model default)
+
 # Experiment Tracking
 report_to: "none"          # Options: wandb, tensorboard, swanlab, all, none
