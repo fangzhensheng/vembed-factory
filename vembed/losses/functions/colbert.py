@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..registry import LossRegistry
+from .base import BaseLoss
 
 
 def _maxsim(query_emb: torch.Tensor, doc_emb: torch.Tensor) -> torch.Tensor:
@@ -33,7 +34,7 @@ def _maxsim(query_emb: torch.Tensor, doc_emb: torch.Tensor) -> torch.Tensor:
 
 
 @LossRegistry.register("colbert")
-class ColBERTLoss(nn.Module):
+class ColBERTLoss(BaseLoss):
     """Late-interaction (ColBERT) loss with in-batch + optional hard negatives.
 
     ``Score(Q, D) = mean_q max_d (q_i · d_j)``
@@ -46,14 +47,19 @@ class ColBERTLoss(nn.Module):
     When ``negative_emb`` is provided the score matrix is expanded to include
     hard negatives so the model is trained to rank positives above both
     in-batch and hard negatives.
+
+    Gather is disabled by default for ColBERT loss.
     """
 
+    enable_gather_default: bool = False
+
     def __init__(self, config: dict[str, Any]):
-        super().__init__()
+        super().__init__(config)
         self.temperature = config.get("temperature", 0.05)
         self.cross_entropy = nn.CrossEntropyLoss()
+        self._enable_gather = config.get("enable_gather", self.enable_gather_default)
 
-    def forward(
+    def _forward(
         self,
         query_emb: torch.Tensor,
         positive_emb: torch.Tensor,
@@ -67,15 +73,12 @@ class ColBERTLoss(nn.Module):
             # In-batch negatives only: score matrix [B, B]
             scores = _maxsim(query_emb, positive_emb) / self.temperature
 
-            # In SOP-like datasets multiple images share the same class_id.
-            # If sample j has the same label as sample i (j ≠ i) it is a
-            # false negative — mask it out so the model isn't penalised for
-            # ranking it highly.
+            # Mask out false negatives (same-label samples) to avoid penalising valid matches
             if labels is not None:
-                label_col = labels.view(-1, 1)  # [B, 1]
-                same_label = label_col.eq(label_col.T)  # [B, B]
+                label_col = labels.view(-1, 1)
+                same_label = label_col.eq(label_col.T)
                 eye = torch.eye(B, dtype=torch.bool, device=scores.device)
-                false_neg_mask = same_label & ~eye  # same class, different index
+                false_neg_mask = same_label & ~eye
                 scores = scores.masked_fill(false_neg_mask, -1e9)
 
             target = torch.arange(B, device=query_emb.device)

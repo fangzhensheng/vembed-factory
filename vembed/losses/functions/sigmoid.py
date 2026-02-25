@@ -5,18 +5,23 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..registry import LossRegistry
+from .base import BaseLoss
 
 
 @LossRegistry.register("sigmoid")
-class SigmoidLoss(nn.Module):
+class SigmoidLoss(BaseLoss):
     """Sigmoid Loss for Language Image Pre-Training (SigLIP).
 
     References:
         https://arxiv.org/abs/2303.15343
+
+    Gather is disabled by default for Sigmoid loss as it uses pair-wise scoring.
     """
 
+    enable_gather_default: bool = False
+
     def __init__(self, config: dict[str, Any]):
-        super().__init__()
+        super().__init__(config)
         # Initial values from SigLIP paper/code
         # logit_scale_init_value = 2.6592 (approx ln(14.3))
         # logit_bias_init_value = -10.0
@@ -25,8 +30,9 @@ class SigmoidLoss(nn.Module):
 
         self.logit_scale = nn.Parameter(torch.tensor(float(init_logit_scale)))
         self.logit_bias = nn.Parameter(torch.tensor(float(init_logit_bias)))
+        self._enable_gather = config.get("enable_gather", self.enable_gather_default)
 
-    def forward(
+    def _forward(
         self,
         query_emb: torch.Tensor,
         positive_emb: torch.Tensor,
@@ -51,29 +57,22 @@ class SigmoidLoss(nn.Module):
             all_docs = positive_emb
 
         # Compute logits: (B_query, N_docs)
-        # logits = (Q @ D^T) * exp(scale) + bias
         logits = torch.matmul(query_emb, all_docs.T) * self.logit_scale.exp() + self.logit_bias
 
         B = query_emb.size(0)
         N = all_docs.size(0)
 
-        # Create targets: 1 for positives, -1 for negatives
-        # Initialize with -1 (negatives)
+        # Create targets: 1 for positives (diagonal), -1 for negatives
         targets = torch.full((B, N), -1.0, device=logits.device, dtype=logits.dtype)
-
-        # Set diagonal to 1 (positives) for the first B columns
-        # Note: positive_emb corresponds to indices 0..B-1
         targets[:, :B].fill_diagonal_(1.0)
 
         # Handle label-aware masking / multi-positives
         if labels is not None:
-            # labels: [B]
             # Check for same-label pairs within the in-batch positives
-            label_col = labels.view(-1, 1)  # [B, 1]
-            same_label = label_col.eq(label_col.T)  # [B, B]
+            label_col = labels.view(-1, 1)
+            same_label = label_col.eq(label_col.T)
 
-            # Where labels match, set target to 1 (false negatives become positives)
-            # This handles both the diagonal (already 1) and other same-class samples
+            # Set same-label pairs to 1 (treat as additional positives)
             targets[:, :B] = torch.where(
                 same_label,
                 torch.tensor(1.0, device=targets.device, dtype=targets.dtype),
@@ -81,8 +80,6 @@ class SigmoidLoss(nn.Module):
             )
 
         # Compute Sigmoid Loss
-        # loss = -mean_over_batch( sum_over_pairs( log_sigmoid(target * logit) ) )
-        #      = - (1/B) * sum( log_sigmoid(targets * logits) )
         loss = -F.logsigmoid(targets * logits).sum() / B
 
         return loss

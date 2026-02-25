@@ -5,18 +5,23 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..registry import LossRegistry
+from .base import BaseLoss
 
 
 @LossRegistry.register("cosent")
-class CoSENTLoss(nn.Module):
+class CoSENTLoss(BaseLoss):
     """Cosine Sentence loss: log(1 + sum(exp(scale * (neg_sim - pos_sim))))
 
     More robust to hyperparameters than triplet loss and typically converges faster.
+    Gather is disabled by default for CoSENT loss.
     """
 
+    enable_gather_default: bool = False
+
     def __init__(self, config: dict[str, Any]):
-        super().__init__()
+        super().__init__(config)
         self.scale = config.get("cosent_scale", 20.0)
+        self._enable_gather = config.get("enable_gather", self.enable_gather_default)
 
     def _logsumexp_with_one(self, diffs: torch.Tensor) -> torch.Tensor:
         """Compute log(1 + sum(exp(scale * diffs))) via logsumexp([0, scale*diffs])."""

@@ -5,15 +5,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..registry import LossRegistry
+from .base import BaseLoss
 
 
 @LossRegistry.register("triplet")
-class TripletMarginLoss(nn.Module):
-    """max(0, sim(q, hardest_neg) - sim(q, pos) + margin)"""
+class TripletMarginLoss(BaseLoss):
+    """max(0, sim(q, hardest_neg) - sim(q, pos) + margin)
+
+    Gather is disabled by default for Triplet loss.
+    """
+
+    enable_gather_default: bool = False
 
     def __init__(self, config: dict[str, Any]):
-        super().__init__()
+        super().__init__(config)
         self.margin = config.get("triplet_margin", 0.5)
+        self._enable_gather = config.get("enable_gather", self.enable_gather_default)
 
     def forward(
         self,

@@ -40,10 +40,16 @@ class GradCache:
             models: List of encoder models to update.
             chunk_sizes: Batch size for each chunk.
             loss_fn: Loss function accepting representation tensors.
+                    When using BaseLoss subclasses, gather is handled automatically.
             split_input_fn: Optional custom function to split inputs.
             get_rep_fn: Optional custom function to extract representations from model output.
             fp16: Enable mixed precision training.
             scaler: GradScaler for mixed precision (required if fp16 is True).
+
+        Note:
+            When gradient cache is enabled with distributed training, embeddings are
+            gathered across processes by BaseLoss subclasses before computing the loss.
+            This allows proper in-batch negative sampling across multiple GPUs.
         """
         self.models = models
 

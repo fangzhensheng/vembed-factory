@@ -5,16 +5,28 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..registry import LossRegistry
+from .base import BaseLoss
 
 
 @LossRegistry.register("infonce")
-class InfoNCELoss(nn.Module):
+class InfoNCELoss(BaseLoss):
+    """InfoNCE loss with optional distributed gather support.
+
+    When gather is enabled (in distributed training), embeddings are gathered
+    across all processes to compute loss on the global batch, enabling proper
+    in-batch negative sampling across multiple GPUs.
+    """
+
+    enable_gather_default: bool = True  # InfoNCE defaults to gather enabled
+
     def __init__(self, config: dict[str, Any]):
-        super().__init__()
+        super().__init__(config)
         self.temperature = config.get("temperature", 0.05)
         self.cross_entropy = nn.CrossEntropyLoss()
+        # Enable gather by default for InfoNCE, can be overridden by config
+        self._enable_gather = config.get("enable_gather", self.enable_gather_default)
 
-    def forward(
+    def _forward(
         self,
         query_emb: torch.Tensor,
         positive_emb: torch.Tensor,
@@ -31,22 +43,12 @@ class InfoNCELoss(nn.Module):
 
             if labels is not None:
                 # Mask out same-label samples (Supervised Contrastive Loss style)
-                # labels: [B]
-                # mask: [B, B], 1 if label[i] == label[j], 0 otherwise
                 labels = labels.view(-1, 1)
                 mask = torch.eq(labels, labels.T).float()
 
-                # We want to keep the diagonal (positive pair) as 1, but treat other same-label pairs as IGNORED
-                # Standard InfoNCE with in-batch negatives:
-                #   Loss = -log( exp(pos) / (exp(pos) + sum(exp(neg))) )
-                # Here, "neg" includes all other samples in batch.
-                # If sample j has same label as sample i (and j != i), it is a FALSE NEGATIVE.
-                # We should exclude it from the denominator.
-                # So we set logits[i, j] = -inf for j != i where label[i] == label[j]
-
-                # Create mask for same-label but different-index samples
+                # Exclude false negatives (same label but different index) from denominator
                 eye = torch.eye(batch_size, device=query_emb.device)
-                false_negative_mask = (mask - eye) > 0  # 1 where labels match AND i != j
+                false_negative_mask = (mask - eye) > 0
 
                 logits = logits.masked_fill(false_negative_mask, -1e9)
 

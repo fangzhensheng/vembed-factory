@@ -32,11 +32,24 @@ class LossFactory:
 
         base_loss = loss_cls(config)
 
+        # Initialize gather based on loss type and config
+        # InfoNCE defaults to gather enabled, others default to disabled
+        # Can be overridden via config "enable_gather" key
+        from .functions.base import BaseLoss
+        if isinstance(base_loss, BaseLoss):
+            base_loss.set_gather(base_loss.enable_gather_default)
+
         if not config.get("use_mrl", False):
             return base_loss
 
-        return MatryoshkaLoss(
+        mrl_loss = MatryoshkaLoss(
             base_loss,
             dims=config.get("mrl_dims", [768]),
             weights=config.get("mrl_weights"),
         )
+
+        # Propagate gather setting to the MRL wrapper
+        if isinstance(base_loss, BaseLoss):
+            mrl_loss.set_gather(base_loss.enable_gather_default)
+
+        return mrl_loss
