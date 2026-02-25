@@ -477,6 +477,7 @@ def main():
     def evaluate() -> float:
         model.eval()
         total_loss, num_batches = 0.0, 0
+        all_q_embs, all_p_embs, all_q_labels, all_p_labels = [], [], [], []
         accelerator.print("\nRunning validation...")
 
         with torch.no_grad():
@@ -490,6 +491,15 @@ def main():
 
                 total_loss += criterion(q_embs, p_embs, None, **loss_kwargs).item()
                 num_batches += 1
+
+                # Gather embeddings across all processes for metrics calculation
+                all_q_embs.append(accelerator.gather_for_metrics(q_embs).cpu())
+                all_p_embs.append(accelerator.gather_for_metrics(p_embs).cpu())
+
+                # Gather labels if available
+                if "labels" in batch:
+                    all_q_labels.append(accelerator.gather_for_metrics(batch["labels"]).cpu())
+                    all_p_labels.append(accelerator.gather_for_metrics(batch["labels"]).cpu())
 
         avg_loss = total_loss / max(num_batches, 1)
         accelerator.print(f"Validation loss: {avg_loss:.4f}\n")
