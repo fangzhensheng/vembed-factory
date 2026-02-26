@@ -4,6 +4,9 @@ site_url: https://fangzhensheng.github.io/vembed-factory/
 repo_url: https://github.com/fangzhensheng/vembed-factory
 repo_name: fangzhensheng/vembed-factory
 
+# Documentation directory
+docs_dir: docs
+
 theme:
   name: material
   features:
