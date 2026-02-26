@@ -1,5 +1,11 @@
-# Processor Implementations
+# Model Processors
 
-::: vembed.model.processors.default
-::: vembed.model.processors.qwen3_vl
-::: vembed.model.processors.siglip
+Processor registry for model input/output handling.
+
+## Overview
+
+Auto-detects and loads appropriate processor for each model architecture.
+
+---
+
+::: vembed.model.processors

@@ -1,5 +1,11 @@
 # Data Registry
 
-The Data Registry (specifically the Collator Registry) manages the different data collators available in the system. Collators are responsible for batching and processing data items into tensors suitable for model input.
+Dynamic collator registration and selection.
+
+## Overview
+
+Registry system for discovering and loading collators for different model types.
+
+---
 
 ::: vembed.data.registry.CollatorRegistry

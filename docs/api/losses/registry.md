@@ -1,5 +1,11 @@
 # Loss Registry
 
-The Loss Registry manages the available loss functions for training embedding models.
+Dynamic loss registration system.
+
+## Overview
+
+Registry for discovering and loading loss functions.
+
+---
 
 ::: vembed.losses.registry.LossRegistry

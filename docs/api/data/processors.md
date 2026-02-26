@@ -1,7 +1,11 @@
-# Model Processors
+# Data Processors
 
-::: vembed.model.processors.ProcessorRegistry
-::: vembed.model.processors.BaseProcessorLoader
-::: vembed.model.processors.build_multimodal_processor
-::: vembed.model.processors.build_text_processor
-::: vembed.model.processors.build_image_processor
+Input/output processing for different model types.
+
+## Overview
+
+Data processors handle tokenization and formatting for specific model architectures.
+
+---
+
+::: vembed.data.processors
