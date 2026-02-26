@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel
 
-from ..base import BaseEmbeddingModel, _extract_hidden_state, resolve_pretrained_kwargs
+from ..base import BaseEmbeddingModel, _extract_hidden_state, resolve_pretrained_kwargs, disable_kv_cache
 from ..registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
@@ -31,9 +31,8 @@ class GenericVLMEmbeddingModel(BaseEmbeddingModel):
             self.model_name,
             **resolve_pretrained_kwargs(config),
         )
+        disable_kv_cache(self.backbone)
         self.hf_config = self.backbone.config
-
-        # Automatically load LoRA adapter if present in the model directory
         adapter_config_path = os.path.join(self.model_name, "adapter_config.json")
         if os.path.exists(adapter_config_path):
             try:

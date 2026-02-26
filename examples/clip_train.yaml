@@ -11,6 +11,6 @@ image_root: "data/images"
 
 # --- Training ---
 output_dir: "experiments/output_clip"
-epochs: 5
+epochs: 20
 batch_size: 128
 

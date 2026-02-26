@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModel
 
-from ..base import BaseEmbeddingModel, pool, resolve_pretrained_kwargs
+from ..base import BaseEmbeddingModel, pool, resolve_pretrained_kwargs, disable_kv_cache
 from ..registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
@@ -103,8 +103,7 @@ class AutoEmbeddingModel(BaseEmbeddingModel):
             self.model_name,
             **resolve_pretrained_kwargs(config),
         )
-
-        # Automatically load LoRA adapter if present in the model directory
+        disable_kv_cache(self.backbone)
         adapter_config_path = os.path.join(self.model_name, "adapter_config.json")
         if os.path.exists(adapter_config_path):
             try:

@@ -61,10 +61,10 @@ def _unpack_query_batch(batch: dict[str, Any], retrieval_mode: str) -> dict[str,
             )
         result: dict[str, Any] = {"pixel_values": batch["query_pixel_values"]}
         # VLMs (e.g. Qwen3-VL) also need input_ids for image items
-        if "query_input_ids" in batch:
+        if "query_input_ids" in batch and batch["query_input_ids"] is not None:
             result["input_ids"] = batch["query_input_ids"]
             result["attention_mask"] = batch["query_attention_mask"]
-        elif "input_ids" in batch:
+        elif "input_ids" in batch and batch["input_ids"] is not None:
             result["input_ids"] = batch["input_ids"]
             result["attention_mask"] = batch["attention_mask"]
         if "query_image_grid_thw" in batch and batch["query_image_grid_thw"] is not None:
@@ -96,7 +96,7 @@ def _unpack_positive_batch(batch: dict[str, Any], retrieval_mode: str) -> dict[s
     result: dict[str, Any] = {"pixel_values": pv}
 
     # VLMs (e.g. Qwen3-VL) also need input_ids for image items
-    if "pos_input_ids" in batch:
+    if "pos_input_ids" in batch and batch["pos_input_ids"] is not None:
         result["input_ids"] = batch["pos_input_ids"]
         result["attention_mask"] = batch["pos_attention_mask"]
 
@@ -240,6 +240,96 @@ def _apply_lora(model, config, accelerator):
         sys.exit(1)
 
 
+def _concat_batches(
+    batches: list[dict[str, Any]], pad_token_id: int = 0
+) -> tuple[dict[str, Any], list[int]]:
+    """Concatenate multiple input batches into a single batch for unified forward pass.
+
+    Returns:
+        concatenated_batch: dict with concatenated tensors
+        batch_sizes: list of batch sizes (to split outputs later)
+    """
+    batch_sizes = []
+    for b in batches:
+        if "input_ids" in b and b["input_ids"] is not None:
+            batch_sizes.append(b["input_ids"].size(0))
+        elif "pixel_values" in b and b["pixel_values"] is not None:
+            batch_sizes.append(b["pixel_values"].size(0))
+        else:
+            raise ValueError(
+                f"Cannot determine batch size: batch keys={list(b.keys())}, "
+                f"input_ids is {b.get('input_ids')}, pixel_values is {b.get('pixel_values')}"
+            )
+    
+    # Collect all unique keys across batches
+    all_keys = set()
+    for b in batches:
+        all_keys.update(b.keys())
+
+    concatenated = {}
+
+    # Process input_ids and attention_mask (requires padding to max length)
+    if "input_ids" in all_keys:
+        # Find max sequence length, skipping None values
+        max_len = 0
+        for b in batches:
+            if "input_ids" in b and b["input_ids"] is not None:
+                max_len = max(max_len, b["input_ids"].size(1))
+
+        # Pad all sequences to max_len then concatenate
+        padded_ids = []
+        padded_masks = []
+
+        for b in batches:
+            if "input_ids" in b and b["input_ids"] is not None:
+                curr_ids = b["input_ids"]
+                curr_mask = b["attention_mask"]
+                B, L = curr_ids.shape
+                diff = max_len - L
+                if diff > 0:
+                    # Pad input_ids with pad_token_id
+                    pad_tensor = torch.full(
+                        (B, diff), pad_token_id, dtype=curr_ids.dtype, device=curr_ids.device
+                    )
+                    curr_ids = torch.cat([curr_ids, pad_tensor], dim=1)
+
+                    # Pad attention_mask with zeros
+                    mask_pad = torch.zeros(
+                        (B, diff), dtype=curr_mask.dtype, device=curr_mask.device
+                    )
+                    curr_mask = torch.cat([curr_mask, mask_pad], dim=1)
+
+                padded_ids.append(curr_ids)
+                padded_masks.append(curr_mask)
+
+        if padded_ids:
+            concatenated["input_ids"] = torch.cat(padded_ids, dim=0)
+            concatenated["attention_mask"] = torch.cat(padded_masks, dim=0)
+
+    # Process pixel_values (simple concatenation, no padding needed)
+    # Qwen-VL: pixel_values shape is (N_total, C, H, W)
+    if "pixel_values" in all_keys:
+        pvs = []
+        for b in batches:
+            pv = b.get("pixel_values")
+            if pv is not None:
+                pvs.append(pv)
+        if pvs:
+            concatenated["pixel_values"] = torch.cat(pvs, dim=0)
+
+    # Process image_grid_thw for VLM models (simple concatenation)
+    if "image_grid_thw" in all_keys:
+        grids = []
+        for b in batches:
+            g = b.get("image_grid_thw")
+            if g is not None:
+                grids.append(g)
+        if grids:
+            concatenated["image_grid_thw"] = torch.cat(grids, dim=0)
+
+    return concatenated, batch_sizes
+
+
 def _load_processor(model_name: str) -> Any:
     """Load processor via the ProcessorRegistry (auto-detect or fallback)."""
     from vembed.model.processors import ProcessorRegistry
@@ -270,8 +360,17 @@ def main():
 
     os.makedirs(config["output_dir"], exist_ok=True)
 
+    use_grad_checkpointing = config.get("gradient_checkpointing", False)
+    use_gradient_cache = config.get("use_gradient_cache", False)
+    find_unused = bool(config.get("ddp_find_unused_parameters", True))
+
+    # Disable find_unused_parameters when using gradient optimization techniques
+    # Both gradient_checkpointing and gradient_cache modify parameter usage patterns
+    if use_grad_checkpointing or use_gradient_cache:
+        find_unused = False
+
     ddp_kwargs = DistributedDataParallelKwargs(
-        find_unused_parameters=bool(config.get("ddp_find_unused_parameters", True))
+        find_unused_parameters=find_unused
     )
     report_to = config.get("report_to", "none")
     log_with, init_kwargs = _resolve_tracker(report_to)
@@ -440,6 +539,22 @@ def main():
     if val_dataloader:
         val_dataloader = accelerator.prepare(val_dataloader)
 
+    # Enable static graph for DDP for unified models with concat
+    # Skip if using gradient_cache or gradient_checkpointing - they modify the graph structure
+    encoder_mode = config.get("encoder_mode", "auto")
+    use_gradient_cache = config.get("use_gradient_cache", False)
+    use_grad_checkpointing = config.get("gradient_checkpointing", False)
+
+    if (encoder_mode != "composed" and
+        not use_gradient_cache and
+        not use_grad_checkpointing and
+        hasattr(model, "_set_static_graph")):
+        try:
+            model._set_static_graph()
+            accelerator.print("Enabled static graph for DDP")
+        except Exception as e:
+            accelerator.print(f"Warning: Could not set static graph: {e}")
+
     grad_cache = GradientCache(
         loss_fn=criterion,
         chunk_size=config["gradient_cache_chunk_size"],
@@ -469,6 +584,9 @@ def main():
             "loss_type": config.get("loss_type", "infonce"),
             "use_mrl": config.get("use_mrl", False),
             "mrl_dims": config.get("mrl_dims"),
+            "encoder_mode": encoder_mode,
+            "text_model_name": text_model_name,
+            "image_model_name": image_model_name,
         }
         cfg_path = os.path.join(path, "vembed_config.json")
         with open(cfg_path, "w") as fp:
@@ -514,7 +632,7 @@ def main():
                 all_q_labels,
                 all_p_labels if all_p_labels else None,
                 k_list=[1, 10, 100],
-                exclude_diagonal=True,
+                exclude_diagonal=False,
             )
             # Print recall metrics
             accelerator.print("Validation recalls:")
@@ -551,18 +669,65 @@ def main():
                 lr_scheduler.step()
                 optimizer.zero_grad()
             else:
-                q_embs = _maybe_first(model(**_unpack_query_batch(batch, retrieval_mode)))
-                p_embs = _maybe_first(model(**_unpack_positive_batch(batch, retrieval_mode)))
+                q_inputs = _unpack_query_batch(batch, retrieval_mode)
+                p_inputs = _unpack_positive_batch(batch, retrieval_mode)
 
-                n_embs = None
+                n_inputs = None
                 if batch.get("neg_pixel_values") is not None:
-                    neg_kwargs: dict[str, Any] = {"pixel_values": batch["neg_pixel_values"]}
+                    n_inputs = {"pixel_values": batch["neg_pixel_values"]}
                     if "neg_input_ids" in batch:
-                        neg_kwargs["input_ids"] = batch["neg_input_ids"]
-                        neg_kwargs["attention_mask"] = batch["neg_attention_mask"]
+                        n_inputs["input_ids"] = batch["neg_input_ids"]
+                        n_inputs["attention_mask"] = batch["neg_attention_mask"]
                     if batch.get("neg_image_grid_thw") is not None:
-                        neg_kwargs["image_grid_thw"] = batch["neg_image_grid_thw"]
-                    n_embs = _maybe_first(model(**neg_kwargs))
+                        n_inputs["image_grid_thw"] = batch["neg_image_grid_thw"]
+
+                # Check if we should concatenate inputs (Unified models / Qwen-VL)
+                # Composed models (CLIP) usually expect separate inputs for text/image encoders.
+                # Heuristic: Only concat if inputs share primary keys (like input_ids).
+                should_concat = False
+                if encoder_mode != "composed":
+                    q_keys = set(q_inputs.keys())
+                    p_keys = set(p_inputs.keys())
+                    # If both have input_ids, it's likely a unified LLM/VLM that treats everything as tokens
+                    if "input_ids" in q_keys and "input_ids" in p_keys:
+                        should_concat = True
+
+                if should_concat:
+                    batches_to_concat = [q_inputs, p_inputs]
+                    if n_inputs:
+                        batches_to_concat.append(n_inputs)
+
+                    pad_id = 0
+                    if processor and hasattr(processor, "tokenizer") and processor.tokenizer.pad_token_id is not None:
+                        pad_id = processor.tokenizer.pad_token_id
+                    elif hasattr(model, "config") and hasattr(model.config, "pad_token_id") and model.config.pad_token_id is not None:
+                        pad_id = model.config.pad_token_id
+
+                    concatenated_inputs, batch_sizes = _concat_batches(
+                        batches_to_concat, pad_token_id=pad_id
+                    )
+
+                    # Use no_sync() to avoid DDP parameter ready-multiple times error
+                    # When concat [q, p, n], parameters are used 3x in same forward
+                    # no_sync() prevents gradient sync until optimizer.step()
+                    use_no_sync = bool(accelerator and accelerator.num_processes > 1)
+                    if use_no_sync and hasattr(model, "no_sync"):
+                        with model.no_sync():
+                            all_embs = _maybe_first(model(**concatenated_inputs))
+                    else:
+                        all_embs = _maybe_first(model(**concatenated_inputs))
+
+                    # Split concatenated output back into q, p, n embeddings
+                    q_embs = all_embs[: batch_sizes[0]]
+                    p_embs = all_embs[batch_sizes[0] : batch_sizes[0] + batch_sizes[1]]
+                    if n_inputs:
+                        n_embs = all_embs[batch_sizes[0] + batch_sizes[1] :]
+                    else:
+                        n_embs = None
+                else:
+                    q_embs = _maybe_first(model(**q_inputs))
+                    p_embs = _maybe_first(model(**p_inputs))
+                    n_embs = _maybe_first(model(**n_inputs)) if n_inputs else None
 
                 loss_kwargs = {}
                 if "labels" in batch:

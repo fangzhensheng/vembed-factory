@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel
 
-from ..base import BaseEmbeddingModel, _extract_hidden_state, resolve_pretrained_kwargs
+from ..base import BaseEmbeddingModel, _extract_hidden_state, resolve_pretrained_kwargs, disable_kv_cache
 from ..registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
@@ -25,9 +25,8 @@ class Qwen3EmbeddingModel(BaseEmbeddingModel):
             self.model_name,
             **resolve_pretrained_kwargs(config),
         )
+        disable_kv_cache(self.backbone)
         self.hf_config = self.backbone.config
-
-        # Refine feature_dim from the loaded config
         text_cfg = getattr(self.hf_config, "text_config", None)
         if text_cfg:
             self.feature_dim = text_cfg.hidden_size

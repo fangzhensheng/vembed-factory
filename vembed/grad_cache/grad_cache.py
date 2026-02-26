@@ -255,8 +255,10 @@ class GradCache:
         random_states: list[RandContext],
         no_sync_except_last: bool = False,
     ) -> None:
-        """
-        Perform the second forward pass and backward pass using cached gradients.
+        """Recompute forward and backward with cached gradients.
+
+        Forward happens outside no_sync() for checkpointing hook activation.
+        Backward happens inside no_sync() for DDP gradient synchronization control.
         """
         if no_sync_except_last:
             sync_contexts = [model.no_sync for _ in range(len(model_inputs) - 1)] + [nullcontext]
@@ -266,13 +268,12 @@ class GradCache:
         for input_chunk, state, gradient, sync_context in zip(
             model_inputs, random_states, cached_gradients, sync_contexts
         ):
+            with state:
+                output_chunk = self.model_call(model, input_chunk)
+
+            reps = self.get_reps(output_chunk)
+
             with sync_context():
-                with state:
-                    output_chunk = self.model_call(model, input_chunk)
-
-                reps = self.get_reps(output_chunk)
-
-                # Surrogate loss to backpropagate gradients from the cache
                 surrogate = torch.dot(reps.flatten(), gradient.flatten())
                 surrogate.backward()
 

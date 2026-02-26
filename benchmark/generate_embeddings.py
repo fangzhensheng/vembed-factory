@@ -267,12 +267,6 @@ def main():
             q_vec = _maybe_first(q_out)
             p_vec = _maybe_first(p_out)
 
-            # L2 Normalize for SigLIP/CLIP retrieval
-            if isinstance(q_vec, torch.Tensor):
-                q_vec = F.normalize(q_vec, p=2, dim=-1)
-            if isinstance(p_vec, torch.Tensor):
-                p_vec = F.normalize(p_vec, p=2, dim=-1)
-
             query_embeddings_all.append(q_vec.detach().cpu().float().numpy())
             doc_embeddings_all.append(p_vec.detach().cpu().float().numpy())
 

@@ -11,10 +11,10 @@
 #
 # Examples:
 #   # 1. DINOv2 (Cosine)
-#   ./benchmark/compare_sop_before_after.sh facebook/dinov2-small ./experiments/output_sop_dinov2_i2i/checkpoint-epoch-3 cosine
+#   ./benchmark/compare_sop_before_after.sh facebook/dinov2-small ./experiments/output_sop_dinov2_i2i/checkpoint-epoch-20 cosine
 #
 #   # 2. MAE (Cosine)
-#   ./benchmark/compare_sop_before_after.sh facebook/vit-mae-base ./experiments/output_sop_mae_i2i/checkpoint-epoch-3 cosine
+#   ./benchmark/compare_sop_before_after.sh facebook/vit-mae-base ./experiments/output_sop_mae_i2i/checkpoint-epoch-37 cosine
 #
 #   # 3. DINOv3 (Cosine)
 #   ./benchmark/compare_sop_before_after.sh models/dinov3-vitb16-pretrain-lvd1689m ./experiments/output_sop_dinov3_i2i/checkpoint-epoch-3 cosine

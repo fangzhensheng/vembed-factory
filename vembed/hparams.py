@@ -39,6 +39,9 @@ class ModelArguments:
     projection_dim: int | None = field(
         default=None, metadata={"help": "Dimension to project embeddings to"}
     )
+    pooling_method: str | None = field(
+        default=None, metadata={"help": "Pooling method: mean|cls|none"}
+    )
     torch_dtype: str | None = field(
         default=None,
         metadata={
