@@ -181,21 +181,19 @@ python run.py examples/clip_train.yaml --batch_size 64 --learning_rate 1e-5
 
 完整列表请参考 [`configs/defaults.yaml`](configs/defaults.yaml)。
 
-## 项目结构
+## 学习资源
 
-```
-vembed-factory/
-├── configs/               # 基础 YAML 预设 (defaults.yaml, clip.yaml, qwen3.yaml, ...)
-├── examples/              # 可运行示例 (包含具体 YAML 配置)
-├── vembed/
-│   ├── __init__.py            # 公共 API
-│   ├── cli.py                 # CLI 入口逻辑
-│   ├── hparams.py             # 配置数据类
-│   ├── trainer.py             # 高层训练 API
-│   ├── inference.py           # 高层推理 API
-```
+### 分步指南
 
-## 开发
+- **[DINOv2 图像检索](docs/guides/dinov2_finetune.md)** - 在 SOP 数据集上微调 DINOv2 实现高精度图像搜索
+- **[Jupyter Notebooks](notebooks/)** - 交互式教程覆盖各种使用场景
+- **[API 文档](docs/api/)** - 所有模块的详细 API 参考
+
+## 开发与贡献
+
+有兴趣贡献？太好了！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解指南。
+
+### 设置开发环境
 
 **使用 uv (推荐):**
 
@@ -225,6 +223,10 @@ make lint                  # 运行 linter
 make test                  # 运行测试
 make docker                # 构建 Docker 镜像
 ```
+
+### 项目架构
+
+有关项目结构和架构的详细指南，请参考 [docs/structure.md](docs/structure.md)。
 
 ## 评测结果
 

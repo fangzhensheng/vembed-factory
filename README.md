@@ -98,11 +98,6 @@ uv run python examples/quick_start.py
 uv run vembed train --config examples/clip_train.yaml
 ```
 
-## Tutorials
-
-- **[DINOv2 Image Retrieval (Image-to-Image)](docs/guides/dinov2_finetune.md)**: A step-by-step guide to fine-tuning DINOv2 on the SOP dataset for high-precision image search.
-
-
 **Option 2: pip**
 
 ```bash
@@ -202,51 +197,19 @@ Key configuration options (can be set in YAML or CLI):
 
 See [`configs/defaults.yaml`](configs/defaults.yaml) for the full list of available parameters.
 
-## Project Structure
+## Learning Resources
 
-```
-vembed-factory/
-├── configs/               # Base YAML presets (defaults.yaml, clip.yaml, qwen3.yaml, ...)
-├── examples/              # Runnable examples with specific YAML configs
-├── vembed/
-│   ├── __init__.py            # Public API
-│   ├── cli.py                 # CLI entry point logic
-│   ├── hparams.py             # Configuration dataclasses
-│   ├── trainer.py             # High-level Training API
-│   ├── inference.py           # High-level Inference API
-│   ├── model/                 # Model layer
-│   │   ├── backbones/         # Model backends (auto, composed, qwen3, vlm_generic)
-│   │   ├── processors/        # Processor registry (AutoProcessor, Qwen3VLProcessor, ...)
-│   │   ├── base.py            # BaseEmbeddingModel, pool()
-│   │   ├── modeling.py        # VisualRetrievalModel facade
-│   │   ├── encoders_factory.py # SimpleTextEncoder, SimpleImageEncoder
-│   │   └── registry.py        # ModelRegistry
-│   ├── data/                  # Data layer
-│   │   ├── collators/         # Collator registry (default, qwen3_vl)
-│   │   ├── dataset.py         # VisualRetrievalDataset
-│   │   ├── loading.py         # Data loading utilities
-│   │   └── registry.py        # CollatorRegistry
-│   ├── losses/                # Loss functions
-│   │   ├── functions/         # InfoNCE, MRL, ColBERT, triplet, cosent, distillation
-│   │   ├── factory.py         # Loss builder
-│   │   └── registry.py        # LossRegistry
-│   ├── grad_cache/            # Core GradCache library (model-agnostic)
-│   ├── training/              # Training utilities (GradCache wrapper with VLM support)
-│   ├── entrypoints/           # CLI entrypoints (train, evaluate, evaluate_simple)
-│   ├── evaluation/            # Metrics (Recall@K, MRR) & report generation
-│   └── utils/                 # Shared utilities
-├── benchmark/                 # Standalone benchmarking tools & dataset adapters
-├── examples/                  # Shell launchers & YAML configs for all model types
-├── notebooks/                 # Jupyter tutorials (5 notebooks)
-├── tests/                     # Unit tests
-├── docs/                      # MkDocs documentation source
-├── Dockerfile                 # GPU-ready container
-├── docker-compose.yaml        # Docker Compose setup
-├── Makefile                   # Common commands (make help)
-└── pyproject.toml             # Project metadata & dependencies
-```
+### Step-by-Step Guides
 
-## Development
+- **[DINOv2 Image Retrieval](docs/guides/dinov2_finetune.md)** - Fine-tune DINOv2 on the SOP dataset for high-precision image search
+- **[Jupyter Notebooks](notebooks/)** - Interactive tutorials covering various use cases
+- **[API Documentation](docs/api/)** - Detailed API reference for all modules
+
+## Development & Contributing
+
+Interested in contributing? Great! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+### Setup Development Environment
 
 **Using uv (recommended):**
 
@@ -276,6 +239,10 @@ make lint                  # Run linters
 make test                  # Run tests
 make docker                # Build Docker image
 ```
+
+### Project Architecture
+
+For a detailed guide to the project structure and architecture, see [docs/structure.md](docs/structure.md).
 
 ## Benchmark Results
 
