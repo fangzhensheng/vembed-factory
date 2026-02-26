@@ -232,22 +232,22 @@ make docker                # 构建 Docker 镜像
 
 我们使用 `vembed-factory` 在 SOP 数据集 (电商商品) 上微调了 **DINOv2-base** 和 **MAE-base** 模型。
 
-**可视化结果 (Top-5 检索):**
+**定性结果 (Top-5 检索):**
 ![SOP I2I Demo](docs/assets/sop_i2i_demo.png)
 
-| 模型 | 指标 | 训练前 (Zero-shot) | 训练后 (Fine-tuned) | 提升 (pp) |
+| 模型 | 指标 | 零样本 (Zero-shot) | 微调后 (Fine-tuned) | 提升 (Delta) |
 | :--- | :--- | :--- | :--- | :--- |
-| **DINOv2-base** | Recall@1 | 55.01% | **84.49%** | +29.48 |
-| *(facebook/dinov2-base)* | Recall@10 | 71.09% | **94.00%** | +22.91 |
-| | Recall@100 | 83.95% | **97.74%** | +13.79 |
-| **MAE-base** | Recall@1 | 31.28% | **69.08%** | +37.80 |
-| *(facebook/vit-mae-base)* | Recall@10 | 46.29% | **84.36%** | +38.06 |
-| | Recall@100 | 61.54% | **92.99%** | +31.45 |
+| **DINOv2-base** | Recall@1 | 55.03% | **79.97%** | +24.94 |
+| *(facebook/dinov2-base)* | Recall@10 | 71.72% | **91.31%** | +19.60 |
+| | Recall@100 | 84.70% | **96.37%** | +11.67 |
+| **MAE-base** | Recall@1 | 52.06% | **72.70%** | +20.64 |
+| *(facebook/vit-mae-base)* | Recall@10 | 68.96% | **86.80%** | +17.83 |
+| | Recall@100 | 82.24% | **94.21%** | +11.97 |
 
 **训练配置:**
-- **任务**: 图搜图检索 (I2I)
+- **任务**: 图搜图 (I2I)
 - **损失函数**: 对比学习 (InfoNCE)
-- **Epochs**: 2 (DINOv2), 3 (MAE)
+- **Epochs**: 2 (DINOv2), 50 (MAE)
 
 ### Flickr30k - 图文检索 (T2I / I2T)
 

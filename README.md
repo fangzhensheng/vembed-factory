@@ -288,17 +288,17 @@ We fine-tuned **DINOv2-base** and **MAE-base** models on the SOP dataset (e-comm
 
 | Model | Metric | Zero-shot | Fine-tuned | Delta (pp) |
 | :--- | :--- | :--- | :--- | :--- |
-| **DINOv2-base** | Recall@1 | 55.01% | **84.49%** | +29.48 |
-| *(facebook/dinov2-base)* | Recall@10 | 71.09% | **94.00%** | +22.91 |
-| | Recall@100 | 83.95% | **97.74%** | +13.79 |
-| **MAE-base** | Recall@1 | 31.28% | **69.08%** | +37.80 |
-| *(facebook/vit-mae-base)* | Recall@10 | 46.29% | **84.36%** | +38.06 |
-| | Recall@100 | 61.54% | **92.99%** | +31.45 |
+| **DINOv2-base** | Recall@1 | 55.03% | **79.97%** | +24.94 |
+| *(facebook/dinov2-base)* | Recall@10 | 71.72% | **91.31%** | +19.60 |
+| | Recall@100 | 84.70% | **96.37%** | +11.67 |
+| **MAE-base** | Recall@1 | 52.06% | **72.70%** | +20.64 |
+| *(facebook/vit-mae-base)* | Recall@10 | 68.96% | **86.80%** | +17.83 |
+| | Recall@100 | 82.24% | **94.21%** | +11.97 |
 
 **Training Config:**
 - **Task**: Image-to-Image Retrieval (I2I)
 - **Loss**: Contrastive Learning (InfoNCE)
-- **Epochs**: 2 (DINOv2), 3 (MAE)
+- **Epochs**: 2 (DINOv2), 50 (MAE)
 
 ### Flickr30k - Text↔Image Retrieval (T2I / I2T)
 
