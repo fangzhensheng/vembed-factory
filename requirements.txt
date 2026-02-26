@@ -13,6 +13,7 @@ packaging
 matplotlib
 requests
 scikit-learn
+qwen-vl-utils
 
 # Optional — uncomment as needed:
 # peft>=0.7.0              # LoRA fine-tuning
@@ -20,4 +21,3 @@ scikit-learn
 # tensorboard              # TensorBoard tracking
 # swanlab                  # SwanLab tracking
 # flash-attn               # FlashAttention-2 (pip install flash-attn --no-build-isolation)
-# gradio>=4.0              # Interactive demo app

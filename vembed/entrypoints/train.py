@@ -1,20 +1,19 @@
 """vembed-factory training entrypoint.
 
 Launched by ``accelerate launch`` via :mod:`vembed.cli`.
+
+This module orchestrates the training pipeline by composing modularized
+components from the training package.
 """
 
-import argparse
-import math
 import os
 import sys
-from typing import Any
 
 import torch
 import yaml
 from accelerate import Accelerator, DistributedDataParallelKwargs
 from accelerate.logging import get_logger
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 from transformers import get_scheduler
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
@@ -22,358 +21,45 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 import vembed.data  # noqa: F401 - trigger registry
 import vembed.losses  # noqa: F401
 import vembed.model  # noqa: F401
-from vembed.config import parse_override_args
+from vembed.config import load_base_config, parse_override_args
 from vembed.data.dataset import VisualRetrievalDataset
 from vembed.data.registry import CollatorRegistry
 from vembed.losses.factory import LossFactory
-from vembed.model.modeling import VisualRetrievalModel
-from vembed.core.gradient_cache import GradientCache
-from vembed.evaluation.metrics import compute_recall_metrics
+from vembed.training.checkpoint import save_checkpoint
+from vembed.training.config import (
+    get_distributed_config,
+    load_and_parse_config,
+    prepare_output_dir,
+)
+from vembed.training.evaluator import Evaluator
+from vembed.training.model_builder import (
+    apply_lora,
+    build_model,
+    build_teacher_model,
+    compile_model,
+    enable_static_graph,
+    load_processor,
+    validate_processor,
+)
+from vembed.training.optimizer_builder import build_optimizer, build_scheduler, resolve_tracker
+from vembed.training.training_loop import Trainer
 
 # Post-init accelerate logger — only use after Accelerator() is created
 logger = get_logger(__name__)
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="vembed-factory training script")
-    parser.add_argument("--config", type=str, default=None)
-    parser.add_argument("--local_rank", type=int, default=-1)
-    parser.add_argument(
-        "--config_override",
-        type=str,
-        nargs="*",
-        help="Override config keys, e.g. model_name=bert batch_size=32",
-    )
-    parser.add_argument(
-        "--gradient_checkpointing",
-        action="store_true",
-        help="Enable gradient checkpointing to save memory",
-    )
-    return parser.parse_args()
-
-
-def _unpack_query_batch(batch: dict[str, Any], retrieval_mode: str) -> dict[str, Any]:
-    if retrieval_mode.startswith("i"):
-        if "query_pixel_values" not in batch:
-            raise KeyError(
-                f"retrieval_mode={retrieval_mode} requires 'query_pixel_values'. "
-                f"Got keys: {list(batch.keys())}"
-            )
-        result: dict[str, Any] = {"pixel_values": batch["query_pixel_values"]}
-        # VLMs (e.g. Qwen3-VL) also need input_ids for image items
-        if "query_input_ids" in batch and batch["query_input_ids"] is not None:
-            result["input_ids"] = batch["query_input_ids"]
-            result["attention_mask"] = batch["query_attention_mask"]
-        elif "input_ids" in batch and batch["input_ids"] is not None:
-            result["input_ids"] = batch["input_ids"]
-            result["attention_mask"] = batch["attention_mask"]
-        if "query_image_grid_thw" in batch and batch["query_image_grid_thw"] is not None:
-            result["image_grid_thw"] = batch["query_image_grid_thw"]
-        return result
-
-    if retrieval_mode.startswith("m"):
-        result = {
-            "input_ids": batch["input_ids"],
-            "attention_mask": batch["attention_mask"],
-        }
-        if "query_pixel_values" in batch and batch["query_pixel_values"] is not None:
-            result["pixel_values"] = batch["query_pixel_values"]
-        if "query_image_grid_thw" in batch and batch["query_image_grid_thw"] is not None:
-            result["image_grid_thw"] = batch["query_image_grid_thw"]
-        return result
-
-    return {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"]}
-
-
-def _unpack_positive_batch(batch: dict[str, Any], retrieval_mode: str) -> dict[str, Any]:
-    if retrieval_mode.endswith("t"):
-        return {"input_ids": batch["pos_input_ids"], "attention_mask": batch["pos_attention_mask"]}
-
-    # Image positive: prefer prefixed keys, fallback to legacy aliases
-    pv = batch.get("pos_pixel_values")
-    if pv is None:
-        pv = batch.get("pixel_values")
-    result: dict[str, Any] = {"pixel_values": pv}
-
-    # VLMs (e.g. Qwen3-VL) also need input_ids for image items
-    if "pos_input_ids" in batch and batch["pos_input_ids"] is not None:
-        result["input_ids"] = batch["pos_input_ids"]
-        result["attention_mask"] = batch["pos_attention_mask"]
-
-    # image_grid_thw for VLMs
-    grid = batch.get("pos_image_grid_thw")
-    if grid is None:
-        grid = batch.get("image_grid_thw")
-    if grid is not None:
-        result["image_grid_thw"] = grid
-
-    return result
-
-
-def _maybe_first(embs):
-    """Extract a plain tensor from model output (handles ModelOutput, tuples)."""
-    if isinstance(embs, torch.Tensor):
-        return embs
-    if isinstance(embs, tuple):
-        return embs[0] if len(embs) > 0 and isinstance(embs[0], torch.Tensor) else embs
-    if hasattr(embs, "pooler_output") and embs.pooler_output is not None:
-        return embs.pooler_output
-    if hasattr(embs, "last_hidden_state") and isinstance(embs.last_hidden_state, torch.Tensor):
-        return embs.last_hidden_state[:, 0]
-    return embs
-
-
-def _build_optimizer(model, config):
-    no_decay = {"bias", "LayerNorm.weight", "layer_norm.weight"}
-    param_groups = [
-        {
-            "params": [
-                p
-                for n, p in model.named_parameters()
-                if p.requires_grad and not any(nd in n for nd in no_decay)
-            ],
-            "weight_decay": float(config.get("weight_decay", 0.01)),
-        },
-        {
-            "params": [
-                p
-                for n, p in model.named_parameters()
-                if p.requires_grad and any(nd in n for nd in no_decay)
-            ],
-            "weight_decay": 0.0,
-        },
-    ]
-    return torch.optim.AdamW(param_groups, lr=float(config["lr"]))
-
-
-def _resolve_tracker(report_to: str):
-    """Map ``report_to`` to Accelerate's ``log_with`` + ``init_kwargs``."""
-    if report_to in (None, "none"):
-        return None, {}
-
-    init_kwargs: dict[str, Any] = {}
-
-    # swanlab became a built-in tracker in accelerate 1.8.0
-    if report_to == "swanlab":
-        try:
-            import accelerate
-            from packaging.version import Version
-
-            if Version(accelerate.__version__) >= Version("1.8.0"):
-                return "swanlab", {"swanlab": {"experiment_name": "vembed-factory"}}
-        except ImportError:
-            pass
-
-        try:
-            from swanlab.integration.accelerate import SwanLabTracker
-
-            tracker = SwanLabTracker("vembed-factory")
-            return tracker, {}
-        except ImportError:
-            logger.warning(
-                "swanlab requested but neither accelerate>=1.8.0 nor swanlab package found. "
-                "Install with: pip install swanlab"
-            )
-            return None, {}
-
-    return report_to, init_kwargs
-
-
-def _apply_lora(model, config, accelerator):
-    try:
-        from peft import LoraConfig, get_peft_model
-    except ImportError:
-        accelerator.print("Error: 'peft' library not found. Install with: pip install peft")
-        sys.exit(1)
-
-    accelerator.print("Applying LoRA")
-
-    lora_cfg = LoraConfig(
-        r=config.get("lora_r", 16),
-        lora_alpha=config.get("lora_alpha", 32),
-        target_modules=config.get("lora_target_modules")
-        or ["q_proj", "v_proj", "query", "value", "key", "dense"],
-        lora_dropout=config.get("lora_dropout", 0.05),
-        bias="none",
-        modules_to_save=["classifier", "pooler", "projector"],
-    )
-
-    try:
-        target = model.backend
-
-        # Enable gradient checkpointing if requested
-        if config.get("gradient_checkpointing", False):
-            accelerator.print("Enabling gradient checkpointing...")
-            if hasattr(target, "backbone"):
-                target.backbone.gradient_checkpointing_enable()
-                if hasattr(target.backbone, "enable_input_require_grads"):
-                    target.backbone.enable_input_require_grads()
-            elif hasattr(target, "gradient_checkpointing_enable"):
-                target.gradient_checkpointing_enable()
-                if hasattr(target, "enable_input_require_grads"):
-                    target.enable_input_require_grads()
-
-            # Handle composed models (text_model / image_model)
-            if hasattr(target, "text_model") and hasattr(
-                target.text_model, "gradient_checkpointing_enable"
-            ):
-                target.text_model.gradient_checkpointing_enable()
-                if hasattr(target.text_model, "enable_input_require_grads"):
-                    target.text_model.enable_input_require_grads()
-
-            if hasattr(target, "image_model") and hasattr(
-                target.image_model, "gradient_checkpointing_enable"
-            ):
-                target.image_model.gradient_checkpointing_enable()
-                if hasattr(target.image_model, "enable_input_require_grads"):
-                    target.image_model.enable_input_require_grads()
-
-        if hasattr(target, "backbone"):
-            target.backbone = get_peft_model(target.backbone, lora_cfg)
-            target.backbone.print_trainable_parameters()
-        else:
-            model.backend = get_peft_model(target, lora_cfg)
-            model.backend.print_trainable_parameters()
-        accelerator.print("LoRA injected")
-    except Exception as exc:
-        accelerator.print(f"Error applying LoRA: {exc}")
-        sys.exit(1)
-
-
-def _concat_batches(
-    batches: list[dict[str, Any]], pad_token_id: int = 0
-) -> tuple[dict[str, Any], list[int]]:
-    """Concatenate multiple input batches into a single batch for unified forward pass.
-
-    Returns:
-        concatenated_batch: dict with concatenated tensors
-        batch_sizes: list of batch sizes (to split outputs later)
-    """
-    batch_sizes = []
-    for b in batches:
-        if "input_ids" in b and b["input_ids"] is not None:
-            batch_sizes.append(b["input_ids"].size(0))
-        elif "pixel_values" in b and b["pixel_values"] is not None:
-            batch_sizes.append(b["pixel_values"].size(0))
-        else:
-            raise ValueError(
-                f"Cannot determine batch size: batch keys={list(b.keys())}, "
-                f"input_ids is {b.get('input_ids')}, pixel_values is {b.get('pixel_values')}"
-            )
-    
-    # Collect all unique keys across batches
-    all_keys = set()
-    for b in batches:
-        all_keys.update(b.keys())
-
-    concatenated = {}
-
-    # Process input_ids and attention_mask (requires padding to max length)
-    if "input_ids" in all_keys:
-        # Find max sequence length, skipping None values
-        max_len = 0
-        for b in batches:
-            if "input_ids" in b and b["input_ids"] is not None:
-                max_len = max(max_len, b["input_ids"].size(1))
-
-        # Pad all sequences to max_len then concatenate
-        padded_ids = []
-        padded_masks = []
-
-        for b in batches:
-            if "input_ids" in b and b["input_ids"] is not None:
-                curr_ids = b["input_ids"]
-                curr_mask = b["attention_mask"]
-                B, L = curr_ids.shape
-                diff = max_len - L
-                if diff > 0:
-                    # Pad input_ids with pad_token_id
-                    pad_tensor = torch.full(
-                        (B, diff), pad_token_id, dtype=curr_ids.dtype, device=curr_ids.device
-                    )
-                    curr_ids = torch.cat([curr_ids, pad_tensor], dim=1)
-
-                    # Pad attention_mask with zeros
-                    mask_pad = torch.zeros(
-                        (B, diff), dtype=curr_mask.dtype, device=curr_mask.device
-                    )
-                    curr_mask = torch.cat([curr_mask, mask_pad], dim=1)
-
-                padded_ids.append(curr_ids)
-                padded_masks.append(curr_mask)
-
-        if padded_ids:
-            concatenated["input_ids"] = torch.cat(padded_ids, dim=0)
-            concatenated["attention_mask"] = torch.cat(padded_masks, dim=0)
-
-    # Process pixel_values (simple concatenation, no padding needed)
-    # Qwen-VL: pixel_values shape is (N_total, C, H, W)
-    if "pixel_values" in all_keys:
-        pvs = []
-        for b in batches:
-            pv = b.get("pixel_values")
-            if pv is not None:
-                pvs.append(pv)
-        if pvs:
-            concatenated["pixel_values"] = torch.cat(pvs, dim=0)
-
-    # Process image_grid_thw for VLM models (simple concatenation)
-    if "image_grid_thw" in all_keys:
-        grids = []
-        for b in batches:
-            g = b.get("image_grid_thw")
-            if g is not None:
-                grids.append(g)
-        if grids:
-            concatenated["image_grid_thw"] = torch.cat(grids, dim=0)
-
-    return concatenated, batch_sizes
-
-
-def _load_processor(model_name: str) -> Any:
-    """Load processor via the ProcessorRegistry (auto-detect or fallback)."""
-    from vembed.model.processors import ProcessorRegistry
-
-    try:
-        return ProcessorRegistry.resolve(model_name)
-    except Exception as exc:
-        logger.warning("ProcessorRegistry.resolve failed for '%s': %s", model_name, exc)
-    return None
-
-
 def main():
-    args = parse_args()
+    """Main training entrypoint."""
+    # Load and merge configuration
+    config = load_and_parse_config()
+    prepare_output_dir(config)
 
-    from vembed.config import load_base_config
+    # Initialize distributed training
+    use_grad_checkpointing, use_gradient_cache, find_unused = get_distributed_config(config)
 
-    config = load_base_config()
-    if args.config and os.path.exists(args.config):
-        with open(args.config) as f:
-            file_config = yaml.safe_load(f)
-            if file_config:
-                config.update(file_config)
-    if args.config_override:
-        config.update(parse_override_args(args.config_override))
-
-    if args.gradient_checkpointing:
-        config["gradient_checkpointing"] = True
-
-    os.makedirs(config["output_dir"], exist_ok=True)
-
-    use_grad_checkpointing = config.get("gradient_checkpointing", False)
-    use_gradient_cache = config.get("use_gradient_cache", False)
-    find_unused = bool(config.get("ddp_find_unused_parameters", True))
-
-    # Disable find_unused_parameters when using gradient optimization techniques
-    # Both gradient_checkpointing and gradient_cache modify parameter usage patterns
-    if use_grad_checkpointing or use_gradient_cache:
-        find_unused = False
-
-    ddp_kwargs = DistributedDataParallelKwargs(
-        find_unused_parameters=find_unused
-    )
+    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=find_unused)
     report_to = config.get("report_to", "none")
-    log_with, init_kwargs = _resolve_tracker(report_to)
+    log_with, init_kwargs = resolve_tracker(report_to)
 
     accelerator = Accelerator(
         kwargs_handlers=[ddp_kwargs],
@@ -389,49 +75,29 @@ def main():
 
     accelerator.print(f"Config: {config}")
 
-    model_name = config["model_name"]
-    encoder_mode = config.get("encoder_mode", "auto")
-    text_model_name = config.get("text_model_name")
-    image_model_name = config.get("image_model_name")
-
-    processor = _load_processor(model_name)
-
+    # Build model and processor
+    processor = load_processor(config["model_name"])
     retrieval_mode = config.get("retrieval_mode", "t2i")
     needs_vision = retrieval_mode in ("t2i", "i2i", "i2t", "m2i", "m2t")
-    if processor is None and needs_vision and encoder_mode != "composed":
-        accelerator.print(
-            f"Error: cannot load processor for '{model_name}'. "
-            "Install missing tokenizer deps (e.g. sentencepiece) or upgrade transformers."
-        )
-        sys.exit(1)
+    encoder_mode = config.get("encoder_mode", "auto")
+    validate_processor(processor, needs_vision, config["model_name"], accelerator)
 
-    model = VisualRetrievalModel(
-        model_name,
-        pooling_method=config.get("pooling_method"),
-        use_mrl=config.get("use_mrl", False),
-        mrl_dims=[int(d) for d in config.get("mrl_dims", [768])],
-        encoder_mode=encoder_mode,
-        text_model_name=text_model_name,
-        image_model_name=image_model_name,
-        attn_implementation=config.get("attn_implementation"),
-        torch_dtype=config.get("torch_dtype"),
-        projection_dim=config.get("projection_dim"),
-        topk_tokens=int(config.get("topk_tokens", 0)),
-    )
+    model = build_model(config)
 
     if config.get("use_lora", False):
-        # When using LoRA with gradient checkpointing, we need to enable input grads
-        if config.get("gradient_checkpointing", False):
-            pass
-        _apply_lora(model, config, accelerator)
+        apply_lora(model, config, accelerator)
 
-    if config.get("use_torch_compile", False) and not config.get("use_fsdp", False):
-        accelerator.print("Compiling model with torch.compile...")
-        try:
-            model = torch.compile(model)
-        except Exception as e:
-            accelerator.print(f"Warning: torch.compile failed: {e}")
+    model = compile_model(model, config, accelerator)
 
+    # Build teacher model for distillation if configured
+    teacher_model = build_teacher_model(config)
+    distillation_loss_fn = None
+    if teacher_model is not None:
+        accelerator.print(f"Loading teacher: {config['teacher_model_name']}")
+        teacher_model = accelerator.prepare(teacher_model)
+        distillation_loss_fn = LossFactory.create_distillation_loss(config)
+
+    # Prepare dataset and dataloader
     dataset = VisualRetrievalDataset(
         data_source=config["data_path"],
         processor=processor,
@@ -440,7 +106,7 @@ def main():
         column_mapping=config.get("column_mapping"),
     )
 
-    collator_kwargs: dict[str, Any] = {
+    collator_kwargs: dict = {
         "processor": processor,
         "mode": "train",
         "prompt": config.get("prompt", "Describe this image."),
@@ -451,8 +117,8 @@ def main():
         collator_kwargs.update(
             {
                 "processor": None,
-                "text_processor": build_text_processor(text_model_name),
-                "image_processor": build_image_processor(image_model_name),
+                "text_processor": build_text_processor(config.get("text_model_name")),
+                "image_processor": build_image_processor(config.get("image_model_name")),
             }
         )
 
@@ -468,6 +134,7 @@ def main():
         pin_memory=True,
     )
 
+    # Prepare validation dataloader if configured
     val_dataloader = None
     if config.get("val_data_path"):
         val_dataset = VisualRetrievalDataset(
@@ -481,305 +148,73 @@ def main():
         val_dataloader = DataLoader(
             val_dataset,
             batch_size=config["batch_size"],
-            shuffle=True,  # Shuffle for contrastive losses (in-batch negatives)
+            shuffle=True,
             collate_fn=val_collator,
             num_workers=4,
             pin_memory=True,
         )
 
-    optimizer = _build_optimizer(model, config)
+    # Build optimizer and scheduler
+    optimizer = build_optimizer(model, config)
     num_epochs = int(config["epochs"])
     steps_per_epoch = len(dataloader)
+
+    scheduler, warmup_steps = build_scheduler(optimizer, config, num_epochs, steps_per_epoch)
+
     max_train_steps = num_epochs * steps_per_epoch
-
-    warmup_steps = int(config.get("warmup_steps", 0))
-    if warmup_steps == 0:
-        warmup_steps = math.ceil(max_train_steps * float(config.get("warmup_ratio", 0.1)))
-
-    lr_scheduler = get_scheduler(
-        name=config.get("scheduler_type", "cosine"),
-        optimizer=optimizer,
-        num_warmup_steps=warmup_steps,
-        num_training_steps=max_train_steps,
-    )
     accelerator.print(
         f"Scheduler: {config.get('scheduler_type', 'cosine')}, "
         f"warmup={warmup_steps}, total={max_train_steps}"
     )
 
+    # Build loss function
     criterion = LossFactory.create(config)
 
-    teacher_model = None
-    distillation_loss_fn = None
-    distillation_alpha = float(config.get("distillation_alpha", 0.5))
-
-    if config.get("teacher_model_name"):
-        accelerator.print(f"Loading teacher: {config['teacher_model_name']}")
-        teacher_model = VisualRetrievalModel(
-            config["teacher_model_name"],
-            pooling_method=config.get("pooling_method"),
-            use_mrl=False,
-            encoder_mode=encoder_mode,
-            text_model_name=text_model_name,
-            image_model_name=image_model_name,
-            attn_implementation=config.get("attn_implementation"),
-            torch_dtype=config.get("torch_dtype"),
-        )
-        teacher_model.eval()
-        teacher_model.requires_grad_(False)
-        teacher_model = accelerator.prepare(teacher_model)
-        distillation_loss_fn = LossFactory.create_distillation_loss(config)
-
-    model, optimizer, dataloader, lr_scheduler = accelerator.prepare(
+    # Prepare for distributed training
+    model, optimizer, dataloader, scheduler = accelerator.prepare(
         model,
         optimizer,
         dataloader,
-        lr_scheduler,
+        scheduler,
     )
     if val_dataloader:
         val_dataloader = accelerator.prepare(val_dataloader)
 
-    # Enable static graph for DDP for unified models with concat
-    # Skip if using gradient_cache or gradient_checkpointing - they modify the graph structure
-    encoder_mode = config.get("encoder_mode", "auto")
-    use_gradient_cache = config.get("use_gradient_cache", False)
-    use_grad_checkpointing = config.get("gradient_checkpointing", False)
+    # Enable static graph for DDP optimization
+    enable_static_graph(model, config, accelerator)
 
-    if (encoder_mode != "composed" and
-        not use_gradient_cache and
-        not use_grad_checkpointing and
-        hasattr(model, "_set_static_graph")):
-        try:
-            model._set_static_graph()
-            accelerator.print("Enabled static graph for DDP")
-        except Exception as e:
-            accelerator.print(f"Warning: Could not set static graph: {e}")
+    # Store processor in config for trainer
+    config["processor"] = processor
 
-    grad_cache = GradientCache(
-        loss_fn=criterion,
-        chunk_size=config["gradient_cache_chunk_size"],
+    # Create evaluator if validation dataloader exists
+    evaluator = None
+    if val_dataloader:
+        evaluator = Evaluator(
+            model=model,
+            criterion=criterion,
+            accelerator=accelerator,
+            retrieval_mode=retrieval_mode,
+            log_with=log_with,
+        )
+
+    # Create and run trainer
+    trainer = Trainer(
+        model=model,
+        optimizer=optimizer,
+        dataloader=dataloader,
+        criterion=criterion,
         accelerator=accelerator,
-        retrieval_mode=config.get("retrieval_mode", "t2i"),
+        config=config,
+        scheduler=scheduler,
+        teacher_model=teacher_model,
+        distillation_loss_fn=distillation_loss_fn,
+        evaluator=evaluator,
+        val_dataloader=val_dataloader,
     )
 
-    save_steps = int(config.get("save_steps", 0) or 0)
-    logging_steps = int(config.get("logging_steps", 10))
-    max_grad_norm = float(config.get("max_grad_norm", 1.0))
+    trainer.train()
 
-    def save_checkpoint(path: str):
-        if not accelerator.is_local_main_process:
-            return
-        accelerator.save_state(path)
-        accelerator.unwrap_model(model).save_pretrained(path)
-        if processor:
-            processor.save_pretrained(path)
-        # Persist vembed-specific config (topk_tokens, pooling, etc.)
-        import json
-
-        vembed_cfg = {
-            "pooling_method": config.get("pooling_method"),
-            "projection_dim": config.get("projection_dim"),
-            "topk_tokens": int(config.get("topk_tokens", 0)),
-            "retrieval_mode": config.get("retrieval_mode", "t2i"),
-            "loss_type": config.get("loss_type", "infonce"),
-            "use_mrl": config.get("use_mrl", False),
-            "mrl_dims": config.get("mrl_dims"),
-            "encoder_mode": encoder_mode,
-            "text_model_name": text_model_name,
-            "image_model_name": image_model_name,
-        }
-        cfg_path = os.path.join(path, "vembed_config.json")
-        with open(cfg_path, "w") as fp:
-            json.dump(vembed_cfg, fp, indent=2)
-        accelerator.print(f"Saved vembed_config.json → {cfg_path}")
-
-    def evaluate() -> float:
-        model.eval()
-        total_loss, num_batches = 0.0, 0
-        all_q_embs, all_p_embs, all_q_labels, all_p_labels = [], [], [], []
-        accelerator.print("\nRunning validation...")
-
-        with torch.no_grad():
-            for batch in tqdm(val_dataloader, disable=not accelerator.is_local_main_process):
-                q_embs = _maybe_first(model(**_unpack_query_batch(batch, retrieval_mode)))
-                p_embs = _maybe_first(model(**_unpack_positive_batch(batch, retrieval_mode)))
-
-                loss_kwargs = {}
-                if "labels" in batch:
-                    loss_kwargs["labels"] = batch["labels"]
-
-                total_loss += criterion(q_embs, p_embs, None, **loss_kwargs).item()
-                num_batches += 1
-
-                # Gather embeddings across all processes for metrics calculation
-                all_q_embs.append(accelerator.gather_for_metrics(q_embs).cpu())
-                all_p_embs.append(accelerator.gather_for_metrics(p_embs).cpu())
-
-                # Gather labels if available (for recall calculation)
-                if "labels" in batch:
-                    all_q_labels.append(accelerator.gather_for_metrics(batch["labels"]).cpu())
-                    all_p_labels.append(accelerator.gather_for_metrics(batch["labels"]).cpu())
-
-        avg_loss = total_loss / max(num_batches, 1)
-        accelerator.print(f"Validation loss: {avg_loss:.4f}")
-
-        # Compute recall metrics if labels are available
-        recall_metrics = {}
-        if all_q_labels:
-            recall_metrics = compute_recall_metrics(
-                all_q_embs,
-                all_p_embs,
-                all_q_labels,
-                all_p_labels if all_p_labels else None,
-                k_list=[1, 10, 100],
-                exclude_diagonal=False,
-            )
-            # Print recall metrics
-            accelerator.print("Validation recalls:")
-            for metric_name, metric_val in recall_metrics.items():
-                accelerator.print(f"  {metric_name}: {metric_val:.4f}")
-            accelerator.print()
-
-        # Log metrics
-        if log_with is not None:
-            log_dict = {"val/loss": avg_loss}
-            # Add recall metrics to logging
-            log_dict.update(recall_metrics)
-            accelerator.log(log_dict, step=global_step)
-
-        model.train()
-        return avg_loss
-
-    model.train()
-    global_step = 0
-
-    for epoch in range(num_epochs):
-        accelerator.print(f"Epoch {epoch + 1}/{num_epochs}")
-
-        for step, batch in enumerate(
-            tqdm(dataloader, disable=not accelerator.is_local_main_process)
-        ):
-            global_step += 1
-
-            if config.get("use_gradient_cache", False):
-                loss_val = grad_cache.step(model, batch)
-                if max_grad_norm > 0:
-                    accelerator.clip_grad_norm_(model.parameters(), max_grad_norm)
-                optimizer.step()
-                lr_scheduler.step()
-                optimizer.zero_grad()
-            else:
-                q_inputs = _unpack_query_batch(batch, retrieval_mode)
-                p_inputs = _unpack_positive_batch(batch, retrieval_mode)
-
-                n_inputs = None
-                if batch.get("neg_pixel_values") is not None:
-                    n_inputs = {"pixel_values": batch["neg_pixel_values"]}
-                    if "neg_input_ids" in batch:
-                        n_inputs["input_ids"] = batch["neg_input_ids"]
-                        n_inputs["attention_mask"] = batch["neg_attention_mask"]
-                    if batch.get("neg_image_grid_thw") is not None:
-                        n_inputs["image_grid_thw"] = batch["neg_image_grid_thw"]
-
-                # Check if we should concatenate inputs (Unified models / Qwen-VL)
-                # Composed models (CLIP) usually expect separate inputs for text/image encoders.
-                # Heuristic: Only concat if inputs share primary keys (like input_ids).
-                should_concat = False
-                if encoder_mode != "composed":
-                    q_keys = set(q_inputs.keys())
-                    p_keys = set(p_inputs.keys())
-                    # If both have input_ids, it's likely a unified LLM/VLM that treats everything as tokens
-                    if "input_ids" in q_keys and "input_ids" in p_keys:
-                        should_concat = True
-
-                if should_concat:
-                    batches_to_concat = [q_inputs, p_inputs]
-                    if n_inputs:
-                        batches_to_concat.append(n_inputs)
-
-                    pad_id = 0
-                    if processor and hasattr(processor, "tokenizer") and processor.tokenizer.pad_token_id is not None:
-                        pad_id = processor.tokenizer.pad_token_id
-                    elif hasattr(model, "config") and hasattr(model.config, "pad_token_id") and model.config.pad_token_id is not None:
-                        pad_id = model.config.pad_token_id
-
-                    concatenated_inputs, batch_sizes = _concat_batches(
-                        batches_to_concat, pad_token_id=pad_id
-                    )
-
-                    # Use no_sync() to avoid DDP parameter ready-multiple times error
-                    # When concat [q, p, n], parameters are used 3x in same forward
-                    # no_sync() prevents gradient sync until optimizer.step()
-                    use_no_sync = bool(accelerator and accelerator.num_processes > 1)
-                    if use_no_sync and hasattr(model, "no_sync"):
-                        with model.no_sync():
-                            all_embs = _maybe_first(model(**concatenated_inputs))
-                    else:
-                        all_embs = _maybe_first(model(**concatenated_inputs))
-
-                    # Split concatenated output back into q, p, n embeddings
-                    q_embs = all_embs[: batch_sizes[0]]
-                    p_embs = all_embs[batch_sizes[0] : batch_sizes[0] + batch_sizes[1]]
-                    if n_inputs:
-                        n_embs = all_embs[batch_sizes[0] + batch_sizes[1] :]
-                    else:
-                        n_embs = None
-                else:
-                    q_embs = _maybe_first(model(**q_inputs))
-                    p_embs = _maybe_first(model(**p_inputs))
-                    n_embs = _maybe_first(model(**n_inputs)) if n_inputs else None
-
-                loss_kwargs = {}
-                if "labels" in batch:
-                    loss_kwargs["labels"] = batch["labels"]
-
-                loss = criterion(q_embs, p_embs, n_embs, **loss_kwargs)
-
-                if teacher_model is not None and distillation_loss_fn is not None:
-                    with torch.no_grad():
-                        t_q = _maybe_first(
-                            teacher_model(**_unpack_query_batch(batch, retrieval_mode))
-                        )
-                        t_p = _maybe_first(
-                            teacher_model(**_unpack_positive_batch(batch, retrieval_mode))
-                        )
-                    distill_loss = distillation_loss_fn(q_embs, p_embs, t_q, t_p)
-                    loss = distillation_alpha * loss + (1.0 - distillation_alpha) * distill_loss
-
-                accelerator.backward(loss)
-                if max_grad_norm > 0:
-                    accelerator.clip_grad_norm_(model.parameters(), max_grad_norm)
-                optimizer.step()
-                lr_scheduler.step()
-                optimizer.zero_grad()
-                loss_val = loss.item()
-
-            if global_step % logging_steps == 0:
-                current_lr = lr_scheduler.get_last_lr()[0]
-                accelerator.print(
-                    f"  step {global_step} | loss={loss_val:.4f} | lr={current_lr:.2e}"
-                )
-                if log_with is not None:
-                    accelerator.log(
-                        {
-                            "train/loss": loss_val,
-                            "train/learning_rate": current_lr,
-                            "train/epoch": epoch + (step + 1) / steps_per_epoch,
-                            "train/global_step": global_step,
-                        },
-                        step=global_step,
-                    )
-
-            if save_steps > 0 and global_step % save_steps == 0:
-                save_checkpoint(
-                    os.path.join(config["output_dir"], f"checkpoint-step-{global_step}")
-                )
-
-        save_checkpoint(os.path.join(config["output_dir"], f"checkpoint-epoch-{epoch + 1}"))
-
-        if val_dataloader:
-            evaluate()
-
+    # Cleanup
     if log_with is not None:
         accelerator.end_training()
 
