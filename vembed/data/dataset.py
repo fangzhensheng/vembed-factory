@@ -70,9 +70,6 @@ class GenericRetrievalDataset(Dataset):
 
         try:
             img = Image.open(full_path).convert("RGB")
-            # DEBUG: Print loaded image size - Use print for immediate visibility in benchmark logs
-            # if "flickr30k" in str(full_path):
-            #    print(f"DEBUG: Loaded image {full_path} size: {img.size}")
             return img
         except (OSError, ValueError) as exc:
             logger.error("Error loading image %s: %s", full_path, exc)

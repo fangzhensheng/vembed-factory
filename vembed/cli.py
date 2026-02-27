@@ -30,6 +30,14 @@ logger = logging.getLogger(__name__)
 
 
 def main(args_list=None):
+    """CLI entrypoint for vembed-factory training.
+
+    Parses configuration from defaults, YAML files, and command-line overrides,
+    then launches distributed training via ``accelerate launch``.
+
+    Args:
+        args_list: Optional list of command-line arguments. If None, uses sys.argv.
+    """
     # ── 1. Pre-parse: config_file, config_override ──────────────────────
     pre_parser = argparse.ArgumentParser(add_help=False)
     pre_parser.add_argument("config_file", nargs="?", default=None, help="Path to YAML config file")

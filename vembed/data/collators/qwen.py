@@ -143,10 +143,16 @@ class QwenVisualRetrievalCollator:
                 "pixel_values": pixel_values,
                 "image_grid_thw": grid_thw,
             }
+        except RuntimeError:
+            # Re-raise RuntimeError for missing dependencies
+            raise
         except Exception as e:
-            logger.error(f"Error processing qwen item: {e}")
-            logger.error(traceback.format_exc())
-            return None
+            logger.error("Error processing qwen item: %s", e)
+            logger.debug(traceback.format_exc())
+            raise ValueError(
+                f"Failed to process Qwen item: {str(e)}. "
+                "Check that qwen-vl-utils is installed and image paths are valid."
+            ) from e
 
     def _pad_and_batch(self, inputs_list):
         if not inputs_list:

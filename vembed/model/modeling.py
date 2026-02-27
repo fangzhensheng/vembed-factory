@@ -62,17 +62,39 @@ class VisualRetrievalModel(nn.Module):
         return "auto"
 
     def forward(self, *args: Any, **kwargs: Any) -> Any:
+        """Forward pass delegating to the backend model."""
         return self.backend(*args, **kwargs)
 
     def save_pretrained(self, save_directory: str) -> None:
+        """Save model to directory, delegating to backend implementation.
+
+        Args:
+            save_directory: Path where the model will be saved.
+
+        Raises:
+            NotImplementedError: If backend does not support save_pretrained.
+        """
         if hasattr(self.backend, "save_pretrained") or isinstance(self.backend, PreTrainedModel):
             self.backend.save_pretrained(save_directory)
         else:
-            # Fallback for custom models without save_pretrained
-            # This might need torch.save, but sticking to interface for now
-            pass
+            raise NotImplementedError(
+                f"Backend {type(self.backend).__name__} does not support save_pretrained(). "
+                "Please implement save_pretrained() in the backend class."
+            )
 
     def get_text_features(self, *args: Any, **kwargs: Any) -> Any:
+        """Extract text embeddings from input tokens.
+
+        Args:
+            *args: Positional arguments passed to backend.
+            **kwargs: Keyword arguments. Must contain 'input_ids' or backend must support get_text_features.
+
+        Returns:
+            Text embeddings tensor.
+
+        Raises:
+            AttributeError: If backend does not support text encoding.
+        """
         backend: Any = self.backend
         if hasattr(backend, "get_text_features"):
             return backend.get_text_features(*args, **kwargs)
@@ -83,6 +105,18 @@ class VisualRetrievalModel(nn.Module):
         raise AttributeError("Backend does not support get_text_features")
 
     def get_image_features(self, *args: Any, **kwargs: Any) -> Any:
+        """Extract image embeddings from pixel values.
+
+        Args:
+            *args: Positional arguments passed to backend.
+            **kwargs: Keyword arguments. Must contain 'pixel_values' or backend must support get_image_features.
+
+        Returns:
+            Image embeddings tensor.
+
+        Raises:
+            AttributeError: If backend does not support image encoding.
+        """
         backend: Any = self.backend
         if hasattr(backend, "get_image_features"):
             return backend.get_image_features(*args, **kwargs)

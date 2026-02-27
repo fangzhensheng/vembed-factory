@@ -48,8 +48,8 @@ class Qwen3EmbeddingModel(BaseEmbeddingModel):
                 self.backbone = PeftModel.from_pretrained(self.backbone, self.model_name)
                 # Merge for efficiency during inference/embedding generation
                 self.backbone = self.backbone.merge_and_unload()
-            except ImportError:
-                pass
+            except ImportError as e:
+                logger.warning("peft not installed, skipping LoRA adapter loading: %s", e)
 
     @staticmethod
     def _probe_hidden_size(model_name: str) -> int:

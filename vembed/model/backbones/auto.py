@@ -45,8 +45,8 @@ def _unwrap_clip_model(backbone: torch.nn.Module) -> torch.nn.Module | None:
             base = backbone.get_base_model()
             if _has_clip_methods(base):
                 return base
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Failed to get base model from PeftModel: %s", e)
 
     # Fallback: walk common wrapping attributes used by peft / LoraModel
     for attr in ("model", "base_model"):

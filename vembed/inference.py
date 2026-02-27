@@ -113,6 +113,15 @@ class VEmbedFactoryPredictor:
         return embeddings.cpu().numpy()
 
     def encode_text(self, text: str | list[str], normalize: bool = True) -> np.ndarray:
+        """Encode text input(s) into embeddings.
+
+        Args:
+            text: Single text string or list of text strings.
+            normalize: Whether to L2-normalize embeddings. Defaults to True.
+
+        Returns:
+            Numpy array of embeddings with shape (batch_size, embedding_dim).
+        """
         if isinstance(text, str):
             text = [text]
 
@@ -136,6 +145,15 @@ class VEmbedFactoryPredictor:
         image: str | Image.Image | list[str | Image.Image],
         normalize: bool = True,
     ) -> np.ndarray:
+        """Encode image input(s) into embeddings.
+
+        Args:
+            image: Image file path(s), PIL Image object(s), or list of mixed types.
+            normalize: Whether to L2-normalize embeddings. Defaults to True.
+
+        Returns:
+            Numpy array of embeddings with shape (batch_size, embedding_dim).
+        """
         if not isinstance(image, list):
             image = [image]
 
@@ -155,6 +173,16 @@ class VEmbedFactoryPredictor:
         return self._truncate_and_normalize(embeddings, normalize)
 
     def encode(self, inputs, is_image: bool = False, normalize: bool = True):
+        """Encode inputs (text or image) into embeddings.
+
+        Args:
+            inputs: Text string(s), image path(s), or PIL Image(s).
+            is_image: Set to True for image encoding, False for text. Defaults to False.
+            normalize: Whether to L2-normalize embeddings. Defaults to True.
+
+        Returns:
+            Numpy array of embeddings with shape (batch_size, embedding_dim).
+        """
         if is_image:
             return self.encode_image(inputs, normalize)
         return self.encode_text(inputs, normalize)

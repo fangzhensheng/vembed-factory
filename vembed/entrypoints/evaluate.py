@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import sys
 
@@ -15,6 +16,8 @@ from vembed.evaluation.metrics import compute_metrics
 from vembed.evaluation.report import generate_report
 from vembed.model.modeling import VisualRetrievalModel
 from vembed.model.processors import ProcessorRegistry
+
+logger = logging.getLogger(__name__)
 
 
 def parse_args():
@@ -85,7 +88,7 @@ def main():
         positive_embs = np.concatenate(all_positive_embs)
 
         metrics = compute_metrics(query_embs, positive_embs)
-        print("Metrics:", metrics)
+        print(f"Metrics: {metrics}")
 
         generate_report(metrics, args.output_dir, query_embs, positive_embs)
         print(f"Report saved to {args.output_dir}")
