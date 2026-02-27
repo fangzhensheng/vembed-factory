@@ -55,7 +55,7 @@ There are excellent embedding libraries out there. Here's where **vembed-factory
 - **Pure Factory Mode**: Data in -> Fine-tuned Embedding Model + Evaluation Report out.
 - **Extensive Model Support**:
   - **Dual-Encoders**: CLIP, SigLIP, EVA-CLIP
-  - **Vision-Language Models**: Qwen3-VL-Embedding (2B/8B), Qwen2-VL, and more
+  - **Vision-Language Models**: Qwen3-VL-Embedding (2B/8B)
   - **Late Interaction**: ColPali, ColQwen (multi-vector fine-grained retrieval)
   - **Composed Encoders**: Mix any Text Encoder + Image Encoder (e.g. BERT + DINOv2)
 - **Efficient Training**:
@@ -70,7 +70,7 @@ There are excellent embedding libraries out there. Here's where **vembed-factory
 
 | Model Type | Examples | Use Case |
 | :--- | :--- | :--- |
-| **Vision-Language Models** | **Qwen3-VL-Embedding-2B/8B**, Qwen2-VL, Yi-VL | SOTA Multimodal Retrieval |
+| **Vision-Language Models** | **Qwen3-VL-Embedding-2B/8B** | SOTA Multimodal Retrieval |
 | **Dual-Encoders** | OpenAI CLIP, SigLIP, EVA-CLIP | General Purpose, Zero-Shot |
 | **Late Interaction** | **ColPali**, ColQwen | Fine-grained Document Retrieval |
 | **Composed** | BERT + DINOv2, BGE + BGE | Specialized Domain, Text Retrieval |

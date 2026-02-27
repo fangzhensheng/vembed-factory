@@ -40,7 +40,7 @@
 - **纯粹的工厂模式**: 数据输入 -> 微调后的 Embedding 模型 + 评测报告输出。
 - **广泛的模型支持**:
   - **双塔编码器 (Dual-Encoders)**: CLIP, SigLIP, EVA-CLIP
-  - **视觉语言模型 (VLMs)**: Qwen3-VL-Embedding (2B/8B), Qwen2-VL 等
+  - **视觉语言模型 (VLMs)**: Qwen3-VL-Embedding (2B/8B)
   - **延迟交互 (Late Interaction)**: ColPali, ColQwen (多向量细粒度检索)
   - **组合编码器**: 混合任意文本编码器 + 图像编码器 (如 BERT + DINOv2)
 - **高效训练**:
@@ -55,7 +55,7 @@
 
 | 模型类型 | 示例 | 适用场景 |
 | :--- | :--- | :--- |
-| **视觉语言模型** | **Qwen3-VL-Embedding-2B/8B**, Qwen2-VL, Yi-VL | SOTA 多模态检索 |
+| **视觉语言模型** | **Qwen3-VL-Embedding-2B/8B** | SOTA 多模态检索 |
 | **双塔编码器** | OpenAI CLIP, SigLIP, EVA-CLIP | 通用场景, 零样本检索 |
 | **延迟交互** | **ColPali**, ColQwen | 细粒度文档检索 |
 | **组合模型** | BERT + DINOv2, BGE + BGE | 垂直领域, 文本检索 |
