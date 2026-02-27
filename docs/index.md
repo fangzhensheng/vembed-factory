@@ -136,17 +136,16 @@ image_emb = predictor.encode_image("cat.jpg")
 
 ```bash
 # Train Qwen3-VL-Embedding (Recommended)
-vembed --model_type qwen3 --data_path data/train.jsonl
+python run.py examples/qwen3_2b_train.yaml
 
 # Train CLIP with MRL
-vembed --model_type clip --data_path data/train.jsonl --use_mrl
+python run.py examples/clip_train.yaml --config_override use_mrl=true
 
 # Train with W&B logging
-vembed --model_type clip --data_path data/train.jsonl \
-  --config_override report_to=wandb
+python run.py examples/clip_train.yaml --config_override report_to=wandb
 
 # Train ColPali (Late Interaction)
-vembed --model_type qwen3 --loss_type colbert --data_path data/train.jsonl
+python run.py examples/qwen_colbert.yaml
 ```
 
 ## Data Format
@@ -163,15 +162,15 @@ vembed-factory supports flexible input data. Each line in a JSONL file is one tr
 
 ## Configuration
 
-Training can be customized via YAML configs, CLI flags, or Python API arguments:
+Training can be customized via YAML configs and CLI overrides:
 
 ```bash
-# Use a preset
-vembed --model_type clip --data_path data/train.jsonl
+# Train with a specific config file
+python run.py examples/clip_train.yaml
 
 # Override specific settings
-vembed --model_type clip --data_path data/train.jsonl \
-  --config_override lr=1e-5 batch_size=64 scheduler_type=linear warmup_ratio=0.05
+python run.py examples/clip_train.yaml \
+  --config_override learning_rate=1e-5 batch_size=64 scheduler_type=linear warmup_ratio=0.05
 ```
 
 Key configuration options:

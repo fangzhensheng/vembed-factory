@@ -67,23 +67,20 @@ trainer.train(
 
 This uses the high-level API wrapper that delegates to CLI internally. Perfect for quick prototyping.
 
-### 3. Train with CLI
+### 3. Train with CLI (Recommended)
 
 ```bash
-# Simple training
-accelerate launch vembed/entrypoints/train.py --config examples/clip_train.yaml
+# Simple training - using run.py (recommended)
+python run.py examples/clip_train.yaml
 
 # Override parameters
-accelerate launch vembed/entrypoints/train.py \
-    --config examples/clip_train.yaml \
-    --batch_size 64 \
-    --learning_rate 1e-5
+python run.py examples/clip_train.yaml --config_override batch_size=64 learning_rate=1e-5
 
-# Via CLI tool
-vembed train --config examples/clip_train.yaml --batch_size 64
+# Advanced: explicit accelerate launch with distributed training
+accelerate launch vembed/entrypoints/train.py examples/clip_train.yaml
 ```
 
-This is the recommended approach for production training with full support for distributed training.
+For distributed training (DDP, FSDP), use `accelerate launch` instead of `python run.py`.
 
 ### 4. Train with Python API (Advanced)
 

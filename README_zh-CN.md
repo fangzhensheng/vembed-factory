@@ -155,14 +155,14 @@ vembed-factory 支持灵活的输入数据。JSONL 文件中的每一行都是�
 ## 配置
 
 训练主要通过 YAML 文件配置。优先级顺序如下：
-`Defaults` < `Preset YAML` < `User YAML` < `CLI Overrides`。
+`Defaults` < `YAML 配置` < `CLI 覆盖`。
 
 ```bash
 # 使用指定的配置文件运行
 python run.py examples/clip_train.yaml
 
 # 通过 CLI 覆盖特定设置
-python run.py examples/clip_train.yaml --batch_size 64 --learning_rate 1e-5
+python run.py examples/clip_train.yaml --config_override batch_size=64 learning_rate=1e-5
 ```
 
 关键配置选项 (可在 YAML 或 CLI 中设置)：

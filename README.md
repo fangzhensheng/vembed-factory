@@ -171,14 +171,14 @@ vembed-factory supports flexible input data. Each line in a JSONL file is one tr
 ## Configuration
 
 Training is configured primarily via YAML files. We follow a hierarchy:
-`Defaults` < `Preset YAML` < `User YAML` < `CLI Overrides`.
+`Defaults` < `YAML Config` < `CLI Overrides`.
 
 ```bash
 # Run with a specific config file
 python run.py examples/clip_train.yaml
 
 # Override specific settings via CLI
-python run.py examples/clip_train.yaml --batch_size 64 --learning_rate 1e-5
+python run.py examples/clip_train.yaml --config_override batch_size=64 learning_rate=1e-5
 ```
 
 Key configuration options (can be set in YAML or CLI):
