@@ -1,5 +1,6 @@
 import json
 import os
+import random
 
 import requests
 from datasets import load_dataset
@@ -185,187 +186,115 @@ def create_dummy_data():
     print(f"Dummy data created at {output_dir}")
 
 
-def _find_first_file(root_dir: str, filename: str) -> str | None:
-    if os.path.isfile(os.path.join(root_dir, filename)):
-        return os.path.join(root_dir, filename)
-    for current, _dirs, files in os.walk(root_dir):
-        if filename in files:
-            return os.path.join(current, filename)
-    return None
+def _process_sop_split(input_file: str, output_file: str) -> int:
+    """Process SOP split file and generate JSONL dataset.
 
+    Format of input_file (Ebay_train.txt/Ebay_test.txt):
+    image_id class_id super_class_id path
 
-def _load_sop_index(
-    txt_path: str,
-) -> tuple[dict[str, list[str]], dict[str, str], dict[str, list[str]]]:
-    class_to_paths: dict[str, list[str]] = {}
-    class_to_super: dict[str, str] = {}
-    super_to_classes: dict[str, list[str]] = {}
-    with open(txt_path, encoding="utf-8") as f:
-        for i, line in enumerate(f):
+    Returns: Number of pairs generated
+    """
+    from collections import defaultdict
+
+    print(f"Processing {input_file} -> {output_file} ...")
+
+    # Read and group by class_id
+    class_groups: dict[int, list[str]] = defaultdict(list)
+
+    with open(input_file, encoding="utf-8") as f:
+        # Skip header if present
+        lines = f.readlines()
+        if lines and "image_id" in lines[0]:
+            lines = lines[1:]
+
+        for line in tqdm(lines, desc="Reading file"):
             line = line.strip()
             if not line:
-                continue
-            if i == 0 and line.lower().startswith("image_id"):
                 continue
             parts = line.split()
             if len(parts) < 4:
                 continue
-            _image_id, class_id, super_class_id, rel_path = parts[0], parts[1], parts[2], parts[3]
-            class_to_paths.setdefault(class_id, []).append(rel_path)
-            class_to_super[class_id] = super_class_id
-            super_to_classes.setdefault(super_class_id, []).append(class_id)
-    for super_id, class_ids in super_to_classes.items():
-        super_to_classes[super_id] = sorted(set(class_ids))
-    return class_to_paths, class_to_super, super_to_classes
 
+            # parts: [image_id, class_id, super_class_id, path]
+            class_id = int(parts[1])
+            rel_path = parts[3]
+            class_groups[class_id].append(rel_path)
 
-def _sample_i2i_pairs(
-    class_to_paths: dict[str, list[str]],
-    class_to_super: dict[str, str],
-    super_to_classes: dict[str, list[str]],
-    *,
-    max_pairs: int,
-    seed: int,
-    num_hard_negatives: int,
-) -> list[dict]:
-    import random
+    # Generate pairs
+    records = []
 
-    rng = random.Random(seed)
-    classes = [cid for cid, paths in class_to_paths.items() if len(paths) >= 2]
-    if not classes or max_pairs <= 0:
-        return []
+    for class_id, images in tqdm(class_groups.items(), desc="Generating pairs"):
+        # For each image in the class, pick a positive
+        for i, query_img in enumerate(images):
+            # Strategy:
+            # If there are other images in the same class, pick one randomly (different from query).
+            # If it's the only image, use itself (self-supervision).
 
-    pairs: list[dict] = []
-    for _ in range(max_pairs):
-        cid = rng.choice(classes)
-        paths = class_to_paths[cid]
-        query, positive = rng.sample(paths, 2)
+            if len(images) > 1:
+                # Pick a random index distinct from i
+                pos_idx = i
+                while pos_idx == i:
+                    pos_idx = random.randint(0, len(images) - 1)
+                pos_img = images[pos_idx]
+            else:
+                pos_img = query_img
 
-        super_id = class_to_super.get(cid)
-        candidate_classes = []
-        if super_id is not None:
-            candidate_classes = [c for c in super_to_classes.get(super_id, []) if c != cid]
+            record = {"query_image": query_img, "positive": pos_img, "label": class_id}
+            records.append(record)
 
-        negs: list[str] = []
-        if candidate_classes:
-            for _n in range(num_hard_negatives):
-                neg_cid = rng.choice(candidate_classes)
-                neg_paths = class_to_paths.get(neg_cid, [])
-                if not neg_paths:
-                    continue
-                negs.append(rng.choice(neg_paths))
+    print(f"Generated {len(records)} pairs.")
 
-        pairs.append(
-            {
-                "query_image": query,
-                "positive": positive,
-                "negatives": negs,
-                "class_id": cid,
-                "super_class_id": super_id,
-            }
-        )
-    return pairs
+    # Write JSONL
+    with open(output_file, "w", encoding="utf-8") as f:
+        for r in records:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+    print(f"Saved to {output_file}")
+    return len(records)
 
 
 def prepare_sop_i2i_dataset(
     dataset_root: str | None,
     output_dir: str,
-    *,
-    max_train_pairs: int = 200_000,
-    max_val_pairs: int = 10_000,
-    seed: int = 42,
-):
+) -> None:
+    """Prepare Stanford Online Products dataset for training.
+
+    Args:
+        dataset_root: Path to SOP dataset root. If None, downloads via kagglehub.
+        output_dir: Output directory for JSONL files.
+    """
     if dataset_root is None:
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        data_dir = os.path.join(project_root, "data")
-        os.makedirs(data_dir, exist_ok=True)
-        os.environ.setdefault("KAGGLEHUB_CACHE", os.path.join(data_dir, "kagglehub"))
-
+        # Auto-download via kagglehub
+        os.environ.setdefault("KAGGLEHUB_CACHE", os.path.join(os.path.dirname(__file__), "..", "data", "kagglehub"))
         import kagglehub
-
         dataset_root = kagglehub.dataset_download("liucong12601/stanford-online-products-dataset")
+        print(f"Downloaded dataset to: {dataset_root}")
 
-    train_txt = _find_first_file(dataset_root, "Ebay_train.txt")
-    test_txt = _find_first_file(dataset_root, "Ebay_test.txt")
-    if train_txt is None or test_txt is None:
-        raise FileNotFoundError(
-            "Cannot find Ebay_train.txt / Ebay_test.txt under dataset_root. "
-            f"dataset_root={dataset_root}"
-        )
+    # Find split files
+    def find_file(root: str, filename: str) -> str:
+        if os.path.isfile(os.path.join(root, filename)):
+            return os.path.join(root, filename)
+        for current, _dirs, files in os.walk(root):
+            if filename in files:
+                return os.path.join(current, filename)
+        raise FileNotFoundError(f"Cannot find {filename} in {root}")
 
-    base_dir = os.path.dirname(train_txt)
-    local_root = os.path.join("data", "stanford_online_products")
-    local_base_dir = local_root
-
-    os.makedirs("data", exist_ok=True)
-    if os.path.abspath(base_dir) != os.path.abspath(local_base_dir):
-        if os.path.islink(local_base_dir):
-            os.unlink(local_base_dir)
-
-        if not os.path.exists(local_base_dir):
-            try:
-                os.symlink(base_dir, local_base_dir, target_is_directory=True)
-                print(f"Linked dataset: {local_base_dir} -> {base_dir}")
-            except OSError:
-                raise RuntimeError(
-                    "Failed to create symlink under data/. "
-                    f"Please run: ln -s '{base_dir}' '{local_base_dir}'"
-                ) from None
-        else:
-            print(f"Using existing local dataset path: {local_base_dir}")
-
-    num_hard_negatives = 8
-
-    train_index, train_class_to_super, train_super_to_classes = _load_sop_index(train_txt)
-    test_index, test_class_to_super, test_super_to_classes = _load_sop_index(test_txt)
-
-    train_pairs = _sample_i2i_pairs(
-        train_index,
-        train_class_to_super,
-        train_super_to_classes,
-        max_pairs=max_train_pairs,
-        seed=seed,
-        num_hard_negatives=num_hard_negatives,
-    )
-    val_pairs = _sample_i2i_pairs(
-        test_index,
-        test_class_to_super,
-        test_super_to_classes,
-        max_pairs=max_val_pairs,
-        seed=seed + 1,
-        num_hard_negatives=num_hard_negatives,
-    )
-
-    for p in train_pairs:
-        p["query_image"] = os.path.join(local_base_dir, p["query_image"])
-        p["positive"] = os.path.join(local_base_dir, p["positive"])
-        p["negatives"] = [os.path.join(local_base_dir, n) for n in p.get("negatives", [])]
-
-    for p in val_pairs:
-        p["query_image"] = os.path.join(local_base_dir, p["query_image"])
-        p["positive"] = os.path.join(local_base_dir, p["positive"])
-        p["negatives"] = [os.path.join(local_base_dir, n) for n in p.get("negatives", [])]
+    train_txt = find_file(dataset_root, "Ebay_train.txt")
+    test_txt = find_file(dataset_root, "Ebay_test.txt")
 
     os.makedirs(output_dir, exist_ok=True)
-    train_path = os.path.join(output_dir, "train.jsonl")
-    val_path = os.path.join(output_dir, "val.jsonl")
 
-    with open(train_path, "w", encoding="utf-8") as f:
-        for p in train_pairs:
-            f.write(json.dumps(p, ensure_ascii=False) + "\n")
+    # Process train split
+    train_jsonl = os.path.join(output_dir, "train.jsonl")
+    train_count = _process_sop_split(train_txt, train_jsonl)
 
-    with open(val_path, "w", encoding="utf-8") as f:
-        for p in val_pairs:
-            f.write(json.dumps(p, ensure_ascii=False) + "\n")
+    # Process test split (as validation)
+    val_jsonl = os.path.join(output_dir, "val.jsonl")
+    val_count = _process_sop_split(test_txt, val_jsonl)
 
-    print("SOP i2i data saved:")
-    print(f"   - dataset_root: {dataset_root}")
-    print(f"   - image_root  : {local_base_dir} (already written as absolute paths in jsonl)")
-    print(f"   - train: {train_path} ({len(train_pairs)})")
-    print(f"   - val  : {val_path} ({len(val_pairs)})")
-    print(
-        f"   - hard_negatives_per_query: {num_hard_negatives} (same super_class, different class_id)"
-    )
+    print("\n✓ SOP dataset preparation complete:")
+    print(f"  - train: {train_jsonl} ({train_count} pairs)")
+    print(f"  - val:   {val_jsonl} ({val_count} pairs)")
 
 
 if __name__ == "__main__":
@@ -374,7 +303,7 @@ if __name__ == "__main__":
     dataset = sys.argv[1] if len(sys.argv) >= 2 else ""
 
     if dataset == "sop_i2i":
-        prepare_sop_i2i_dataset(None, "data/sop_i2i")
+        prepare_sop_i2i_dataset(None, "data/stanford_online_products")
         sys.exit(0)
 
     if dataset == "flickr30k":

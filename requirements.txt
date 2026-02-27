@@ -12,6 +12,7 @@ sentencepiece
 packaging
 matplotlib
 requests
+kagglehub
 scikit-learn
 qwen-vl-utils
 

@@ -21,4 +21,5 @@ dependencies:
     - packaging
     - matplotlib
     - requests
+    - kagglehub
     - -e .

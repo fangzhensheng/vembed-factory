@@ -44,6 +44,7 @@ dependencies = [
     "packaging",
     "matplotlib",
     "requests",
+    "kagglehub",
     "qwen-vl-utils",
 ]
 

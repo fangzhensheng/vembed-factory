@@ -1,4 +1,4 @@
-model_name: facebook/dinov2-small
+model_name: facebook/dinov2-base
 retrieval_mode: i2i
 use_lora: true
 data_path: data/stanford_online_products/train.jsonl

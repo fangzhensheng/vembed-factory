@@ -18,7 +18,7 @@ IMAGE_ROOT="${SOP_ROOT}"
 # Check if data exists
 if [ ! -f "$DATA_PATH" ]; then
     echo "Error: Training data not found at $DATA_PATH"
-    echo "Please run: python3 examples/prepare_sop_data.py"
+    echo "Please run: python examples/prepare_data.py sop_i2i"
     exit 1
 fi
 
