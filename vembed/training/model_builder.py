@@ -138,7 +138,6 @@ def apply_lora(model: VisualRetrievalModel, config: dict[str, Any], accelerator:
     try:
         target = model.backend
 
-        # Enable gradient checkpointing if requested
         if config.get("gradient_checkpointing", False):
             _enable_gradient_checkpointing(target, accelerator)
 
@@ -182,6 +181,63 @@ def _enable_gradient_checkpointing(target: torch.nn.Module, accelerator: Acceler
         target.image_model.gradient_checkpointing_enable()
         if hasattr(target.image_model, "enable_input_require_grads"):
             target.image_model.enable_input_require_grads()
+
+
+def unify_model_dtype_for_fsdp(model: torch.nn.Module, config: dict[str, Any], accelerator: Accelerator) -> None:
+    """Ensure all model parameters have uniform dtype for FSDP compatibility.
+
+    FSDP requires all parameters to have the same dtype. This function converts
+    all parameters to match the configured torch_dtype.
+
+    Args:
+        model: Model to unify dtype on.
+        config: Configuration dict with 'torch_dtype'.
+        accelerator: Accelerate instance for printing.
+    """
+    if not config.get("use_fsdp", False):
+        return
+
+    dtype_map = {
+        "float16": torch.float16,
+        "fp16": torch.float16,
+        "bfloat16": torch.bfloat16,
+        "bf16": torch.bfloat16,
+        "float32": torch.float32,
+        "fp32": torch.float32,
+    }
+
+    target_dtype_str = config.get("torch_dtype", "bfloat16")
+    target_dtype = dtype_map.get(str(target_dtype_str), torch.bfloat16)
+
+    dtypes_found = {param.dtype for param in model.parameters()}
+
+    if len(dtypes_found) > 1:
+        dtype_counts = {}
+        for param in model.parameters():
+            dtype_str = str(param.dtype)
+            dtype_counts[dtype_str] = dtype_counts.get(dtype_str, 0) + param.numel()
+
+        accelerator.print(f"⚠️  FSDP dtype mismatch detected: {dtype_counts}")
+        accelerator.print(f"   Converting all parameters to {target_dtype}...")
+
+        for param in model.parameters():
+            if param.dtype != target_dtype:
+                param.data = param.data.to(target_dtype)
+
+        accelerator.print(f"✓ All parameters converted to {target_dtype}")
+    else:
+        accelerator.print(f"✓ FSDP dtype check: all parameters already in {list(dtypes_found)[0]}")
+
+
+def _log_fsdp_param_summary(model: torch.nn.Module, accelerator: Accelerator) -> None:
+    """Log model parameter summary for FSDP debugging."""
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    accelerator.print(f"FSDP parameter summary:")
+    accelerator.print(f"  Total: {total_params:,} ({total_params/1e9:.2f}B)")
+    accelerator.print(f"  Trainable: {trainable_params:,} ({trainable_params/1e9:.2f}B)")
+    accelerator.print(f"  Frozen: {total_params - trainable_params:,}")
 
 
 def compile_model(model: torch.nn.Module, config: dict[str, Any], accelerator: Accelerator) -> torch.nn.Module:

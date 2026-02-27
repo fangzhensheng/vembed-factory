@@ -1,21 +1,11 @@
-# Qwen2-VL Multimodal-to-Text (M2T) Configuration
-# Query = text + image, Positive = text
-
-# --- Model ---
-model_type: "qwen"
-retrieval_mode: "m2t"
+model_name: Qwen/Qwen2-7B-Instruct
+retrieval_mode: m2t
 use_lora: true
-
-# --- Data ---
-data_path: "data/train.jsonl"
-val_data_path: "data/val.jsonl"
-image_root: "data/images"
-
-# --- Training ---
-output_dir: "experiments/output_qwen_m2t"
+data_path: data/train.jsonl
+val_data_path: data/val.jsonl
+image_root: data/images
+output_dir: experiments/output_qwen_m2t
 epochs: 3
 batch_size: 128
-
-# --- Memory ---
 use_gradient_cache: true
 gradient_cache_chunk_size: 4

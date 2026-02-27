@@ -1,22 +1,29 @@
-# Qwen3-VL-Embedding-8B Training Configuration
+# Qwen3-VL-Embedding-8B Training Configuration with DDP + Gradient Cache
 
-# --- Model ---
-model_type: "qwen3_8b"
-use_lora: true
+# Model
+model_name: "Qwen/Qwen3-VL-Embedding-8B"
+encoder_mode: "qwen3_vl"
 attn_implementation: "flash_attention_2"
 torch_dtype: "bfloat16"
-gradient_checkpointing: true
 
-# --- Data ---
+# Data
 data_path: "data/train.jsonl"
 val_data_path: "data/val.jsonl"
 image_root: "data/images"
 
-# --- Training ---
+# Training
 output_dir: "experiments/output_qwen3_8b"
 epochs: 3
 batch_size: 64
+learning_rate: 2.0e-5
+loss_type: "infonce"
 
-# --- Memory ---
+# Memory Optimization
 use_gradient_cache: true
-gradient_cache_chunk_size: 1
+gradient_cache_chunk_size: 64
+gradient_checkpointing: true
+use_lora: true
+
+# Multi-Resolution Learning
+use_mrl: true
+mrl_dims: [3584]

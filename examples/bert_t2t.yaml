@@ -1,18 +1,8 @@
-# BERT Text-to-Text Training Configuration
-
-# --- Model ---
-model_type: "custom"
-model_name: "bert-base-uncased"
-retrieval_mode: "t2t"
+model_name: bert-base-uncased
+retrieval_mode: t2t
 use_lora: true
-
-# --- Data ---
-data_path: "data/train.jsonl"
-val_data_path: "data/val.jsonl"
-
-# --- Training ---
-output_dir: "experiments/output_bert_t2t"
+data_path: data/train.jsonl
+val_data_path: data/val.jsonl
+output_dir: experiments/output_bert_t2t
 epochs: 3
-
-# --- Memory ---
 use_gradient_cache: true

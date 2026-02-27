@@ -1,15 +1,8 @@
-# CLIP CoSENT Training Configuration
-
-# --- Model ---
-model_type: "clip"
+model_name: openai/clip-vit-base-patch32
 use_lora: true
-
-# --- Data ---
-data_path: "data/train.jsonl"
-val_data_path: "data/val.jsonl"
-image_root: "data/images"
-
-# --- Training ---
-output_dir: "experiments/output_clip_cosent"
+data_path: data/train.jsonl
+val_data_path: data/val.jsonl
+image_root: data/images
+output_dir: experiments/output_clip_cosent
 epochs: 5
-loss_type: "cosent"
+loss_type: cosent

@@ -196,21 +196,41 @@ See [`https://github.com/fangzhensheng/vembed-factory/blob/main/vembed/configs/d
 vembed-factory/
 ├── vembed/
 │   ├── __init__.py        # Public API: Trainer, Predictor, __version__
-│   ├── trainer.py         # High-level Training API
+│   ├── trainer.py         # High-level Training API (VEmbedFactoryTrainer)
 │   ├── inference.py       # High-level Inference API
 │   ├── cli.py             # CLI entry point
 │   ├── configs/           # YAML presets (clip, siglip, qwen, ...)
 │   ├── model/             # Model backends (CLIP, composed, VLM, ...)
 │   ├── losses/            # Loss functions (InfoNCE, MRL, ColBERT, ...)
-│   ├── training/          # Gradient Cache implementation
-│   └── evaluation/        # Metrics (Recall@K, MRR)
+│   ├── training/          # Training utilities (8 refactored modules)
+│   │   ├── __init__.py
+│   │   ├── config.py, data_utils.py, optimizer_builder.py, ...
+│   │   ├── training_loop.py    # Core Trainer class
+│   │   └── README.md           # API documentation
+│   ├── evaluation/        # Metrics (Recall@K, MRR)
+│   └── entrypoints/       # CLI entry points
+│       └── train.py       # Training entry point (simplified, uses training module)
 ├── examples/              # Scripts, shell launchers, Gradio demo
 │   └── benchmark/         # Benchmarking tools
 ├── notebooks/             # Jupyter tutorials (4 notebooks)
 ├── tests/                 # Unit tests
+├── docs/                  # Documentation
+│   ├── REFACTORING_SUMMARY.md       # Detailed refactoring summary
+│   ├── REFACTORING_BEFORE_AFTER.md  # Code comparison
+│   ├── QUICK_REFERENCE.md           # Quick usage guide
+│   └── api/training/                # Training API documentation
 ├── Dockerfile             # GPU-ready container
 └── Makefile               # Common commands (make help)
 ```
+
+### 📝 Documentation Updates
+
+The training module has been refactored into 8 specialized components. See new documentation:
+- **[REFACTORING_SUMMARY.md](../REFACTORING_SUMMARY.md)** - Complete refactoring overview
+- **[QUICK_REFERENCE.md](../QUICK_REFERENCE.md)** - Quick reference for all modules
+- **[ARCHITECTURE_CLARIFICATION.md](../ARCHITECTURE_CLARIFICATION.md)** - Call chain explanations
+- **[TRAINER_CLARIFICATION.md](../TRAINER_CLARIFICATION.md)** - Difference between Trainer classes
+- **[vembed/training/README.md](../vembed/training/README.md)** - Training module API docs
 
 ## Development
 

@@ -1,6 +1,6 @@
 """vembed-factory CLI entrypoint.
 
-Parses configuration from defaults, presets, YAML files, and CLI overrides,
+Parses configuration from defaults, YAML files, and CLI overrides,
 then launches training via ``accelerate launch``.
 """
 
@@ -18,10 +18,8 @@ import yaml
 from transformers import HfArgumentParser
 
 from vembed.config import (
-    PRESETS,
     apply_false_booleans,
     config_dict_to_argv,
-    infer_preset_from_model_name,
     load_base_config,
     merge_configs,
     parse_override_args,
@@ -32,48 +30,32 @@ logger = logging.getLogger(__name__)
 
 
 def main(args_list=None):
-    # ── 1. Pre-parse: preset, config_file, config_override ────────────
+    # ── 1. Pre-parse: config_file, config_override ──────────────────────
     pre_parser = argparse.ArgumentParser(add_help=False)
     pre_parser.add_argument("config_file", nargs="?", default=None, help="Path to YAML config file")
-    pre_parser.add_argument("--preset", type=str, default="custom")
-    pre_parser.add_argument("--model_type", type=str, default=None)  # deprecated alias
     pre_parser.add_argument("--config_override", nargs="*", default=[])
 
     known_args, remaining_args = pre_parser.parse_known_args(args_list)
 
-    # Handle deprecated --model_type
-    if known_args.model_type:
-        logger.warning("'--model_type' is deprecated. Use '--preset' instead.")
-        if known_args.preset == "custom":
-            known_args.preset = known_args.model_type
-
-    # ── 2. Resolve config sources ─────────────────────────────────────
+    # ── 2. Load config sources ────────────────────────────────────────
+    defaults = load_base_config()
     yaml_config: dict = {}
-    if known_args.config_file:
-        if known_args.config_file.endswith((".yaml", ".yml")) and os.path.exists(
-            known_args.config_file
-        ):
+
+    # Load YAML config if provided
+    if known_args.config_file and known_args.config_file.endswith((".yaml", ".yml")):
+        if os.path.exists(known_args.config_file):
             logger.info("Loading config from file: %s", known_args.config_file)
             with open(known_args.config_file) as f:
                 yaml_config = yaml.safe_load(f) or {}
-        elif known_args.config_file in PRESETS:
-            known_args.preset = known_args.config_file
+        else:
+            logger.error("Config file not found: %s", known_args.config_file)
+            sys.exit(1)
 
-    preset_name = known_args.preset
-    defaults = load_base_config()
-    preset_config = dict(PRESETS.get(preset_name, {}))
-
-    if preset_name != "custom":
-        logger.info("Using preset: %s", preset_name.upper())
-
-    # ── 3. Infer preset from model_name if needed ─────────────────────
-    if preset_name == "custom" and not yaml_config and "--model_name" in remaining_args:
-        idx = remaining_args.index("--model_name") + 1
-        if idx < len(remaining_args):
-            preset_config.update(infer_preset_from_model_name(remaining_args[idx]))
-
+    # Parse CLI overrides
     overrides = parse_override_args(known_args.config_override)
-    merged = merge_configs(defaults, preset_config, yaml_config, overrides)
+
+    # Simple merge: defaults < yaml_config < overrides
+    merged = merge_configs(defaults, {}, yaml_config, overrides)
 
     # ── 4. Build final argv and parse via HfArgumentParser ────────────
     config_argv = config_dict_to_argv(merged)

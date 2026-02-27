@@ -33,12 +33,14 @@ from vembed.training.config import (
 )
 from vembed.training.evaluator import Evaluator
 from vembed.training.model_builder import (
+    _log_fsdp_param_summary,
     apply_lora,
     build_model,
     build_teacher_model,
     compile_model,
     enable_static_graph,
     load_processor,
+    unify_model_dtype_for_fsdp,
     validate_processor,
 )
 from vembed.training.optimizer_builder import build_optimizer, build_scheduler, resolve_tracker
@@ -169,6 +171,10 @@ def main():
 
     # Build loss function
     criterion = LossFactory.create(config)
+
+    # Unify dtype before FSDP wrapping to avoid "mixed dtype" errors during all_gather
+    unify_model_dtype_for_fsdp(model, config, accelerator)
+    _log_fsdp_param_summary(model, accelerator)
 
     # Prepare for distributed training
     model, optimizer, dataloader, scheduler = accelerator.prepare(

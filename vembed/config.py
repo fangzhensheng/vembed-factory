@@ -20,22 +20,9 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-# Maps substrings in model names to their corresponding preset keys.
-# Checked in order — first match wins.
-_MODEL_NAME_PRESET_HINTS: list[tuple[str | tuple[str, ...], str]] = [
-    ("clip", "clip"),
-    ("siglip", "siglip"),
-    (("qwen", "vl"), "qwen"),  # must contain both substrings
-]
-
-_VLM_KEYWORDS = ("vl", "vision", "intervl", "llava", "gemma")
-
-_VLM_FALLBACK_PRESET: dict[str, Any] = {
-    "encoder_mode": "vlm_generic",
-    "batch_size": 1,
-    "lr": 1.0e-5,
-    "gradient_cache_chunk_size": 1,
-}
+# Preset system: Model configurations are stored in PRESETS dict.
+# Users must explicitly reference a preset or set model_name in their config.
+# No automatic inference based on model names.
 
 # All valid field names across the three dataclasses.
 _VALID_FIELDS: set[str] | None = None
@@ -111,25 +98,10 @@ def load_base_config(config_path: str | None = None) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def infer_preset_from_model_name(model_name: str) -> dict[str, Any]:
-    """Heuristically pick a preset by inspecting the model name."""
-    lower = model_name.lower()
-
-    for pattern, preset_key in _MODEL_NAME_PRESET_HINTS:
-        if isinstance(pattern, tuple):
-            matched = all(p in lower for p in pattern)
-        else:
-            matched = pattern in lower
-        if matched:
-            return cast(dict[str, Any], PRESETS.get(preset_key, {}))
-
-    if any(kw in lower for kw in ("bert", "roberta", "bge")):
-        return {}
-
-    if any(kw in lower for kw in _VLM_KEYWORDS):
-        return dict(_VLM_FALLBACK_PRESET)
-
-    return {}
+# Preset inference is no longer supported.
+# Users must explicitly:
+# 1. Set model_name in their YAML config, OR
+# 2. Use --preset flag to select a preset
 
 
 # ---------------------------------------------------------------------------

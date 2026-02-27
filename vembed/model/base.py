@@ -21,7 +21,7 @@ _TORCH_DTYPE_MAP = {
 def resolve_pretrained_kwargs(config: dict[str, Any]) -> dict[str, Any]:
     """Build kwargs for AutoModel.from_pretrained() from the unified config.
 
-    Handles attn_implementation (flash_attention_2 / sdpa / eager), torch_dtype, and caching.
+    Handles attn_implementation (flash_attention_2 / sdpa / eager), dtype (formerly torch_dtype), and caching.
     """
     kwargs: dict[str, Any] = {"trust_remote_code": True}
 
@@ -41,10 +41,10 @@ def resolve_pretrained_kwargs(config: dict[str, Any]) -> dict[str, Any]:
 
     raw_dtype = config.get("torch_dtype")
     if raw_dtype:
-        kwargs["torch_dtype"] = _TORCH_DTYPE_MAP.get(str(raw_dtype), raw_dtype)
+        kwargs["dtype"] = _TORCH_DTYPE_MAP.get(str(raw_dtype), raw_dtype)
     elif attn_impl in ("flash_attention_2", "sdpa"):
         # flash_attention_2 requires float16 or bfloat16
-        kwargs["torch_dtype"] = torch.bfloat16
+        kwargs["dtype"] = torch.bfloat16
 
     return kwargs
 

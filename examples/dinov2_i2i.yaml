@@ -1,25 +1,14 @@
-# DINOv2 Image-to-Image Training Configuration
-# Trained on Stanford Online Products (SOP)
-
-# --- Model ---
-model_type: "custom"
-model_name: "facebook/dinov2-small"
-retrieval_mode: "i2i"
+model_name: facebook/dinov2-small
+retrieval_mode: i2i
 use_lora: true
-
-# --- Data ---
-data_path: "data/stanford_online_products/train.jsonl"
-val_data_path: "data/stanford_online_products/val.jsonl"
-image_root: "data/stanford_online_products"
-
-# --- Training ---
-output_dir: "experiments/output_sop_dinov2_i2i"
+data_path: data/stanford_online_products/train.jsonl
+val_data_path: data/stanford_online_products/val.jsonl
+image_root: data/stanford_online_products
+output_dir: experiments/output_sop_dinov2_i2i
 epochs: 20
 batch_size: 128
-learning_rate: 1.0e-4
-loss_type: "infonce"
-
-# --- Logging ---
-report_to: "none"
+learning_rate: 0.0001
+loss_type: infonce
+report_to: none
 logging_steps: 10
 save_steps: 1000

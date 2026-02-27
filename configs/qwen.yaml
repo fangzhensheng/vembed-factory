@@ -1,6 +1,0 @@
-# Qwen-VL-7B Preset
-model_name: "Qwen/Qwen2-VL-7B-Instruct"
-batch_size: 16
-lr: 1.0e-5
-gradient_cache_chunk_size: 1 # Memory optimization for large models
-mrl_dims: [3584, 1536, 768]

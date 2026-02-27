@@ -19,17 +19,11 @@ learning_rate: 2.0e-5
 loss_type: "infonce"
 
 # Memory Optimization
-# Gradient Cache: chunks 128 batch into 2 pieces (64 each) → 25-30% VRAM savings
-# Gradient Checkpointing: additional activation recomputation → 5-10% extra savings
-# Combined: 25-35% total VRAM savings (~20-30% speed increase, good tradeoff)
 use_gradient_cache: true
 gradient_cache_chunk_size: 64
 gradient_checkpointing: true
 use_lora: true
 
-# DDP Configuration
-# Auto-disabled by train.py when gradient_cache or gradient_checkpointing is enabled
-ddp_find_unused_parameters: false
 
 # Multi-Resolution Learning
 use_mrl: true

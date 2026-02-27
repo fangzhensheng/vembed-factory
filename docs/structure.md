@@ -87,10 +87,18 @@ vembed/
 │       ├── pl_gradcache.py # Lightning wrapper
 │       └── pl_example.py   # Lightning example
 │
-├── training/               # Training utilities
-│   ├── __init__.py
-│   ├── gradient_cache_trainer.py  # GradCache trainer implementation
-│   └── dpo.py              # Direct Preference Optimization (future)
+├── training/               # Training utilities & core training loop (REFACTORED - 8 modules)
+│   ├── __init__.py                       # Public API exports
+│   ├── config.py                         # Configuration loading & parsing
+│   ├── data_utils.py                     # Batch unpacking & concatenation utilities
+│   ├── optimizer_builder.py              # AdamW + Scheduler builder
+│   ├── model_builder.py                  # Model initialization (LoRA, gradient checkpointing)
+│   ├── checkpoint.py                     # Checkpoint saving & vembed config persistence
+│   ├── evaluator.py                      # Validation evaluation loop
+│   ├── training_loop.py                  # Core Trainer class for training orchestration
+│   ├── gradient_cache_trainer.py         # GradCache trainer implementation (legacy)
+│   ├── README.md                         # Training module user guide & API docs
+│   └── dpo.py                            # Direct Preference Optimization (future)
 │
 ├── entrypoints/            # CLI entry points
 │   ├── __init__.py
@@ -206,15 +214,34 @@ Optimizer Step (gradient accumulated)
 
 **See**: [docs/COEXISTENCE_FIX_GUIDE.md](COEXISTENCE_FIX_GUIDE.md) for gradient_cache + gradient_checkpointing interaction.
 
-### 5. Training (`vembed/entrypoints/train.py`)
+### 5. Training Architecture (`vembed/training/` + `vembed/entrypoints/train.py`)
+
+The training module has been refactored into 8 specialized components for better maintainability and modularity:
+
+**Core Modules** (in `vembed/training/`):
+1. **config.py** (60 lines) - Configuration loading from file/CLI/defaults
+2. **data_utils.py** (220 lines) - Batch unpacking and concatenation utilities
+3. **optimizer_builder.py** (110 lines) - AdamW optimizer and LR scheduler creation
+4. **model_builder.py** (200 lines) - Model initialization with LoRA, gradient checkpointing, compilation
+5. **checkpoint.py** (60 lines) - Checkpoint saving and vembed config persistence
+6. **evaluator.py** (130 lines) - Validation loop and metric computation
+7. **training_loop.py** (490 lines) - Core `Trainer` class orchestrating the complete training loop
+8. **__init__.py** - Public API exports
 
 **Main Training Flow**:
-1. Load config (YAML + CLI overrides)
-2. Initialize model, tokenizer, processor
-3. Load training data (with fallback for None fields)
-4. Create optimizer & scheduler
-5. Training loop with validation
-6. Save checkpoint & final model
+1. Load config via `load_and_parse_config()` (YAML + CLI overrides)
+2. Build model via `build_model()` with all optimizations
+3. Create optimizer & scheduler via `build_optimizer()` and `build_scheduler()`
+4. Prepare data loaders
+5. Create `Trainer` instance with all components
+6. Call `trainer.train()` for complete training loop
+7. Save checkpoints via `save_checkpoint()`
+8. Evaluate via `Evaluator`
+
+**Three Usage Patterns**:
+- **CLI** (via `vembed train` or `accelerate launch train.py`) - Recommended for production
+- **Python API (High-level)** (via `VEmbedFactoryTrainer` in `vembed/trainer.py`) - Simple prototyping
+- **Python API (Low-level)** (via `Trainer` in `vembed/training/training_loop.py`) - Advanced customization
 
 **Key Configuration**:
 - `use_gradient_cache` - Enable memory optimization
@@ -222,6 +249,8 @@ Optimizer Step (gradient accumulated)
 - `gradient_checkpointing` - Enable activation recomputation
 - `use_lora` - Parameter-efficient fine-tuning
 - `use_mrl` - Matryoshka learning for multi-scale outputs
+
+See [vembed/training/README.md](../vembed/training/README.md) for detailed API documentation.
 
 ---
 

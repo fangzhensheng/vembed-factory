@@ -1,17 +1,10 @@
-# SigLIP Training Configuration
-
-# --- Model ---
-model_type: "siglip"  # Base preset
+model_name: google/siglip-so400m-14-flash
 use_lora: true
-
-# --- Data ---
-data_path: "data/train.jsonl"
-val_data_path: "data/val.jsonl"
-image_root: "data/images"
-
-# --- Training ---
-output_dir: "experiments/output_siglip"
+data_path: data/train.jsonl
+val_data_path: data/val.jsonl
+image_root: data/images
+output_dir: experiments/output_siglip
 epochs: 10
 batch_size: 256
-learning_rate: 2.0e-4
-loss_type: "sigmoid"
+learning_rate: 0.0002
+loss_type: sigmoid

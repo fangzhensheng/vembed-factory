@@ -7,8 +7,6 @@ source "$(dirname "$0")/_common.sh"
 print_header "Qwen3-VL-8B — t2i / infonce / fsdp / lora / flash_attn"
 resolve_data
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
-
 python run.py examples/qwen3_8b_fsdp.yaml \
     --data_path "$DATA_PATH" \
     --val_data_path "$VAL_DATA_PATH" \

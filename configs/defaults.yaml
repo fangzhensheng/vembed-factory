@@ -1,9 +1,12 @@
 # vembed-factory — Default Configuration
 #
-# All values here can be overridden by:
-#   1. Model-type presets (e.g. clip.yaml, qwen3.yaml)
-#   2. CLI arguments (--config_override key=value)
-#   3. Python API parameters
+# These are global defaults for all training scripts.
+# Each example YAML file should override these with specific values.
+#
+# Override priority:
+#   1. defaults.yaml (these values)
+#   2. example YAML file
+#   3. CLI arguments (--config_override key=value)
 
 # Training Setup
 output_dir: "output"
@@ -38,8 +41,10 @@ attn_implementation: null      # flash_attention_2, sdpa, eager, or null (auto)
 use_gradient_cache: false
 gradient_cache_chunk_size: 8   # Micro-batch size for Gradient Cache
 
-# Model Defaults (overridden by presets)
-model_name_or_path: "openai/clip-vit-base-patch32"
+# Model Configuration
+# NOTE: Must be overridden in example YAML files!
+model_name_or_path: null
+model_name: null
 encoder_mode: "auto"       # auto, composed, vlm_generic
 projection_dim: null       # Optional output dimension projection (Linear layer)
 

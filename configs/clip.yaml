@@ -1,6 +1,0 @@
-# CLIP Base Preset
-model_name: "openai/clip-vit-base-patch32"
-batch_size: 64
-lr: 5.0e-5
-gradient_cache_chunk_size: 16
-mrl_dims: [512, 256, 128]
