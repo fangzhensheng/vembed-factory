@@ -140,7 +140,10 @@ print(f"Similarity: {score:.4f}")
 
 - **[Data Preparation Guide](data-preparation.md)** - Learn about data formats and preprocessing
 - **[Configuration Guide](configuration.md)** - Explore training options
-- **[Advanced Training](training-advanced.md)** - Gradient caching, LoRA, MRL, etc.
+- **[Python API Guide](python-api.md)** - Understand different API approaches
+- **[Distributed Training Guide](distributed-training.md)** - DDP vs FSDP vs Gradient Cache
+- **[LoRA Fine-tuning](lora-finetuning.md)** - Parameter-efficient fine-tuning
+- **[FSDP Training Guide](fsdp-training.md)** - Train large 8B+ models
 
 ## Supported Models
 

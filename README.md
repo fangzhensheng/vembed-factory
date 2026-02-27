@@ -89,13 +89,10 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Clone and sync (auto-creates .venv, installs all deps from lockfile)
 git clone https://github.com/fangzhensheng/vembed-factory.git
 cd vembed-factory
-uv sync                    # Core + dev tools
-source .venv/bin/activate  # Activate the virtual environment
-uv sync --all-extras       # (Optional) Include all optional deps (LoRA, W&B, etc.)
+uv sync
+source .venv/bin/activate
 
-# Run commands
-uv run python examples/quick_start.py
-uv run vembed train --config examples/clip_train.yaml
+python run.py examples/clip_train.yaml
 ```
 
 **Option 2: pip**
@@ -196,6 +193,46 @@ Key configuration options (can be set in YAML or CLI):
 | `use_lora` | `false` | LoRA fine-tuning |
 
 See [`configs/defaults.yaml`](configs/defaults.yaml) for the full list of available parameters.
+
+## Installation Troubleshooting
+
+### uv sync --all-extras fails with flash-attn error
+
+**Error**: `ModuleNotFoundError: No module named 'torch'` when building flash-attn
+
+**Solution 1: Skip optional dependencies (quickest)**
+```bash
+uv sync  # Install core deps only
+```
+
+**Solution 2: Install optional deps separately**
+```bash
+uv sync
+pip install flash-attn peft wandb tensorboard
+```
+
+**Solution 3: Use pip for everything**
+```bash
+pip install -e ".[all]"
+```
+
+### Other common issues
+
+**ImportError for transformers or torch**
+```bash
+pip install -U torch transformers
+```
+
+**CUDA/GPU not detected**
+```bash
+# Check GPU availability
+python -c "import torch; print(torch.cuda.is_available())"
+
+# Install CUDA-specific torch version
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+See [tests/README.md](tests/README.md) for testing troubleshooting.
 
 ## Learning Resources
 

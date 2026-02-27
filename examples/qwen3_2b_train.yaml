@@ -1,7 +1,7 @@
 # Qwen3-VL-Embedding-2B Training Configuration
 
 # Model
-model_name: "models/Qwen/Qwen3-VL-Embedding-2B"
+model_name: "Qwen/Qwen3-VL-Embedding-2B"
 encoder_mode: "qwen3_vl"
 attn_implementation: "flash_attention_2"
 torch_dtype: "bfloat16"
