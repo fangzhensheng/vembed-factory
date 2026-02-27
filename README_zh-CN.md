@@ -73,13 +73,10 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # 克隆并同步 (自动创建 .venv 并从 lockfile 安装所有依赖)
 git clone https://github.com/fangzhensheng/vembed-factory.git
 cd vembed-factory
-uv sync                    # 核心 + 开发工具
-source .venv/bin/activate  # 激活虚拟环境
-uv sync --all-extras       # (可选) 包含所有可选依赖 (LoRA, W&B 等)
+uv sync
+source .venv/bin/activate
 
-# 运行命令
-uv run python examples/quick_start.py
-uv run vembed train --config examples/train_config.yaml
+python run.py examples/clip_train.yaml
 ```
 
 **选项 2: pip**
