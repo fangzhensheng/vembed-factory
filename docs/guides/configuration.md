@@ -112,6 +112,32 @@ loss_type: "infonce"  # infonce|mrl|triplet|cosent|colbert|distillation
 temperature: 0.07
 ```
 
+### ColBERT Configuration
+
+For **late-interaction retrieval** using ColBERT loss, simply configure:
+
+```yaml
+# 1. Loss: MaxSim-based late-interaction scoring
+loss_type: colbert
+
+# 2. Embedding output: Token-level representation (auto-set to "none" when loss_type=colbert)
+pooling_method: none
+
+# 3. Optional: Attention-guided token pruning
+topk_tokens: 32  # 0=keep all (default), >0=select top-K patches
+```
+
+**Key Points:**
+- `loss_type: colbert` automatically sets `pooling_method: none` (token-level embeddings)
+- `topk_tokens` is optional for vision models (reduces compute 5-7x, minimal accuracy impact)
+- Outputs `[B, L, D]` instead of `[B, D]` (requires MaxSim scoring in retrieval)
+
+**For quick setup, see:** [ColBERT Configuration Guide](./colbert_configuration.md)
+
+**Example configs:**
+- [examples/dinov2_colbert.yaml](../../examples/dinov2_colbert.yaml) - Vision model
+- [examples/qwen_colbert.yaml](../../examples/qwen_colbert.yaml) - VLM model
+
 **Scheduler**:
 
 ```yaml

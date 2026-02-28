@@ -75,7 +75,14 @@ lora_target_modules: null  # null = auto-detect; or list like ["q_proj", "v_proj
 retrieval_mode: "t2i"      # Options: t2i, i2i, i2t, t2t, m2i, m2t
 
 # Pooling Method
-pooling_method: null       # Options: mean, cls, null (to use model default)
+pooling_method: null       # Options: mean, cls, last_token, none
+                           # For ColBERT (loss_type=colbert): auto-set to "none" (token-level embeddings)
+                           # For others: auto-set to "cls" (default) if not specified
+
+# Token Pruning (ColBERT-specific optimization)
+topk_tokens: 0             # 0=keep all tokens (default). >0=attention-guided top-K pruning.
+                           # Only effective when pooling_method="none" (token-level embeddings).
+                           # Example: topk_tokens=32 for vision models with ~256 patches.
 
 # Experiment Tracking
 report_to: "none"          # Options: wandb, tensorboard, swanlab, all, none

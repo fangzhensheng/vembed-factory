@@ -1,18 +1,43 @@
+# DINOv2 ColBERT — Image-to-Image retrieval on SOP dataset
+# Custom model with i2i retrieval mode + ColBERT Loss
+
 model_name: facebook/dinov2-base
 retrieval_mode: i2i
 use_lora: true
+
+# ========== ColBERT Configuration ==========
+# 1. Loss: MaxSim-based late-interaction scoring
+#    Scores: mean(max over query tokens - max over doc tokens)
+loss_type: colbert
+
+# 2. Embedding Output: Token-level representation (no global pooling)
+#    Returns [B, 257, D] — all 256 patches + 1 CLS token
+#    Required for ColBERT to compute per-token similarities
+#    Auto-set to "none" when loss_type=colbert
+pooling_method: none
+
+# 3. Optional: Attention-guided token pruning
+#    Keeps only top-K patches by CLS-patch cosine similarity
+#    Reduces compute while preserving object-of-interest details
+#    Set to 0 to disable (keep all tokens, default)
 topk_tokens: 32
+
+# 4. Optional: Dimension reduction via projection
 projection_dim: 128
-pooling_strategy: none
+
+# ========== Data and Training ==========
 data_path: data/stanford_online_products/train.jsonl
 val_data_path: data/stanford_online_products/val.jsonl
 image_root: data/stanford_online_products
 output_dir: experiments/output_sop_dinov2_colbert
+
 epochs: 20
 batch_size: 128
+eval_batch_size: 32
 learning_rate: 5.0e-05
-loss_type: colbert
 use_gradient_cache: true
+
+# ========== Logging and Checkpointing ==========
 report_to: none
 logging_steps: 10
 save_steps: 1000

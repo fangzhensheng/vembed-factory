@@ -1,12 +1,36 @@
+# Qwen ColBERT — Text-to-Text retrieval
+# Custom model with t2t retrieval mode + ColBERT Loss
+
 model_name: Qwen/Qwen2-7B-Instruct
 use_lora: true
+retrieval_mode: t2t
+
+# ========== ColBERT Configuration ==========
+# 1. Loss: MaxSim-based late-interaction scoring
+#    Scores: mean(max over query tokens - max over doc tokens)
+loss_type: colbert
+
+# 2. Embedding Output: Token-level representation
+#    For VLM: Returns [B, seq_len, D] with each token L2-normalized
+#    Required for ColBERT to compute per-token similarities
+#    Auto-set to "none" when loss_type=colbert
+pooling_method: none
+
+# 3. Optional: Dimension reduction via projection
+projection_dim: 128
+
+# ========== Data and Training ==========
 data_path: data/train.jsonl
 val_data_path: data/val.jsonl
 image_root: data/images
 output_dir: experiments/output_qwen_colbert
+
 epochs: 3
 batch_size: 64
-loss_type: colbert
-pooling_strategy: colbert
+learning_rate: 5.0e-05
 use_gradient_cache: true
 gradient_cache_chunk_size: 4
+
+# ========== Logging and Checkpointing ==========
+logging_steps: 10
+save_steps: 500

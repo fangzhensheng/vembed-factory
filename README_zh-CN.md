@@ -188,42 +188,7 @@ python run.py examples/clip_train.yaml --config_override batch_size=64 learning_
 
 ## 开发与贡献
 
-有兴趣贡献？太好了！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解指南。
-
-### 设置开发环境
-
-**使用 uv (推荐):**
-
-```bash
-git clone https://github.com/fangzhensheng/vembed-factory.git
-cd vembed-factory
-uv sync                    # 安装依赖 + 开发工具
-source .venv/bin/activate  # 激活虚拟环境
-
-# 开发工作流
-make uv-format             # 自动格式化代码
-make uv-lint               # 运行 linter
-make uv-test               # 运行测试
-make uv-test-cov           # 测试并生成覆盖率报告
-make help                  # 显示所有可用命令
-```
-
-**使用 pip:**
-
-```bash
-git clone https://github.com/fangzhensheng/vembed-factory.git
-cd vembed-factory
-make install-dev           # 安装 + pre-commit hooks
-
-make format                # 自动格式化代码
-make lint                  # 运行 linter
-make test                  # 运行测试
-make docker                # 构建 Docker 镜像
-```
-
-### 项目架构
-
-有关项目结构和架构的详细指南，请参考 [docs/structure.md](docs/structure.md)。
+有兴趣贡献？请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解开发环境设置和指南。
 
 ## 评测结果
 
@@ -309,39 +274,18 @@ make docker                # 构建 Docker 镜像
 - **损失函数**: 对比学习 (InfoNCE)
 - **模型**: Qwen3-VL-Embedding-2B
 
-## 路线图 (Roadmap)
 
-- [x] Stanford Online Products (SOP) 真实评测结果
-- [ ] Flickr30k / COCO / ViDoRe 真实评测结果
-- [ ] `sentence-transformers` 兼容导出格式
-- [ ] HuggingFace Hub `--push_to_hub` 集成
-- [ ] ONNX / TorchScript 导出 (生产部署)
-- [ ] 难负样本挖掘 (Cross-batch, Offline)
-- [ ] 批量推理优化
-- [ ] API 文档站点 (MkDocs)
-- [x] 中文文档 (Chinese Documentation)
+## 许可证 & 引用
 
-## 致谢
-
-- [GradCache](https://github.com/luyug/GradCache) — 显存高效的对比学习
-- [HuggingFace Transformers](https://github.com/huggingface/transformers) — 模型后端
-- [Accelerate](https://github.com/huggingface/accelerate) — 分布式训练
-
-## 许可证
-
-MIT License. 详见 [LICENSE](LICENSE)。
-
-## 引用
+MIT License. 基于 [GradCache](https://github.com/luyug/GradCache)、[HuggingFace Transformers](https://github.com/huggingface/transformers) 和 [Accelerate](https://github.com/huggingface/accelerate) 构建。
 
 如果您在研究中使用了 vembed-factory，请引用：
-
 ```bibtex
 @misc{vembed-factory,
   author = {Fang Zhensheng},
   title = {vembed-factory: A Factory for Visual & Multimodal Embeddings},
   year = {2025},
   publisher = {GitHub},
-  journal = {GitHub repository},
   howpublished = {\url{https://github.com/fangzhensheng/vembed-factory}}
 }
 ```

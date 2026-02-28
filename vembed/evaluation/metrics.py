@@ -71,7 +71,8 @@ def compute_recall_at_k(
 
     Notes:
         - If labels are not provided, returns empty dict
-        - Computes cosine similarity between queries and documents
+        - Supports both dense (global pooling) and ColBERT (token-level) embeddings
+        - Dense: cosine similarity; ColBERT: MaxSim late-interaction similarity
         - Excludes diagonal (self-matching) from top-k when appropriate
         - Only considers pairs with matching labels as relevant
         - Handles in-batch retrieval scenarios automatically
@@ -92,29 +93,68 @@ def compute_recall_at_k(
     if doc_labels is None:
         doc_labels = query_labels
 
-    # Ensure tensors are on CPU for computation
-    query_embeddings = query_embeddings.cpu().float()
-    doc_embeddings = doc_embeddings.cpu().float()
-    query_labels = query_labels.cpu().long()
-    doc_labels = doc_labels.cpu().long()
+    # Ensure tensors are float/long (keep on GPU if available for efficiency)
+    query_embeddings = query_embeddings.float()
+    doc_embeddings = doc_embeddings.float()
+    query_labels = query_labels.long()
+    doc_labels = doc_labels.long()
+
+    # Detect device
+    device = query_embeddings.device
 
     num_queries = query_embeddings.shape[0]
     num_docs = doc_embeddings.shape[0]
 
-    # L2 normalize embeddings for cosine similarity
-    query_embeddings = F.normalize(query_embeddings, p=2, dim=1)
-    doc_embeddings = F.normalize(doc_embeddings, p=2, dim=1)
+    is_colbert = query_embeddings.dim() == 3
 
-    # Compute similarity matrix: [num_queries, num_docs]
-    similarity = torch.mm(query_embeddings, doc_embeddings.T)
+    if is_colbert:
+        # ColBERT: MaxSim similarity = mean_query(max_doc(q_i · d_j))
+        # Double-nested loop to handle large-scale datasets on consumer GPUs
+        query_embeddings_norm = F.normalize(query_embeddings, p=2, dim=-1)
+        doc_embeddings_norm = F.normalize(doc_embeddings, p=2, dim=-1)
+
+        # Adaptive batch sizes for consumer GPUs (8-16GB VRAM)
+        # Query batch: keep query-side small (8-64)
+        # Doc batch: process docs in chunks (256-512)
+        query_batch_size = max(1, min(16, max(1, num_queries // 32)))
+        doc_batch_size = max(1, min(256, max(1, num_docs // 128)))
+
+        similarity = []
+        for qi in range(0, num_queries, query_batch_size):
+            q_batch = query_embeddings_norm[qi:qi+query_batch_size]  # [B_q, L_q, D]
+
+            # Compute similarity against all docs in sub-batches
+            sim_batch_list = []
+            for di in range(0, num_docs, doc_batch_size):
+                d_batch = doc_embeddings_norm[di:di+doc_batch_size]  # [B_d, L_d, D]
+
+                # Compute token similarities: [B_q, L_q, D] x [B_d, L_d, D] -> [B_q, B_d, L_q, L_d]
+                # This avoids the massive [B_q, num_docs, L_q, L_d] tensor
+                token_sim = torch.einsum("bqd,ckd->bcqk", q_batch, d_batch)
+
+                # MaxSim: max over doc tokens (dim 3), mean over query tokens (dim 2)
+                max_sim = token_sim.max(dim=3).values.mean(dim=2)  # [B_q, B_d]
+                sim_batch_list.append(max_sim)
+
+            # Concatenate doc batches for this query batch: [B_q, num_docs]
+            sim_for_q = torch.cat(sim_batch_list, dim=1)
+            similarity.append(sim_for_q)
+
+        similarity = torch.cat(similarity, dim=0)  # [num_queries, num_docs]
+    else:
+        # Dense: Cosine similarity
+        query_embeddings = F.normalize(query_embeddings, p=2, dim=1)
+        doc_embeddings = F.normalize(doc_embeddings, p=2, dim=1)
+        similarity = torch.mm(query_embeddings, doc_embeddings.T)
 
     # Create label matching matrix: [num_queries, num_docs]
     query_labels_expanded = query_labels.view(-1, 1)
     label_match = query_labels_expanded.eq(doc_labels.view(1, -1)).float()
+    label_match = label_match.to(device)
 
     # Exclude diagonal (self-matching) for in-batch scenarios
     if exclude_diagonal and num_queries == num_docs:
-        mask = torch.eye(num_queries, num_docs, dtype=torch.bool)
+        mask = torch.eye(num_queries, num_docs, dtype=torch.bool, device=device)
         similarity = similarity.masked_fill(mask, float('-inf'))
 
     # Get max k from k_list for efficiency
@@ -183,9 +223,16 @@ def compute_recall_metrics(
     if not all_query_embeddings or not all_doc_embeddings:
         return {}
 
-    # Concatenate all batches
+    # Concatenate all batches, keeping on GPU if available for efficiency
     query_embeddings = torch.cat(all_query_embeddings, dim=0)
     doc_embeddings = torch.cat(all_doc_embeddings, dim=0)
+
+    # For very large doc embeddings, process on GPU if available
+    # This is critical for ColBERT MaxSim computation which is CPU-intensive
+    if len(doc_embeddings) > 1000 and torch.cuda.is_available():
+        device = torch.device('cuda')
+        query_embeddings = query_embeddings.to(device)
+        doc_embeddings = doc_embeddings.to(device)
 
     query_labels = None
     if all_query_labels:

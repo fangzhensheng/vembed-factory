@@ -203,42 +203,7 @@ See [`configs/defaults.yaml`](configs/defaults.yaml) for the full list of availa
 
 ## Development & Contributing
 
-Interested in contributing? Great! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Setup Development Environment
-
-**Using uv (recommended):**
-
-```bash
-git clone https://github.com/fangzhensheng/vembed-factory.git
-cd vembed-factory
-uv sync                    # Install deps + dev tools
-source .venv/bin/activate  # Activate the virtual environment
-
-# Development workflow
-make uv-format             # Auto-format code
-make uv-lint               # Run linters
-make uv-test               # Run tests
-make uv-test-cov           # Tests with coverage report
-make help                  # Show all available commands
-```
-
-**Using pip:**
-
-```bash
-git clone https://github.com/fangzhensheng/vembed-factory.git
-cd vembed-factory
-make install-dev           # Install + pre-commit hooks
-
-make format                # Auto-format code
-make lint                  # Run linters
-make test                  # Run tests
-make docker                # Build Docker image
-```
-
-### Project Architecture
-
-For a detailed guide to the project structure and architecture, see [docs/structure.md](docs/structure.md).
+Interested in contributing? See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.
 
 ## Benchmark Results
 
@@ -324,39 +289,18 @@ We fine-tuned **Qwen3-VL-Embedding-2B** with MRL enabled, allowing the model to 
 - **Loss**: Contrastive Learning (InfoNCE)
 - **Model**: Qwen3-VL-Embedding-2B
 
-## Roadmap
 
-- [x] Real benchmark results on Stanford Online Products (SOP)
-- [x] Real benchmark results on Flickr30k
-- [ ] `sentence-transformers` compatible export format
-- [ ] HuggingFace Hub `--push_to_hub` integration
-- [ ] ONNX / TorchScript export for production deployment
-- [ ] Hard negative mining (cross-batch, offline)
-- [ ] Batch inference optimization
-- [ ] API documentation site (MkDocs)
-- [x] Chinese documentation (中文文档)
+## License & Citation
 
-## Acknowledgements
+MIT License. Built with [GradCache](https://github.com/luyug/GradCache), [HuggingFace Transformers](https://github.com/huggingface/transformers), and [Accelerate](https://github.com/huggingface/accelerate).
 
-- [GradCache](https://github.com/luyug/GradCache) — Memory-efficient contrastive learning
-- [HuggingFace Transformers](https://github.com/huggingface/transformers) — Model backends
-- [Accelerate](https://github.com/huggingface/accelerate) — Distributed training
-
-## License
-
-MIT License. See [LICENSE](LICENSE) for details.
-
-## Citation
-
-If you use vembed-factory in your research, please cite:
-
+If you use vembed-factory in research, please cite:
 ```bibtex
 @misc{vembed-factory,
   author = {Fang Zhensheng},
   title = {vembed-factory: A Factory for Visual & Multimodal Embeddings},
   year = {2025},
   publisher = {GitHub},
-  journal = {GitHub repository},
   howpublished = {\url{https://github.com/fangzhensheng/vembed-factory}}
 }
 ```

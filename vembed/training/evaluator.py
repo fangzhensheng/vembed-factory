@@ -71,13 +71,14 @@ class Evaluator:
                 num_batches += 1
 
                 # Gather embeddings across all processes for metrics calculation
-                all_q_embs.append(self.accelerator.gather_for_metrics(q_embs).cpu())
-                all_p_embs.append(self.accelerator.gather_for_metrics(p_embs).cpu())
+                # Keep on GPU for efficient topk computation in MaxSim (ColBERT)
+                all_q_embs.append(self.accelerator.gather_for_metrics(q_embs))
+                all_p_embs.append(self.accelerator.gather_for_metrics(p_embs))
 
                 # Gather labels if available (for recall calculation)
                 if "labels" in batch:
-                    all_q_labels.append(self.accelerator.gather_for_metrics(batch["labels"]).cpu())
-                    all_p_labels.append(self.accelerator.gather_for_metrics(batch["labels"]).cpu())
+                    all_q_labels.append(self.accelerator.gather_for_metrics(batch["labels"]))
+                    all_p_labels.append(self.accelerator.gather_for_metrics(batch["labels"]))
 
         avg_loss = total_loss / max(num_batches, 1)
         self.accelerator.print(f"Validation loss: {avg_loss:.4f}")
@@ -111,7 +112,7 @@ class Evaluator:
             Dictionary of recall metrics.
         """
         recall_metrics = {}
-        if all_q_labels:
+        if all_q_labels and all_q_embs:
             recall_metrics = compute_recall_metrics(
                 all_q_embs,
                 all_p_embs,

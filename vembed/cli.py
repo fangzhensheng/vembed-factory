@@ -84,9 +84,28 @@ def main(args_list=None):
     if train_config.get("lr") is not None:
         train_config["learning_rate"] = train_config["lr"]
 
-    train_config["pooling_strategy"] = (
-        "none" if train_config.get("loss_type") == "colbert" else "last"
-    )
+    # ── Pooling Method Configuration ────────────────────────────────
+    # ColBERT needs token-level embeddings, others need global pooling
+    loss_type = train_config.get("loss_type")
+    pooling_method = train_config.get("pooling_method")
+
+    if loss_type == "colbert":
+        if pooling_method and pooling_method != "none":
+            logger.warning(
+                f"loss_type=colbert requires pooling_method=none. "
+                f"Overriding pooling_method={pooling_method} with none."
+            )
+        train_config["pooling_method"] = "none"
+    else:
+        # Non-ColBERT: "none" is invalid, must use global pooling
+        if pooling_method == "none":
+            logger.warning(
+                f"loss_type={loss_type} requires global pooling. "
+                f"Resetting pooling_method=none to cls."
+            )
+            train_config["pooling_method"] = "cls"
+        elif pooling_method is None:
+            train_config["pooling_method"] = "cls"
 
     # Composed mode validation
     if train_config.get("encoder_mode") == "composed" and not (
