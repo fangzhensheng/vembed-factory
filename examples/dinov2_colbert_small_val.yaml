@@ -1,38 +1,26 @@
-# DINOv2 ColBERT — Image-to-Image retrieval on SOP dataset (SMALL VALIDATION SET)
-# 为了避免评估时内存溢出，使用较小的验证集来计算 Recall 指标
-# 完整的 SOP 评估应该在推理时分批进行
+# DINOv2 + ColBERT with small validation set (for memory-limited environments)
+# Uses smaller validation set to compute Recall metrics efficiently
 
 model_name: facebook/dinov2-base
 retrieval_mode: i2i
 use_lora: true
 
-# ========== ColBERT Configuration ==========
-# 1. Loss: MaxSim-based late-interaction scoring
 loss_type: colbert
-
-# 2. Embedding Output: Token-level representation
 pooling_method: none
-
-# 3. Optional: Attention-guided token pruning
 topk_tokens: 32
-
-# 4. Optional: Dimension reduction via projection
 projection_dim: 128
 
-# ========== Data and Training ==========
 data_path: data/stanford_online_products/train.jsonl
 val_data_path: data/stanford_online_products/val_small.jsonl
 image_root: data/stanford_online_products
 output_dir: experiments/output_sop_dinov2_colbert_small_val
 
-# ========== Batch Sizes ==========
 epochs: 20
 batch_size: 128
 eval_batch_size: 32
 learning_rate: 1.0e-04
 use_gradient_cache: true
 
-# ========== Logging and Checkpointing ==========
 report_to: none
 logging_steps: 10
 save_steps: 1000

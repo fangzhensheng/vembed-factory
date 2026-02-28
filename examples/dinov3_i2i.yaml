@@ -1,14 +1,20 @@
+# DINOv3 ViT-B/16 for image-to-image retrieval on SOP
+# Improved vision transformer with InfoNCE loss
+
 model_name: facebook/dinov3-vitb16-pretrain-lvd1689m
 retrieval_mode: i2i
 use_lora: true
-data_path: data/stanford_online_products/train.jsonl
-val_data_path: data/stanford_online_products/val.jsonl
-image_root: data/stanford_online_products
+loss_type: infonce
+
 output_dir: experiments/output_sop_dinov3_i2i
 epochs: 10
 batch_size: 128
 learning_rate: 1.0e-04
-loss_type: infonce
+
+data_path: data/stanford_online_products/train.jsonl
+val_data_path: data/stanford_online_products/val.jsonl
+image_root: data/stanford_online_products
+
 report_to: none
 logging_steps: 10
 save_steps: 500
