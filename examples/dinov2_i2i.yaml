@@ -7,7 +7,7 @@ image_root: data/stanford_online_products
 output_dir: experiments/output_sop_dinov2_i2i
 epochs: 20
 batch_size: 128
-learning_rate: 0.0001
+learning_rate: 1.0e-04
 loss_type: infonce
 report_to: none
 logging_steps: 10
