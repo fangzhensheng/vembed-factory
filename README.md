@@ -209,16 +209,16 @@ Interested in contributing? See [CONTRIBUTING.md](CONTRIBUTING.md) for setup ins
 
 ### Stanford Online Products (SOP) - Image-to-Image (I2I)
 
-We fine-tuned **DINOv2-base** and **MAE-base** models on the SOP dataset (e-commerce products) using `vembed-factory`.
+We fine-tuned **DINOv3-ViT-B/16** and **MAE-base** models on the SOP dataset (e-commerce products) using `vembed-factory`.
 
 **Qualitative Results (Top-5 Retrieval):**
 ![SOP I2I Demo](docs/assets/sop_i2i_demo.png)
 
 | Model | Metric | Zero-shot | Fine-tuned | Delta (pp) |
 | :--- | :--- | :--- | :--- | :--- |
-| **DINOv2-base** | Recall@1 | 55.03% | **79.97%** | +24.94 |
-| *(facebook/dinov2-base)* | Recall@10 | 71.72% | **91.31%** | +19.60 |
-| | Recall@100 | 84.70% | **96.37%** | +11.67 |
+| **DINOv3-ViT-B/16** | Recall@1 | 65.32% | **83.13%** | +17.81 |
+| *(facebook/dinov3-vitb16-pretrain-lvd1689m)* | Recall@10 | 80.73% | **93.34%** | +12.61 |
+| | Recall@100 | 90.43% | **97.26%** | +6.83 |
 | **MAE-base** | Recall@1 | 52.06% | **72.70%** | +20.64 |
 | *(facebook/vit-mae-base)* | Recall@10 | 68.96% | **86.80%** | +17.83 |
 | | Recall@100 | 82.24% | **94.21%** | +11.97 |
@@ -226,7 +226,7 @@ We fine-tuned **DINOv2-base** and **MAE-base** models on the SOP dataset (e-comm
 **Training Config:**
 - **Task**: Image-to-Image Retrieval (I2I)
 - **Loss**: Contrastive Learning (InfoNCE)
-- **Epochs**: 2 (DINOv2), 50 (MAE)
+- **Epochs**: 20 (DINOv3), 50 (MAE)
 
 ### Flickr30k - Text↔Image Retrieval (T2I / I2T)
 

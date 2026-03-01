@@ -201,9 +201,9 @@ python run.py examples/clip_train.yaml --config_override batch_size=64 learning_
 
 | 模型 | 指标 | 零样本 (Zero-shot) | 微调后 (Fine-tuned) | 提升 (Delta) |
 | :--- | :--- | :--- | :--- | :--- |
-| **DINOv2-base** | Recall@1 | 55.03% | **79.97%** | +24.94 |
-| *(facebook/dinov2-base)* | Recall@10 | 71.72% | **91.31%** | +19.60 |
-| | Recall@100 | 84.70% | **96.37%** | +11.67 |
+| **DINOv3-ViT-B/16** | Recall@1 | 65.32% | **83.13%** | +17.81 |
+| *(facebook/dinov3-vitb16-pretrain-lvd1689m)* | Recall@10 | 80.73% | **93.34%** | +12.61 |
+| | Recall@100 | 90.43% | **97.26%** | +6.83 |
 | **MAE-base** | Recall@1 | 52.06% | **72.70%** | +20.64 |
 | *(facebook/vit-mae-base)* | Recall@10 | 68.96% | **86.80%** | +17.83 |
 | | Recall@100 | 82.24% | **94.21%** | +11.97 |
@@ -211,7 +211,7 @@ python run.py examples/clip_train.yaml --config_override batch_size=64 learning_
 **训练配置:**
 - **任务**: 图搜图 (I2I)
 - **损失函数**: 对比学习 (InfoNCE)
-- **Epochs**: 2 (DINOv2), 50 (MAE)
+- **Epochs**: 20 (DINOv3), 50 (MAE)
 
 ### Flickr30k - 图文检索 (T2I / I2T)
 

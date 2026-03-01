@@ -2,12 +2,13 @@
 # Improved vision transformer with InfoNCE loss
 
 model_name: facebook/dinov3-vitb16-pretrain-lvd1689m
+model_name: models/dinov3-vitb16-pretrain-lvd1689m
 retrieval_mode: i2i
 use_lora: true
 loss_type: infonce
 
 output_dir: experiments/output_sop_dinov3_i2i
-epochs: 10
+epochs: 20
 batch_size: 128
 learning_rate: 1.0e-04
 

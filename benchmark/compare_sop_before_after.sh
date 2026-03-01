@@ -17,7 +17,7 @@
 #   ./benchmark/compare_sop_before_after.sh facebook/vit-mae-base ./experiments/output_sop_mae_i2i/checkpoint-epoch-37 cosine
 #
 #   # 3. DINOv3 (Cosine)
-#   ./benchmark/compare_sop_before_after.sh models/dinov3-vitb16-pretrain-lvd1689m ./experiments/output_sop_dinov3_i2i/checkpoint-epoch-3 cosine
+#   ./benchmark/compare_sop_before_after.sh models/dinov3-vitb16-pretrain-lvd1689m ./experiments/output_sop_dinov3_i2i/checkpoint-epoch-16 cosine
 #
 #   # 4. ColBERT (Before=Cosine, After=MaxSim)
 #   ./benchmark/compare_sop_before_after.sh facebook/dinov2-base ./experiments/output_sop_dinov2_colbert/checkpoint-epoch-3 colbert
