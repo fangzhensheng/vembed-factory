@@ -13,6 +13,7 @@ gradient_cache_chunk_size: 128
 output_dir: experiments/output_sop_dinov3_i2i
 epochs: 20
 batch_size: 1024
+eval_batch_size: 64
 learning_rate: 1.0e-04
 
 data_path: data/stanford_online_products/train.jsonl

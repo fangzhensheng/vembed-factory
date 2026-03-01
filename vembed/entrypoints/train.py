@@ -147,9 +147,10 @@ def main():
             column_mapping=config.get("column_mapping"),
         )
         val_collator = collator_cls(**{**collator_kwargs, "mode": "eval"})
+        eval_batch_size = config.get("eval_batch_size", config["batch_size"])
         val_dataloader = DataLoader(
             val_dataset,
-            batch_size=config["batch_size"],
+            batch_size=eval_batch_size,
             shuffle=True,
             collate_fn=val_collator,
             num_workers=4,

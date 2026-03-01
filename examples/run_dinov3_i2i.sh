@@ -7,7 +7,7 @@ set -e
 cd "$(dirname "$0")/.." || exit 1
 
 # # Set single GPU mode
-# export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0
 
 # Source common functions (optional, if exists)
 if [ -f "$(dirname "$0")/_common.sh" ]; then
