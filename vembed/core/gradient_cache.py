@@ -173,7 +173,7 @@ class GradientCache:
 
         inputs = [q_batch, p_batch]
         models = [model, model]
-        if n_batch:
+        if n_batch and any(n_batch.values()):
             inputs.append(n_batch)
             models.append(model)
 

@@ -242,8 +242,12 @@ class GradCache:
         else:
             loss.backward()
 
-        # Extract gradients
-        cache = [cast(Tensor, r.grad) for r in reps_with_grad]
+        cache = []
+        for r in reps_with_grad:
+            if r.grad is None:
+                cache.append(torch.zeros_like(r))
+            else:
+                cache.append(r.grad)
 
         return cache, loss.detach()
 
