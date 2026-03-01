@@ -1,15 +1,23 @@
+# CLIP ViT-B/32 with knowledge distillation from ViT-L/14
+# Student: ViT-B/32 (smaller, faster), Teacher: ViT-L/14 (larger, better)
+# MRL (Matryoshka Representation Learning) for variable dimensions
+
 model_name: openai/clip-vit-base-patch32
 use_lora: true
 use_mrl: true
-data_path: data/train.jsonl
-val_data_path: data/val.jsonl
-image_root: data/images
-output_dir: experiments/output_distill
+loss_type: infonce
+
+output_dir: experiments/output_clip_distill
 epochs: 5
 batch_size: 64
 learning_rate: 5.0e-05
+
+# Knowledge distillation
 teacher_model_name: openai/clip-vit-large-patch14
 distillation_alpha: 0.5
 distillation_temperature: 2.0
 distillation_loss_type: kl
-num_gpus: 2
+
+data_path: data/train.jsonl
+val_data_path: data/val.jsonl
+image_root: data/images
