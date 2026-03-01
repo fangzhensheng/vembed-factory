@@ -2,14 +2,17 @@
 # Improved vision transformer with InfoNCE loss
 
 model_name: facebook/dinov3-vitb16-pretrain-lvd1689m
-model_name: models/dinov3-vitb16-pretrain-lvd1689m
 retrieval_mode: i2i
 use_lora: true
 loss_type: infonce
 
+# Memory optimization via gradient cache
+use_gradient_cache: true
+gradient_cache_chunk_size: 128
+
 output_dir: experiments/output_sop_dinov3_i2i
 epochs: 20
-batch_size: 128
+batch_size: 1024
 learning_rate: 1.0e-04
 
 data_path: data/stanford_online_products/train.jsonl

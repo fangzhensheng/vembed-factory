@@ -27,6 +27,7 @@ batch_size: 128
 eval_batch_size: 32
 learning_rate: 1.0e-04
 use_gradient_cache: true
+gradient_cache_chunk_size: 128
 
 # Logging
 report_to: none

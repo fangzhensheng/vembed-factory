@@ -7,8 +7,10 @@ use_lora: true
 
 output_dir: experiments/output_dinov2_bert
 epochs: 3
+batch_size: 1024
 learning_rate: 1.0e-04
 use_gradient_cache: true
+gradient_cache_chunk_size: 128
 
 data_path: data/train.jsonl
 val_data_path: data/val.jsonl

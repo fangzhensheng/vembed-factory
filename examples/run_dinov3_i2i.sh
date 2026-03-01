@@ -2,6 +2,13 @@
 # DINOv3 — Image-to-Image retrieval on SOP dataset
 # Auto model (DINOv3) with i2i retrieval mode + InfoNCE (Label-Aware)
 
+set -e
+
+cd "$(dirname "$0")/.." || exit 1
+
+# # Set single GPU mode
+# export CUDA_VISIBLE_DEVICES=0
+
 # Source common functions (optional, if exists)
 if [ -f "$(dirname "$0")/_common.sh" ]; then
     source "$(dirname "$0")/_common.sh"
@@ -27,14 +34,10 @@ CONFIG_FILE="examples/dinov3_i2i.yaml"
 OUTPUT_DIR="experiments/output_sop_dinov3_i2i"
 
 # Launch training
-# Using accelerate launch for distributed training support if needed
-# But run.py is the entrypoint. The example script used `python run.py`.
-# We should stick to that unless we want multi-gpu.
-# The user's example used `python run.py`.
-
 python run.py "$CONFIG_FILE" \
     --data_path "$DATA_PATH" \
     --val_data_path "$VAL_DATA_PATH" \
     --image_root "$IMAGE_ROOT"
 
+echo ""
 echo "Done. Results saved to $OUTPUT_DIR"
