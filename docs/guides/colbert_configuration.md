@@ -1,24 +1,26 @@
-# ColBERT 配置指南
+# ColBERT Configuration Guide
 
-## 什么是 ColBERT？
+## What is ColBERT?
 
-**ColBERT (Contextualized Late Interaction)** 是一种**后期交互检索架构**，它改变了计算相似度的方式：
+**ColBERT (Contextualized Late Interaction)** is a late-interaction retrieval architecture that differs fundamentally from traditional dense retrieval:
 
-### vs. 传统密集检索
+### Dense Retrieval vs. ColBERT
 
 ```
-传统密集检索:  文本/图像 → [单个向量 D维] → 余弦相似度
-ColBERT:      文本/图像 → [所有token的向量 L×D] → MaxSim相似度
+Dense Retrieval:
+  Text/Image → [Single Vector D-dim] → Cosine Similarity
+
+ColBERT:
+  Text/Image → [All Token Vectors L×D] → MaxSim Score
 ```
 
-**优势：**
-- ✅ **精细搜索**：逐 token 比较，捕捉细节而非全局特征
-- ✅ **内存高效**：Gradient Cache + LoRA 支持大批量训练
-- ✅ **灵活修剪**：可选的注意力引导 token 选择，优化内存/速度
+**Key Insight**: Instead of comparing single global vectors, ColBERT compares all tokens and uses the **mean of max similarities** as the final score.
+
+**Formula**: `Score(Q, D) = mean_q max_d (q_i · d_j)`
 
 ---
 
-## ColBERT 配置要素（两个参数）
+## ColBERT Configuration: Three Essential Parameters
 
 ### 1️⃣ Loss Function
 
@@ -26,19 +28,14 @@ ColBERT:      文本/图像 → [所有token的向量 L×D] → MaxSim相似度
 loss_type: colbert
 ```
 
-**含义：** 使用 **MaxSim** 评分机制而不是全局余弦相似度
+**What it does:**
+- Implements **MaxSim** scoring mechanism for late-interaction retrieval
+- Computes similarities at token level: each query token finds its best matching document token
+- Takes mean of max similarities across all query tokens
 
-**公式：**
-```
-Score(Q, D) = mean_q ( max_d (q_i · d_j) )
-```
-
-- `q_i` = 查询中第 i 个 token 的嵌入
-- `d_j` = 文档中第 j 个 token 的嵌入
-- 对每个查询 token，计算其与所有文档 token 的最大相似度
-- 最后对所有查询 token 取平均
-
-**代码位置：** [vembed/losses/functions/colbert.py](../../vembed/losses/functions/colbert.py)
+**Why it matters:**
+- Enables fine-grained semantic matching without dimension explosion
+- Better for specialized retrieval (e-commerce, medical images, etc.)
 
 ---
 
@@ -48,409 +45,346 @@ Score(Q, D) = mean_q ( max_d (q_i · d_j) )
 pooling_method: none
 ```
 
-**含义：** 返回**所有 token 的向量**而非单个向量
+**What it does:**
+- Returns **all token embeddings** instead of a single global vector
+- Output shape: `[B, L, D]` where L = token sequence length
+- For vision models: L = number of patches + 1 (CLS token)
+- For LLMs: L = output sequence length
 
-| 参数值 | 输出形状 | 用途 |
-|--------|---------|------|
-| `none` | `[B, L, D]` | **ColBERT** — 所有 L 个 tokens |
-| `cls` | `[B, D]` | 传统 — [CLS] token 只 |
-| `mean` | `[B, D]` | 传统 — 平均池化 |
-| `last_token` | `[B, D]` | 传统 — 最后一个 token |
+**Why it matters:**
+- Essential for ColBERT to perform per-token comparisons
+- Must be set to `none` when using `loss_type: colbert`
+- Other loss functions (InfoNCE, CoSENT) need global pooling (mean/cls)
 
-**必需条件：** ColBERT 必须使用 `pooling_method: none`（保留所有 token 用于逐 token 比较）
-
-设置 `loss_type: colbert` 时，`pooling_method` 会自动设为 `none`，也可显式指定。
-
-**不同模型的行为：**
-- **Vision (DINOv2)**：返回 `[B, 257, D]` — 1 个 CLS token + 256 个 patch tokens
-- **VLM (Qwen)**：返回 `[B, seq_len, D]` — 所有生成 tokens
+**When automatic:**
+- If `loss_type: colbert` and `pooling_method` is not specified → auto-set to `"none"`
+- If `loss_type` is other and `pooling_method="none"` → auto-corrected to `"cls"` with warning
 
 ---
 
-### 3️⃣ Token 优化（可选）
+### 3️⃣ Token Optimization (Optional)
 
 ```yaml
-topk_tokens: 32    # 可选参数
+topk_tokens: 32
 ```
 
-**含义：** 启用注意力引导的 token 修剪（**优化而非必需**）
+**What it does:**
+- Enables attention-guided token pruning
+- Keeps only top-K most relevant tokens per sample
+- Uses CLS-patch cosine similarity to score token importance
 
-**工作原理：**
-1. 计算 [CLS] token 与各 patch 的**余弦相似度**
-2. 选择相似度最高的 K 个 patch
-3. 保留这 K 个 patch + CLS token = `[B, K+1, D]`
+**Why it matters:**
+- Reduces memory usage and computation time during inference
+- For vision models: ~256 patches → keep only 32 reduces 8× computation
+- Does NOT significantly harm accuracy (keeps most relevant patches)
 
-**参数值：**
-- `topk_tokens: 0` — 保留所有 tokens（默认）
-- `topk_tokens: 32` — 保留前 32 个最相关 patches（推荐用于 Vision）
-- `topk_tokens: 64` — 保留前 64 个（更多细节）
-
-**优化效果：**
-- 减少 MaxSim 计算量（O(L²) → O(K·L)）
-- 内存消耗降低
-- **准确率几乎不变**（对象中心化的 attention 已过滤噪声）
-
-**代码位置：** [vembed/model/backbones/auto.py:163-208](../../vembed/model/backbones/auto.py#L163-L208)
+**Common values:**
+- `topk_tokens: 0` → Keep all tokens (default, no pruning)
+- `topk_tokens: 32` → Recommended for vision models (good balance)
+- `topk_tokens: 64` → For higher accuracy with more compute
 
 ---
 
-## 完整配置模板
-
-### 最小配置（必需）
+## Complete Configuration Template
 
 ```yaml
-loss_type: colbert
-pooling_method: none
-```
+# ===== ColBERT Core =====
+loss_type: colbert              # Required: MaxSim scoring
+pooling_method: none            # Required: token-level embeddings
 
-### 推荐完整配置
+# ===== ColBERT Optional =====
+topk_tokens: 32                 # Recommended for vision: attention-guided pruning
+projection_dim: 128             # Optional: project embeddings to lower dimension
 
-```yaml
-# ===== REQUIRED =====
-loss_type: colbert           # MaxSim loss
-pooling_method: none         # Token-level embeddings (auto-set when loss_type=colbert)
-
-# ===== OPTIONAL: Optimization =====
-topk_tokens: 32              # Attention-guided token pruning (0=disabled)
-projection_dim: 128          # Embedding dimension reduction
-
-# ===== STANDARD TRAINING =====
+# ===== Standard Training =====
 epochs: 20
 batch_size: 128
-learning_rate: 5e-5
+learning_rate: 5.0e-05
+use_gradient_cache: true        # Recommended: 4× batch size on same VRAM
+use_lora: true                  # Recommended: 0.1% parameters only
 
-# ===== MEMORY OPTIMIZATION (推荐) =====
-use_gradient_cache: true     # 大批量支持
-use_lora: true               # 参数高效微调
-
-# ===== DATA & PATHS =====
+# ===== Data & Output =====
 data_path: data/train.jsonl
 val_data_path: data/val.jsonl
-output_dir: experiments/my_colbert
+output_dir: experiments/output_colbert
+
+# ===== Logging =====
+logging_steps: 10
+save_steps: 500
+report_to: none
 ```
 
 ---
 
-## ColBERT vs. 其他检索方式对比
+## Practical Examples
 
-| 方式 | Loss | Pooling | Embedding形状 | 用途 | 优点 | 缺点 |
-|------|------|---------|--------------|------|------|------|
-| **密集检索** | InfoNCE | mean/cls | `[B, D]` | 通用 | 快速、简单 | 信息丢失 |
-| **ColBERT** | colbert | **none** | **[B, L, D]** | **精细搜索** | **精准、可解释** | **内存占用** |
-| **MRL** | mrl | mean/cls | `[B, D]` | 多粒度 | 灵活 | 复杂 |
-| **Triplet** | triplet | cls/mean | `[B, D]` | 简单对比 | 稳定 | 准确度低 |
-
----
-
-## 常见配置示例
-
-### 示例 1: DINOv2 + ColBERT（图像检索）
+### DINOv2 + ColBERT (Image-to-Image Retrieval)
 
 ```yaml
-# Model
+# DINOv2 ColBERT configuration for fine-grained product search
 model_name: facebook/dinov2-base
 retrieval_mode: i2i
+use_lora: true
 
-# ColBERT
-loss_type: colbert
-pooling_method: none
-topk_tokens: 32            # DINOv2 有 256 个 patches，保留前 32 个
+# ===== ColBERT Configuration =====
+loss_type: colbert              # Late-interaction scoring
+pooling_method: none            # [B, 257, 768] token embeddings
+topk_tokens: 32                 # DINOv2 has 256 patches + 1 CLS
+projection_dim: 128             # Optional: reduces 768 → 128
 
-# Embedding
-projection_dim: 128        # 可选
+# ===== Data =====
+data_path: data/stanford_online_products/train.jsonl
+val_data_path: data/stanford_online_products/val.jsonl
+image_root: data/stanford_online_products
+output_dir: experiments/output_dinov2_colbert
 
-# Training
+# ===== Training =====
 epochs: 20
 batch_size: 128
-learning_rate: 5e-5
-use_gradient_cache: true
-use_lora: true
+eval_batch_size: 32
+learning_rate: 1.0e-04
+use_gradient_cache: true        # Train with 512+ batch on 24GB GPU
 ```
 
-**说明：**
-- `topk_tokens: 32` 将 257 个 tokens（1 CLS + 256 patches）减少到 33 个
-- 计算量减少 ~7x，几乎不影响准确率
-- 推荐用于 vision-only 模型
-
----
-
-### 示例 2: Qwen + ColBERT（文本检索）
+### Qwen2-7B + ColBERT (Text-to-Text Retrieval)
 
 ```yaml
-# Model
+# Qwen2 ColBERT configuration for dense text retrieval
 model_name: Qwen/Qwen2-7B-Instruct
 retrieval_mode: t2t
+use_lora: true
 
-# ColBERT
-loss_type: colbert
-pooling_method: none
-# 注意：VLM 的序列长度可变（512-8192），不建议用 topk_tokens
+# ===== ColBERT Configuration =====
+loss_type: colbert              # Late-interaction scoring
+pooling_method: none            # [B, seq_len, 4096] token embeddings
+projection_dim: 128             # Reduce 4096 → 128 for efficiency
 
-# Embedding
-projection_dim: 128
+# ===== Data =====
+data_path: data/train.jsonl
+val_data_path: data/val.jsonl
+output_dir: experiments/output_qwen_colbert
 
-# Training
+# ===== Training =====
 epochs: 3
 batch_size: 64
-learning_rate: 5e-5
-use_gradient_cache: true
-use_lora: true
+learning_rate: 5.0e-05
+use_gradient_cache: true        # Critical for large LLMs
+gradient_cache_chunk_size: 4
 ```
-
-**说明：**
-- VLM 的 token 已是高层表示，通常不需要 token 修剪
-- 可变序列长度使得固定 `topk_tokens` 效果不稳定
-- 优先用 Gradient Cache 和 LoRA 优化内存
 
 ---
 
-### 示例 3: Qwen + ColBERT + TopK（多模态检索）
+## ColBERT vs. Other Retrieval Methods
+
+| Method | Loss | Pooling | Shape | Best For | Memory |
+|--------|------|---------|-------|----------|--------|
+| **Dense** | InfoNCE | mean/cls | `[B, D]` | Fast retrieval, web-scale | Low |
+| **ColBERT** | colbert | **none** | **[B, L, D]** | **Fine-grained matching** | **Higher** |
+| **MRL** | mrl | mean/cls | `[B, D]` | Multi-scale retrieval | Low |
+| **Distillation** | kl | mean/cls | `[B, D]` | Model compression | Low |
+
+---
+
+## Common Mistakes to Avoid
+
+### ❌ Mistake 1: Wrong Pooling Method
 
 ```yaml
-model_name: Qwen/Qwen2-VL-32B-Instruct
-retrieval_mode: m2i
-
+# WRONG: This won't work
 loss_type: colbert
-pooling_method: none
-topk_tokens: 64            # 可选：保留前 64 个最相关 tokens
+pooling_method: mean            # ← Error: mean removes token info
 
-projection_dim: 256
-use_mrl: false             # ColBERT 不支持 MRL
+# CORRECT: Use "none" for ColBERT
+loss_type: colbert
+pooling_method: none            # ← Required: preserves all tokens
+```
 
-# Training
-epochs: 10
-batch_size: 32
-learning_rate: 2e-5
-use_gradient_cache: true
+### ❌ Mistake 2: ColBERT with Non-Token Loss
+
+```yaml
+# WRONG: Incompatible combination
+loss_type: infonce
+pooling_method: none            # ← Doesn't make sense with InfoNCE
+
+# CORRECT: Use matching loss + pooling
+loss_type: infonce
+pooling_method: cls             # ← InfoNCE works with global pooling
+```
+
+### ❌ Mistake 3: Omitting pooling_method
+
+```yaml
+# WORKS BUT NOT EXPLICIT (not recommended)
+loss_type: colbert
+# pooling_method not specified → auto-set to "none"
+
+# RECOMMENDED: Always be explicit
+loss_type: colbert
+pooling_method: none            # Make intent clear
 ```
 
 ---
 
-## 配置验证
+## Memory Considerations
 
-### ✅ 验证方法 1: 运行 Dry Run
+### Token Embeddings vs. Dense Embeddings
 
+```
+Dense Retrieval:
+  Batch: [B, D] → [32, 768] = ~24KB per batch
+  60K documents: 60K × 768 = ~180MB index
+
+ColBERT with topk_tokens=32:
+  Batch: [B, 32, D] → [32, 32, 768] = ~768KB per batch
+  60K documents: 60K × 32 × 768 = ~1.4GB index
+  (8× larger but enables finer-grained matching)
+```
+
+### Optimization Strategies
+
+1. **Use `topk_tokens`** → Reduces token count from 256 to 32 (8× reduction)
+2. **Enable `use_gradient_cache`** → Trade compute time for memory (4× batch size)
+3. **Use `projection_dim`** → Reduce dimension 768 → 128 (6× reduction)
+4. **Enable LoRA** → Only fine-tune 0.1% of parameters
+
+**Example**: DINOv2 ColBERT with all optimizations:
+- Base model: 87M parameters
+- LoRA: 0.1M parameters (99.9% reduction)
+- Tokens: 256 → 32 (via topk_tokens)
+- Dimension: 768 → 128 (via projection_dim)
+- Batch multiplier: 128 → 512 (via gradient_cache)
+
+---
+
+## Validation Checklist
+
+After setting up ColBERT, verify your configuration:
+
+### Step 1: Check Saved Config
+```bash
+cat experiments/output_*/.*train_config.yaml | grep -E "loss_type|pooling_method|topk_tokens"
+```
+
+Should output:
+```yaml
+loss_type: colbert
+pooling_method: none
+topk_tokens: 32
+```
+
+### Step 2: Inspect First Batch
+```python
+import torch
+from vembed.data import load_train_data
+
+train_loader = load_train_data("data/train.jsonl", batch_size=2)
+batch = next(iter(train_loader))
+
+# Query embeddings shape
+query_emb = batch["query_embeddings"]
+print(f"Query embeddings: {query_emb.shape}")  # Should be [B, L, D] for ColBERT
+# Expected: [2, 257, 768] for DINOv2
+```
+
+### Step 3: Run Dry-Run Training
 ```bash
 python run.py examples/dinov2_colbert.yaml --dry_run
-```
-
-生成的配置文件应包含：
-```yaml
-loss_type: colbert
-pooling_method: none
-topk_tokens: 32
-```
-
-### ✅ 验证方法 2: 检查训练配置输出
-
-```bash
-cat experiments/output_sop_dinov2_colbert/.train_config.yaml | grep -E "^(loss_type|pooling_strategy|topk_tokens):"
-```
-
-应输出：
-```
-loss_type: colbert
-pooling_method: none
-topk_tokens: 32
-```
-
-### ✅ 验证方法 3: 检查模型推理配置
-
-```bash
-cat experiments/output_sop_dinov2_colbert/checkpoint-*/vembed_config.json | python -m json.tool | grep -E "pooling|topk"
-```
-
-应包含：
-```json
-{
-  "pooling_method": "none",
-  "topk_tokens": 32,
-  ...
-}
+# Should complete without OOM errors
 ```
 
 ---
 
-## 常见错误和解决方案
+## Troubleshooting
 
-### ❌ 错误 1: 混淆 Loss 和 Pooling
+### ⚠️ Issue: OOM During Validation with ColBERT
 
-```yaml
-# 错误：
-loss_type: colbert
-pooling_method: colbert   # ← 这个不对
-```
+**Cause**: Computing MaxSim on 60K images creates huge intermediate tensors
 
-**原因：** `pooling_method: colbert` 是 VLM 特定的，不是通用的 ColBERT pooling
+**Solution**:
+- Set `eval_batch_size` smaller: `eval_batch_size: 16`
+- Enable `use_gradient_cache: true` for training
+- Increase `topk_tokens` to prune more aggressively
 
-**解决：**
-```yaml
-# 正确：
-loss_type: colbert
-pooling_method: none      # ← 所有 ColBERT 都用这个
+### ⚠️ Issue: Training Is Too Slow
+
+**Cause**: Token-level similarity computation is expensive
+
+**Solution**:
+- Enable `topk_tokens: 32` (or higher) for pruning
+- Enable `use_gradient_cache: true`
+- Use `projection_dim: 128` to reduce dimension
+- Increase `batch_size` (gradient cache makes this feasible)
+
+### ⚠️ Issue: Accuracy Didn't Improve Much
+
+**Cause**: ColBERT needs larger batches for contrastive learning
+
+**Solution**:
+- Increase `batch_size` (64 → 128 → 256)
+- Enable `use_gradient_cache: true` if memory-limited
+- Use higher `epochs` (20 → 30+)
+- Lower `learning_rate` slightly (1e-4 → 5e-5)
+
+---
+
+## FAQ
+
+**Q: When should I use ColBERT vs. dense retrieval?**
+A: Use ColBERT when:
+- Fine-grained semantic matching matters (e-commerce, medical)
+- You have domain-specific data to fine-tune on
+- Accuracy is more important than speed
+- You have enough compute/memory for token-level embeddings
+
+Use dense retrieval when:
+- Speed is critical (web-scale, real-time)
+- Limited compute/memory
+- Generic retrieval task
+
+---
+
+**Q: Can I use ColBERT with models other than DINOv2?**
+A: Yes! ColBERT works with any vision or text model:
+- Vision: DINOv3, ViT, ResNet (with appropriate adapter)
+- Text: Qwen, LLaMA, BERT
+- Multi-modal: Qwen-VL, LLaVA
+
+---
+
+**Q: What's the difference between `topk_tokens` and `projection_dim`?**
+A:
+- `topk_tokens`: Selects top-K tokens (e.g., 256 → 32)
+- `projection_dim`: Reduces embedding dimension (e.g., 768 → 128)
+
+Both reduce memory/compute, but:
+- `topk_tokens` preserves embedding dimension (keeps spatial info)
+- `projection_dim` compresses embedding space (loses some info)
+
+Use both together for maximum efficiency!
+
+---
+
+**Q: How do I deploy a fine-tuned ColBERT model?**
+A: Same as any model:
+```python
+from vembed.model import EmbeddingModel
+
+# Load model
+model = EmbeddingModel.from_pretrained("experiments/output_colbert/checkpoint-best")
+
+# Forward pass returns [B, L, D] for ColBERT
+embeddings = model(images)  # [32, 32, 128] if topk_tokens=32, projection_dim=128
+
+# MaxSim scoring in inference
+score = (embeddings[q] @ embeddings[d].T).max(dim=-1).values.mean()
 ```
 
 ---
 
-### ❌ 错误 2: 遗漏 pooling_strategy
+## Related Resources
 
-```yaml
-# 可以工作，但隐式依赖（不推荐）：
-loss_type: colbert
-# 缺少 pooling_strategy
-```
-
-**说明：** CLI 会自动设置为 `none`，但用户看不到
-
-**解决：**
-```yaml
-# 推荐：显式指定（清晰、可读）
-loss_type: colbert
-pooling_method: none
-```
-
----
-
-### ❌ 错误 3: 与 MRL 混用
-
-```yaml
-# 错误：不支持
-loss_type: colbert
-use_mrl: true              # ← ColBERT 不支持 MRL
-```
-
-**原因：**
-- ColBERT 需要 token-level 表示 `[B, L, D]`
-- MRL 需要多层 pooling 后的向量 `[B, dims[], D]`
-- 两者互不兼容
-
-**解决：** 二选一
-```yaml
-# 方案 A: ColBERT
-loss_type: colbert
-pooling_method: none
-use_mrl: false
-
-# 方案 B: MRL
-loss_type: infonce
-use_mrl: true
-pooling_method: mean
-```
-
----
-
-### ❌ 错误 4: topk_tokens 设置不当
-
-```yaml
-# 不推荐 1: 过小（丢失信息）
-topk_tokens: 4             # 太小
-
-# 不推荐 2: 超过总 tokens
-topk_tokens: 1000          # 超过 DINOv2 的 257 个 tokens
-```
-
-**建议值：**
-| 模型 | 总 tokens | 建议 topk_tokens |
-|------|---------|----------------|
-| DINOv2-base | 257 | 32, 64 |
-| DINOv2-large | 577 | 64, 128 |
-| Qwen-VL | 可变 | 0（不修剪）|
-| ResNet50 | ~50 | 16, 32 |
-
----
-
-### ⚠️ 警告: topk_tokens 无效
-
-如果 `topk_tokens` 设置了但没有生效：
-
-```bash
-# 检查 pooling_strategy
-grep "pooling_method:" .train_config.yaml
-```
-
-如果是 `pooling_method: mean` 或其他非 `none` 的值，`topk_tokens` 会被忽略（因为已经全局池化）
-
-**解决：**
-```yaml
-pooling_method: none     # 必需，才能使用 topk_tokens
-topk_tokens: 32
-```
-
----
-
-## 性能指标和优化
-
-### 内存占用对比
-
-```
-传统密集检索：  [B, D] = [128, 768] = 98 KB
-ColBERT:      [B, L, D] = [128, 257, 768] = 25 MB （26x 增长）
-+ topk_tokens:  [B, K+1, D] = [128, 33, 768] = 3.2 MB （仅 3.3x 增长）
-```
-
-### 计算成本对比
-
-```
-相似度计算：
-- 传统：O(B·D) — 向量点积
-- ColBERT：O(B·L_q·L_d·D) — token-level 逐一比较
-- + topk_tokens：O(B·K·L_d·D) — 大幅减少
-
-MaxSim 论文报告：topk_tokens=32 时，速度 5-7x 加快，准确率几乎不变
-```
-
-### 优化建议
-
-| 场景 | 推荐配置 |
-|------|---------|
-| **小数据集** (< 10K docs) | `topk_tokens: 0` — 精准优先 |
-| **中等数据集** (10K - 100K) | `topk_tokens: 32` — 平衡 |
-| **大数据集** (> 100K) | `topk_tokens: 64` + `use_gradient_cache: true` |
-| **内存受限** (< 24 GB) | `topk_tokens: 16`, `batch_size: 32`, `gradient_cache_chunk_size: 4` |
-
----
-
-## 参考资源
-
-- **ColBERT 原论文：** [SIGIR 2020 - ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction Retrieval](https://arxiv.org/abs/2004.12832)
-- **MaxSim 评分实现：** [vembed/losses/functions/colbert.py](../../vembed/losses/functions/colbert.py) — `_maxsim()` 函数
-- **Token 修剪算法：** [vembed/model/backbones/auto.py](../../vembed/model/backbones/auto.py) — `_attention_topk_tokens()` 方法
-- **完整示例：** [examples/dinov2_colbert.yaml](../examples/dinov2_colbert.yaml) 和 [examples/qwen_colbert.yaml](../examples/qwen_colbert.yaml)
-
----
-
-## 常见问题 FAQ
-
-**Q: ColBERT 比传统方法快吗？**
-
-A: 单次查询**更慢**（需逐 token 比较），但准确率更高。适合小数据集或实时性不是瓶颈的场景。加上 `topk_tokens` 修剪后，速度接近传统方法但准确率更好。
-
----
-
-**Q: 能和 LoRA 一起用吗？**
-
-A: ✅ 可以，推荐使用。配置：`use_lora: true`
-
----
-
-**Q: 能和 Gradient Cache 一起用吗？**
-
-A: ✅ 可以，推荐使用。配置：`use_gradient_cache: true` 支持大批量。
-
----
-
-**Q: topk_tokens 影响准确率吗？**
-
-A: 几乎没有。论文表明 topk_tokens=32 时准确率下降 < 1%，但速度 5-7x 提升。
-
----
-
-**Q: 可以在多个 GPU 上训练吗？**
-
-A: ✅ 可以。使用：`accelerate launch` 或指定 `num_gpus` 参数。
-
----
-
-**Q: 推理时需要特殊处理吗？**
-
-A: ✅ 需要。推理时仍需返回 token-level 嵌入 `[B, L, D]`，然后用 MaxSim 计算相似度。参见 [vembed/inference.py](../../vembed/inference.py)
+- [ColBERT Paper](https://arxiv.org/abs/2004.12832)
+- [Framework Architecture](../ARCHITECTURE.md)
+- [Training Configuration](./configuration.md)
+- [Loss Functions Reference](../../vembed/losses/)
+- [Model Backbones](../../vembed/model/backbones/)

@@ -9,6 +9,7 @@ output_dir: experiments/output_siglip
 epochs: 10
 batch_size: 256
 learning_rate: 1.0e-04
+use_gradient_cache: false
 
 data_path: data/train.jsonl
 val_data_path: data/val.jsonl
