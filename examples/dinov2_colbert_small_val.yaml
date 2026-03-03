@@ -1,26 +1,31 @@
 # DINOv2 + ColBERT with small validation set (for memory-limited environments)
 # Uses smaller validation set to compute Recall metrics efficiently
+# Optimized for 24GB consumer-grade GPUs
 
 model_name: facebook/dinov2-base
 retrieval_mode: i2i
 use_lora: true
-
 loss_type: colbert
 pooling_method: none
 topk_tokens: 32
 projection_dim: 128
 
-data_path: data/stanford_online_products/train.jsonl
-val_data_path: data/stanford_online_products/val_small.jsonl
-image_root: data/stanford_online_products
-output_dir: experiments/output_sop_dinov2_colbert_small_val
+# Memory optimization: Gradient Cache for 24GB GPU
+# Reduces memory by ~4× at slight speed cost (slower iterations)
+# For larger GPUs (40GB+), disable Gradient Cache for faster training:
+#   use_gradient_cache: false
+use_gradient_cache: true
+gradient_cache_chunk_size: 128
 
+output_dir: experiments/output_sop_dinov2_colbert_small_val
 epochs: 20
 batch_size: 128
 eval_batch_size: 32
 learning_rate: 1.0e-04
-use_gradient_cache: true
-gradient_cache_chunk_size: 128
+
+data_path: data/stanford_online_products/train.jsonl
+val_data_path: data/stanford_online_products/val_small.jsonl
+image_root: data/stanford_online_products
 
 report_to: none
 logging_steps: 10

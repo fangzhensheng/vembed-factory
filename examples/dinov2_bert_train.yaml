@@ -1,17 +1,23 @@
 # Composed encoder: DINOv2-small + BERT
 # Combines vision and text encoders for retrieval tasks
+# Optimized for 24GB consumer-grade GPUs
 
 model_name: facebook/dinov2-small
 encoder_mode: composed
 use_lora: true
+
+# Memory optimization: Gradient Cache for 24GB GPU
+# Reduces memory by ~4× at slight speed cost (slower iterations)
+# For larger GPUs (40GB+), disable Gradient Cache for faster training:
+#   use_gradient_cache: false
+use_gradient_cache: true
+gradient_cache_chunk_size: 128
 
 output_dir: experiments/output_dinov2_bert
 epochs: 3
 batch_size: 1024
 eval_batch_size: 64
 learning_rate: 1.0e-04
-use_gradient_cache: true
-gradient_cache_chunk_size: 128
 
 data_path: data/train.jsonl
 val_data_path: data/val.jsonl

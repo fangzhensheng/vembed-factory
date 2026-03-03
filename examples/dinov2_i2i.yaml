@@ -1,12 +1,16 @@
 # DINOv2 for image-to-image retrieval on SOP
 # Global pooling with InfoNCE contrastive loss
+# Optimized for 24GB consumer-grade GPUs
 
 model_name: facebook/dinov2-base
 retrieval_mode: i2i
 use_lora: true
 loss_type: infonce
 
-# Memory optimization via gradient cache
+# Memory optimization: Gradient Cache for 24GB GPU
+# Reduces memory by ~4× at slight speed cost (slower iterations)
+# For larger GPUs (40GB+), disable Gradient Cache for faster training:
+#   use_gradient_cache: false
 use_gradient_cache: true
 gradient_cache_chunk_size: 128
 
