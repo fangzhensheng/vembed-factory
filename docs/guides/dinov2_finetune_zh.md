@@ -123,12 +123,17 @@ output_dir: experiments/output_sop_dinov3_i2i
 
 # --- 训练参数 ---
 epochs: 20
-batch_size: 128                                        # 较大的 batch size 有助于对比学习
+batch_size: 1024                                       # 更大的 batch size 提升对比学习效果
+eval_batch_size: 64                                    # 验证集 batch size（减小以节省显存）
 loss_type: infonce                                     # 使用 InfoNCE Loss + Supervised Contrastive
 learning_rate: 0.0001                                 # 学习率
 logging_steps: 10                                      # 每 10 步记录一次日志
 save_steps: 500                                        # 每 500 步保存一次 checkpoint
 report_to: none                                        # 不使用 wandb/tensorboard 等实验跟踪
+
+# --- 显存优化 (针对 24GB 消费级 GPU) ---
+use_gradient_cache: true                               # 启用梯度缓存，减少显存占用约 4 倍
+gradient_cache_chunk_size: 128                         # 梯度缓存分块大小
 ```
 
 ### 4.2 启动训练
@@ -145,12 +150,6 @@ bash examples/run_dinov3_i2i.sh
 python run.py examples/dinov3_i2i.yaml
 ```
 
-如果需要覆盖配置文件中的参数，可以使用 CLI 参数：
-
-```bash
-python run.py examples/dinov3_i2i.yaml --config_override epochs=30 batch_size=64
-```
-
 训练过程中，模型权重和日志将保存在 `experiments/output_sop_dinov3_i2i` 目录下。
 
 ## 5. 效果评测
@@ -164,13 +163,7 @@ python run.py examples/dinov3_i2i.yaml --config_override epochs=30 batch_size=64
 python benchmark/run.py sop \
     --model_path experiments/output_sop_dinov3_i2i/checkpoint-1000 \
     --sop_root data/stanford_online_products \
-    --batch_size 128
-```
-
-或者通过配置覆盖进行评测：
-
-```bash
-python run.py examples/dinov3_i2i.yaml --config_override lr=0 model_name_or_path=experiments/output_sop_dinov3_i2i/checkpoint-1000
+    --batch_size 64
 ```
 
 ### 预期结果
@@ -187,8 +180,10 @@ python run.py examples/dinov3_i2i.yaml --config_override lr=0 model_name_or_path
 - 模型：facebook/dinov3-vitb16-pretrain-lvd1689m（最新）
 - 数据集：SOP 训练集（~120k 张图片）
 - 训练轮次：20 epochs
-- Batch Size：128
+- Batch Size：1024
+- 验证 Batch Size：64
 - LoRA：启用
+- 显存优化：梯度缓存启用（chunk_size=128）
 
 微调后的 DINOv3-ViT-B/16 在 Recall@1 上相比零样本预训练模型获得了 **17.81%** 的显著提升，达到 **83.13%** 的高精度，可广泛应用于生产环境中的商品检索系统。
 
@@ -196,29 +191,63 @@ python run.py examples/dinov3_i2i.yaml --config_override lr=0 model_name_or_path
 
 ### 6.1 如何调整训练参数？
 
-方式一：编辑 YAML 配置文件
+编辑 `examples/dinov3_i2i.yaml` 配置文件，修改所需参数：
+
+```yaml
+epochs: 30                    # 修改训练轮次
+batch_size: 512              # 调整 batch size（显存不足时减小）
+learning_rate: 0.00005       # 调整学习率
+eval_batch_size: 32          # 调整验证 batch size
+```
+
+然后运行：
 ```bash
-# 修改 examples/dinov3_i2i.yaml 中的参数，然后运行
 python run.py examples/dinov3_i2i.yaml
 ```
 
-方式二：使用 CLI 参数覆盖
-```bash
-# 无需修改配置文件，直接通过 --config_override 传递参数
-python run.py examples/dinov3_i2i.yaml \
-    --config_override epochs=30 batch_size=64 learning_rate=0.00005
+直接编辑配置文件的方式更清晰，也便于保存你的配置供将来参考。
+
+### 6.1.1 显存与速度的权衡
+
+默认配置启用 **梯度缓存** (`use_gradient_cache: true`) 以减少显存占用约 4 倍，但代价是迭代速度明显变慢，因为需要分块处理梯度。
+
+**根据不同 GPU 显存的推荐配置：**
+
+| GPU 显存 | 推荐设置 | 速度影响 | 说明 |
+| :--- | :--- | :--- | :--- |
+| 24GB（消费级） | `use_gradient_cache: true`（默认） | 降速 ~30-50% | 在 24GB 显卡上启用 batch_size=1024，gradient_cache_chunk_size=128 |
+| 40GB（A100、L40） | `use_gradient_cache: false` | 全速 | 关闭梯度缓存以获得最大训练速度 |
+| 80GB（H100） | `use_gradient_cache: false` | 全速 | 可进一步增大 batch_size 以加快收敛 |
+
+**在更大显卡上关闭梯度缓存以提高训练速度：**
+
+编辑 `examples/dinov3_i2i.yaml`，修改为：
+```yaml
+use_gradient_cache: false
 ```
+
+然后正常运行训练：
+```bash
+python run.py examples/dinov3_i2i.yaml
+```
+
+这样可以消除梯度缓存的开销，获得显著更快的训练速度。但如果遇到显存不足（OOM），需要减小 `batch_size` 或 `eval_batch_size`。
 
 ### 6.2 如何使用其他模型？
 
-修改 `model_name` 参数：
+编辑 `examples/dinov3_i2i.yaml` 配置文件，修改 `model_name` 参数：
 
-```bash
+```yaml
 # 使用 DINOv2-base（上一代模型）
-python run.py examples/dinov3_i2i.yaml --config_override model_name=facebook/dinov2-base
+model_name: facebook/dinov2-base
 
-# 使用 DINOv3-ViT-S/14（更小、更快）
-python run.py examples/dinov3_i2i.yaml --config_override model_name=facebook/dinov3-vits14-pretrain-lvd1689m
+# 或使用 DINOv3-ViT-S/14（更小、更快）
+model_name: facebook/dinov3-vits14-pretrain-lvd1689m
+```
+
+然后运行：
+```bash
+python run.py examples/dinov3_i2i.yaml
 ```
 
 **可选模型及性能对比：**

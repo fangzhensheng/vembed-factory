@@ -101,11 +101,17 @@ output_dir: experiments/output_sop_dinov3_i2i
 
 # --- Training Parameters ---
 epochs: 20
-batch_size: 128                                        # Larger batch size helps contrastive learning
+batch_size: 1024                                       # Large batch size for stronger contrastive learning signal
+eval_batch_size: 64                                    # Evaluation batch size (reduced to save GPU memory)
 loss_type: infonce                                     # Use InfoNCE Loss with Supervised Contrastive Learning
 learning_rate: 0.0001
 logging_steps: 10
 save_steps: 500
+report_to: none                                        # Disable wandb/tensorboard logging
+
+# --- Memory Optimization (for 24GB consumer GPUs) ---
+use_gradient_cache: true                               # Enable Gradient Caching to reduce VRAM by ~4x
+gradient_cache_chunk_size: 128                         # Process gradients in 128-sample chunks
 ```
 
 ### 4.2 Start Training
@@ -122,12 +128,6 @@ Or use the Python CLI directly:
 python run.py examples/dinov3_i2i.yaml
 ```
 
-If you need to override configuration parameters, use the CLI:
-
-```bash
-python run.py examples/dinov3_i2i.yaml --config_override epochs=30 batch_size=64
-```
-
 During training, model weights and logs will be saved in the `experiments/output_sop_dinov3_i2i` directory.
 
 ## 5. Performance Evaluation
@@ -141,7 +141,7 @@ Use the built-in evaluation script:
 python benchmark/run.py sop \
     --model_path experiments/output_sop_dinov3_i2i/checkpoint-1000 \
     --sop_root data/stanford_online_products \
-    --batch_size 128
+    --batch_size 64
 ```
 
 ### Expected Results
@@ -158,8 +158,10 @@ Based on our experimental results on the **Stanford Online Products (SOP)** data
 - Model: facebook/dinov3-vitb16-pretrain-lvd1689m (latest)
 - Dataset: SOP training set (~120k images)
 - Training epochs: 20
-- Batch Size: 128
+- Batch Size: 1024
+- Eval Batch Size: 64
 - LoRA: Enabled
+- Memory Optimization: Gradient Caching enabled (chunk_size=128)
 
 After fine-tuning, DINOv3-ViT-B/16 achieves **83.13%** Recall@1, a **17.81%** improvement over the zero-shot model, making it suitable for production e-commerce product retrieval systems.
 
@@ -167,29 +169,63 @@ After fine-tuning, DINOv3-ViT-B/16 achieves **83.13%** Recall@1, a **17.81%** im
 
 ### 6.1 How do I adjust training parameters?
 
-**Method 1: Edit YAML Configuration**
+Edit `examples/dinov3_i2i.yaml` and modify the parameters you need:
+
+```yaml
+epochs: 30                    # Change training epochs
+batch_size: 512              # Adjust batch size (reduce if OOM)
+learning_rate: 0.00005       # Fine-tune learning rate
+eval_batch_size: 32          # Adjust evaluation batch size
+```
+
+Then run:
 ```bash
-# Modify examples/dinov3_i2i.yaml and run
 python run.py examples/dinov3_i2i.yaml
 ```
 
-**Method 2: CLI Parameter Override**
-```bash
-# Override parameters without modifying the config file
-python run.py examples/dinov3_i2i.yaml \
-    --config_override epochs=30 batch_size=64 learning_rate=0.00005
+This approach is cleaner and allows you to save your configuration for future reference.
+
+### 6.1.1 Memory vs Speed Trade-off
+
+The default configuration enables **Gradient Caching** (`use_gradient_cache: true`) to reduce VRAM by ~4x, but at the cost of significantly slower iterations due to the chunked processing.
+
+**For different GPU memory:**
+
+| GPU Memory | Recommended Setting | Speed Impact | Notes |
+| :--- | :--- | :--- | :--- |
+| 24GB (consumer) | `use_gradient_cache: true` (default) | ~30-50% slower | Enables batch_size=1024 on 24GB GPUs with gradient_cache_chunk_size=128 |
+| 40GB (A100, L40) | `use_gradient_cache: false` | Full speed | Disable gradient cache for maximum training speed |
+| 80GB (H100) | `use_gradient_cache: false` | Full speed | Can use even larger batch sizes if desired |
+
+**To disable Gradient Caching for faster training on larger GPUs:**
+
+Edit `examples/dinov3_i2i.yaml` and change:
+```yaml
+use_gradient_cache: false
 ```
+
+Then run training normally:
+```bash
+python run.py examples/dinov3_i2i.yaml
+```
+
+This will eliminate the gradient caching overhead and train significantly faster, though you may need to reduce `batch_size` or `eval_batch_size` if you encounter OOM errors on your GPU.
 
 ### 6.2 How to use other models?
 
-Modify the `model_name` parameter:
+Edit `examples/dinov3_i2i.yaml` and change the `model_name` parameter:
 
-```bash
+```yaml
 # Use DINOv2 (previous generation, slightly lower performance)
-python run.py examples/dinov3_i2i.yaml --config_override model_name=facebook/dinov2-base
+model_name: facebook/dinov2-base
 
-# Use DINOv3-ViT-S/14 (smaller, faster, lower VRAM)
-python run.py examples/dinov3_i2i.yaml --config_override model_name=facebook/dinov3-vits14-pretrain-lvd1689m
+# Or use DINOv3-ViT-S/14 (smaller, faster, lower VRAM)
+model_name: facebook/dinov3-vits14-pretrain-lvd1689m
+```
+
+Then run:
+```bash
+python run.py examples/dinov3_i2i.yaml
 ```
 
 **Model Comparison:**
