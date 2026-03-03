@@ -1,14 +1,21 @@
 # CLIP ViT-B/32 training configuration
 # Dual-encoder model for text-image retrieval with LoRA fine-tuning
+# Optimized for 24GB consumer-grade GPUs
 
 model_name_or_path: "openai/clip-vit-base-patch32"
 use_lora: true
 
+# Memory optimization: Gradient Cache for 24GB GPU
+# Reduces memory by ~4× at slight speed cost (slower iterations)
+# For larger GPUs (40GB+), disable Gradient Cache for faster training:
+#   use_gradient_cache: false
+use_gradient_cache: true
+gradient_cache_chunk_size: 128
+
 output_dir: experiments/output_clip
 epochs: 20
-batch_size: 128
+batch_size: 1024
 learning_rate: 2.0e-5
-use_gradient_cache: false
 
 data_path: data/train.jsonl
 val_data_path: data/val.jsonl
