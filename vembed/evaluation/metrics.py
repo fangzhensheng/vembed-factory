@@ -40,6 +40,14 @@ def compute_metrics(
     return metrics
 
 
+def _is_colbert_embeddings(
+    query_embeddings: torch.Tensor,
+    doc_embeddings: torch.Tensor,
+) -> bool:
+    """Check if embeddings are token-level (ColBERT) vs pooled dense format."""
+    return query_embeddings.dim() == 3 and doc_embeddings.dim() == 3
+
+
 def compute_recall_at_k(
     query_embeddings: Union[torch.Tensor, np.ndarray],
     doc_embeddings: Union[torch.Tensor, np.ndarray],
@@ -105,7 +113,7 @@ def compute_recall_at_k(
     num_queries = query_embeddings.shape[0]
     num_docs = doc_embeddings.shape[0]
 
-    is_colbert = query_embeddings.dim() == 3
+    is_colbert = _is_colbert_embeddings(query_embeddings, doc_embeddings)
 
     if is_colbert:
         # ColBERT: MaxSim similarity = mean_query(max_doc(q_i · d_j))
@@ -223,16 +231,9 @@ def compute_recall_metrics(
     if not all_query_embeddings or not all_doc_embeddings:
         return {}
 
-    # Concatenate all batches, keeping on GPU if available for efficiency
+    # Concatenate all batches (embeddings already on CPU from evaluator)
     query_embeddings = torch.cat(all_query_embeddings, dim=0)
     doc_embeddings = torch.cat(all_doc_embeddings, dim=0)
-
-    # For very large doc embeddings, process on GPU if available
-    # This is critical for ColBERT MaxSim computation which is CPU-intensive
-    if len(doc_embeddings) > 1000 and torch.cuda.is_available():
-        device = torch.device('cuda')
-        query_embeddings = query_embeddings.to(device)
-        doc_embeddings = doc_embeddings.to(device)
 
     query_labels = None
     if all_query_labels:

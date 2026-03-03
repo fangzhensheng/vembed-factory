@@ -54,31 +54,50 @@ class Evaluator:
             Average validation loss.
         """
         self.model.eval()
+
+        # Free training-related GPU memory (gradients, optimizer states) before eval
+        torch.cuda.empty_cache()
+
         total_loss, num_batches = 0.0, 0
         all_q_embs, all_p_embs, all_q_labels, all_p_labels = [], [], [], []
         self.accelerator.print("\nRunning validation...")
 
         with torch.no_grad():
             for batch in tqdm(val_dataloader, disable=not self.accelerator.is_local_main_process):
-                q_embs = maybe_first(self.model(**unpack_query_batch(batch, self.retrieval_mode)))
-                p_embs = maybe_first(self.model(**unpack_positive_batch(batch, self.retrieval_mode)))
+                q_batch = unpack_query_batch(batch, self.retrieval_mode)
+                p_batch = unpack_positive_batch(batch, self.retrieval_mode)
+
+                q_embs = maybe_first(self.model(**q_batch))
+                p_embs = maybe_first(self.model(**p_batch))
 
                 loss_kwargs = {}
-                if "labels" in batch:
+                has_labels = "labels" in batch
+                if has_labels:
                     loss_kwargs["labels"] = batch["labels"]
+                    labels = batch["labels"]
 
                 total_loss += self.criterion(q_embs, p_embs, None, **loss_kwargs).item()
                 num_batches += 1
 
-                # Gather embeddings across all processes for metrics calculation
-                # Keep on GPU for efficient topk computation in MaxSim (ColBERT)
-                all_q_embs.append(self.accelerator.gather_for_metrics(q_embs))
-                all_p_embs.append(self.accelerator.gather_for_metrics(p_embs))
+                # Delete batch objects early to prevent GPU memory accumulation
+                del q_batch, p_batch, batch
+                torch.cuda.empty_cache()
 
-                # Gather labels if available (for recall calculation)
-                if "labels" in batch:
-                    all_q_labels.append(self.accelerator.gather_for_metrics(batch["labels"]))
-                    all_p_labels.append(self.accelerator.gather_for_metrics(batch["labels"]))
+                # Move embeddings to CPU immediately to avoid GPU memory buildup over iterations
+                all_q_embs.append(self.accelerator.gather_for_metrics(q_embs).cpu())
+                del q_embs
+                torch.cuda.empty_cache()
+
+                all_p_embs.append(self.accelerator.gather_for_metrics(p_embs).cpu())
+                del p_embs
+                torch.cuda.empty_cache()
+
+                if has_labels:
+                    all_q_labels.append(self.accelerator.gather_for_metrics(labels).cpu())
+                    torch.cuda.empty_cache()
+                    all_p_labels.append(self.accelerator.gather_for_metrics(labels).cpu())
+                    del labels
+                    torch.cuda.empty_cache()
 
         avg_loss = total_loss / max(num_batches, 1)
         self.accelerator.print(f"Validation loss: {avg_loss:.4f}")
