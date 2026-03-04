@@ -39,7 +39,10 @@ def build_optimizer(model: torch.nn.Module, config: dict[str, Any]) -> torch.opt
             "weight_decay": 0.0,
         },
     ]
-    return torch.optim.AdamW(param_groups, lr=float(config["lr"]))
+    if "lr" not in config and "learning_rate" in config:
+        config["lr"] = config["learning_rate"]
+
+    return torch.optim.AdamW(param_groups, lr=float(config.get("lr", 1e-4)))
 
 
 def build_scheduler(

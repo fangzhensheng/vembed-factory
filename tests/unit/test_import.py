@@ -23,7 +23,7 @@ def test_import_core_modules():
 def test_import_grad_cache():
     """Test that gradient cache module can be imported."""
     try:
-        from vembed.training.gradient_cache import GradientCache  # noqa: F401
+        from vembed.core.gradient_cache import GradientCache  # noqa: F401
     except ImportError as e:
         pytest.fail(f"Failed to import GradientCache: {e}")
 
