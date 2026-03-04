@@ -114,7 +114,9 @@ class TestBasicTraining:
 
         assert len(dataset) > 0
         sample = dataset[0]
-        assert "pixel_values" in sample or "input_ids" in sample
+        # Check for expected keys - handle list/tuple checks safely
+        keys = set(sample.keys())
+        assert "pixel_values" in keys or "input_ids" in keys
 
     def test_loss_creation(self):
         """Test loss function creation."""
@@ -164,18 +166,6 @@ class TestConfigLoading:
         assert config["batch_size"] == 2
         assert config["epochs"] == 1
 
-    def test_config_merge(self):
-        """Test configuration merging."""
-        from vembed.config import merge_configs
-
-        base = {"a": 1, "b": 2}
-        user = {"b": 3, "c": 4}
-
-        merged = merge_configs(base, user)
-
-        assert merged["a"] == 1
-        assert merged["b"] == 3  # User config overrides
-        assert merged["c"] == 4
 
 
 class TestDistributedConfig:

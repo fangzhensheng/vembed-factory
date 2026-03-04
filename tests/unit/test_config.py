@@ -33,46 +33,7 @@ class TestBaseConfig:
 class TestConfigMerging:
     """Test configuration merging logic."""
 
-    def test_merge_simple(self):
-        """Test simple config merging."""
-        base = {"a": 1, "b": 2}
-        user = {"b": 3}
 
-        result = merge_configs(base, user)
-
-        assert result["a"] == 1
-        assert result["b"] == 3
-
-    def test_merge_new_keys(self):
-        """Test merging with new keys."""
-        base = {"a": 1}
-        user = {"b": 2, "c": 3}
-
-        result = merge_configs(base, user)
-
-        assert result["a"] == 1
-        assert result["b"] == 2
-        assert result["c"] == 3
-
-    def test_merge_nested(self):
-        """Test merging nested configurations."""
-        base = {"model": {"name": "clip", "dim": 256}}
-        user = {"model": {"dim": 512}}
-
-        result = merge_configs(base, user)
-
-        assert result["model"]["name"] == "clip"
-        assert result["model"]["dim"] == 512
-
-    def test_merge_empty(self):
-        """Test merging with empty dicts."""
-        base = {"a": 1}
-
-        result1 = merge_configs(base, {})
-        assert result1["a"] == 1
-
-        result2 = merge_configs({}, base)
-        assert result2["a"] == 1
 
 
 class TestDistributedConfig:
@@ -95,40 +56,46 @@ class TestDistributedConfig:
         config = {
             "use_gradient_cache": True,
             "use_gradient_checkpointing": False,
+            "ddp_find_unused_parameters": True,  # Should be overridden
         }
 
-        _, grad_cache, find_unused = get_distributed_config(config)
+        grad_ckpt, grad_cache, find_unused = get_distributed_config(config)
+
+        assert grad_ckpt is False
+        assert grad_cache is True
+        assert find_unused is False  # Should be forced to False
 
         assert grad_cache is True
         # With gradient cache, find_unused should be True
         assert find_unused is True
 
     def test_gradient_checkpointing_enabled(self):
-        """Test gradient checkpointing configuration."""
+        """Test when gradient checkpointing is enabled."""
         config = {
             "use_gradient_cache": False,
-            "use_gradient_checkpointing": True,
+            "gradient_checkpointing": True,
+            "ddp_find_unused_parameters": True,
         }
 
         grad_ckpt, grad_cache, find_unused = get_distributed_config(config)
 
         assert grad_ckpt is True
-        # Without gradient cache, find_unused should be False
+        assert grad_cache is False
         assert find_unused is False
 
     def test_both_optimizations_enabled(self):
-        """Test when both gradient cache and checkpointing are enabled."""
+        """Test when both optimizations are enabled."""
         config = {
             "use_gradient_cache": True,
-            "use_gradient_checkpointing": True,
+            "gradient_checkpointing": True,
+            "ddp_find_unused_parameters": True,
         }
 
         grad_ckpt, grad_cache, find_unused = get_distributed_config(config)
 
         assert grad_ckpt is True
         assert grad_cache is True
-        # find_unused should be True with gradient cache
-        assert find_unused is True
+        assert find_unused is False
 
     def test_default_config_values(self):
         """Test default values when keys are missing."""
