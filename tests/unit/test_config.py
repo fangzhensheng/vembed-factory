@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from vembed.config import load_base_config, merge_configs
+from vembed.config import load_base_config
 from vembed.training.config import get_distributed_config
 
 
