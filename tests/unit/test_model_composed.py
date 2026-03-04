@@ -16,10 +16,10 @@ def test_model_composed_forward():
         tok = AutoTokenizer.from_pretrained("bert-base-uncased", use_fast=True)
         t_inputs = tok(["hello world"], return_tensors="pt")
         t_out = model(input_ids=t_inputs["input_ids"], attention_mask=t_inputs["attention_mask"])
-        
+
         # Check if output is a Tensor or Mock
         if hasattr(t_out, "shape"):
-             assert t_out.shape[0] == 1
+            assert t_out.shape[0] == 1
     except Exception as e:
         # If we are mocking and things go wrong with types (e.g. linear layer expecting tensor but getting mock)
         if "must be Tensor" in str(e) and "MagicMock" in str(e):
