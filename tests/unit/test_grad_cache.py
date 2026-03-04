@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from vembed.training.gradient_cache import GradientCache
+from vembed.core.gradient_cache import GradientCache
 
 
 class DummyModel(nn.Module):
