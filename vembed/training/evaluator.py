@@ -8,7 +8,11 @@ from accelerate.logging import get_logger
 from tqdm import tqdm
 
 from vembed.evaluation.metrics import compute_recall_metrics
-from vembed.training.data_utils import maybe_first, unpack_negative_batch, unpack_positive_batch, unpack_query_batch
+from vembed.training.data_utils import (
+    maybe_first,
+    unpack_positive_batch,
+    unpack_query_batch,
+)
 
 logger = get_logger(__name__)
 
@@ -103,7 +107,7 @@ class Evaluator:
         self.accelerator.print(f"Validation loss: {avg_loss:.4f}")
 
         # Compute recall metrics if labels are available
-        recall_metrics = self._compute_and_log_metrics(
+        _ = self._compute_and_log_metrics(
             all_q_embs, all_p_embs, all_q_labels, all_p_labels, global_step
         )
 

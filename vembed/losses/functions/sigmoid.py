@@ -12,6 +12,9 @@ from .base import BaseLoss
 class SigmoidLoss(BaseLoss):
     """Sigmoid Loss for Language Image Pre-Training (SigLIP).
 
+    When bidirectional is enabled, optimizes both query→documents and documents→query
+    directions equally, leading to better symmetry for retrieval tasks.
+
     References:
         https://arxiv.org/abs/2303.15343
 
@@ -31,19 +34,16 @@ class SigmoidLoss(BaseLoss):
         self.logit_scale = nn.Parameter(torch.tensor(float(init_logit_scale)))
         self.logit_bias = nn.Parameter(torch.tensor(float(init_logit_bias)))
         self._enable_gather = config.get("enable_gather", self.enable_gather_default)
+        self.loss_bidirectional = config.get("loss_bidirectional", False)
 
-    def _forward(
+    def _compute_loss_direction(
         self,
         query_emb: torch.Tensor,
         positive_emb: torch.Tensor,
         negative_emb: torch.Tensor | None = None,
         labels: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        # Normalize embeddings
-        query_emb = F.normalize(query_emb, p=2, dim=-1)
-        positive_emb = F.normalize(positive_emb, p=2, dim=-1)
-
-        # Construct candidate documents (positives + optional negatives)
+        """Compute loss for one direction (query searching documents)."""
         if negative_emb is not None:
             negative_emb = F.normalize(negative_emb, p=2, dim=-1)
             # Flatten negatives if they are [B, N, D] -> [B*N, D]
@@ -83,3 +83,23 @@ class SigmoidLoss(BaseLoss):
         loss = -F.logsigmoid(targets * logits).sum() / B
 
         return loss
+
+    def _forward(
+        self,
+        query_emb: torch.Tensor,
+        positive_emb: torch.Tensor,
+        negative_emb: torch.Tensor | None = None,
+        labels: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        query_emb = F.normalize(query_emb, p=2, dim=-1)
+        positive_emb = F.normalize(positive_emb, p=2, dim=-1)
+
+        loss_forward = self._compute_loss_direction(query_emb, positive_emb, negative_emb, labels)
+
+        if self.loss_bidirectional:
+            loss_reverse = self._compute_loss_direction(
+                positive_emb, query_emb, negative_emb, labels
+            )
+            return (loss_forward + loss_reverse) / 2
+
+        return loss_forward

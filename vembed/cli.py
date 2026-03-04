@@ -42,20 +42,28 @@ def main(args_list=None):
     pre_parser = argparse.ArgumentParser(add_help=False)
     pre_parser.add_argument("config_file", nargs="?", default=None, help="Path to YAML config file")
     pre_parser.add_argument("--config_override", nargs="*", default=[])
-    pre_parser.add_argument("--debug_gpu_memory", type=int, default=None, help="Limit GPU memory (GB) for debugging OOM issues")
+    pre_parser.add_argument(
+        "--debug_gpu_memory",
+        type=int,
+        default=None,
+        help="Limit GPU memory (GB) for debugging OOM issues",
+    )
 
     known_args, remaining_args = pre_parser.parse_known_args(args_list)
 
     # Limit GPU memory for debugging/testing on consumer-grade GPUs
     if known_args.debug_gpu_memory:
         import torch
+
         gpu_memory_gb = known_args.debug_gpu_memory
         try:
-            if hasattr(torch.cuda, 'set_per_process_memory_fraction'):
+            if hasattr(torch.cuda, "set_per_process_memory_fraction"):
                 device_total_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
                 fraction = min(gpu_memory_gb / device_total_gb, 1.0)
                 torch.cuda.set_per_process_memory_fraction(fraction)
-                logger.info(f"GPU memory limited to {gpu_memory_gb}GB ({fraction:.2%} of {device_total_gb:.1f}GB device)")
+                logger.info(
+                    f"GPU memory limited to {gpu_memory_gb}GB ({fraction:.2%} of {device_total_gb:.1f}GB device)"
+                )
             else:
                 logger.warning("torch.cuda.set_per_process_memory_fraction not available")
         except Exception as e:

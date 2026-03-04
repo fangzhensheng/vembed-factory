@@ -9,23 +9,18 @@ components from the training package.
 import os
 import sys
 
-import torch
-import yaml
 from accelerate import Accelerator, DistributedDataParallelKwargs
 from accelerate.logging import get_logger
 from torch.utils.data import DataLoader
-from transformers import get_scheduler
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 import vembed.data  # noqa: F401 - trigger registry
 import vembed.losses  # noqa: F401
 import vembed.model  # noqa: F401
-from vembed.config import load_base_config, parse_override_args
 from vembed.data.dataset import VisualRetrievalDataset
 from vembed.data.registry import CollatorRegistry
 from vembed.losses.factory import LossFactory
-from vembed.training.checkpoint import save_checkpoint
 from vembed.training.config import (
     get_distributed_config,
     load_and_parse_config,

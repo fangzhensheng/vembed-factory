@@ -18,6 +18,7 @@ class MatryoshkaLoss(nn.Module):
         """Propagate gather setting to the wrapped loss function if it supports it."""
         # Import here to avoid circular dependency
         from .base import BaseLoss
+
         if isinstance(self.loss_fn, BaseLoss):
             self.loss_fn.set_gather(enabled)
 
@@ -26,6 +27,7 @@ class MatryoshkaLoss(nn.Module):
         """Check if the wrapped loss has gather enabled."""
         # Import here to avoid circular dependency
         from .base import BaseLoss
+
         if isinstance(self.loss_fn, BaseLoss):
             return self.loss_fn.enable_gather
         return False

@@ -6,7 +6,12 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel
 
-from ..base import BaseEmbeddingModel, _extract_hidden_state, resolve_pretrained_kwargs, disable_kv_cache
+from ..base import (
+    BaseEmbeddingModel,
+    _extract_hidden_state,
+    disable_kv_cache,
+    resolve_pretrained_kwargs,
+)
 from ..registry import ModelRegistry
 
 logger = logging.getLogger(__name__)

@@ -167,9 +167,7 @@ class Trainer:
         should_concat = self._should_concat_inputs(q_inputs, p_inputs)
 
         if should_concat:
-            q_embs, p_embs, n_embs = self._forward_concatenated(
-                q_inputs, p_inputs, n_inputs
-            )
+            q_embs, p_embs, n_embs = self._forward_concatenated(q_inputs, p_inputs, n_inputs)
         else:
             q_embs = maybe_first(self.model(**q_inputs))
             p_embs = maybe_first(self.model(**p_inputs))
@@ -260,12 +258,20 @@ class Trainer:
         Returns:
             Pad token ID (default: 0).
         """
-        if self.processor and hasattr(self.processor, "tokenizer"):
-            if self.processor.tokenizer.pad_token_id is not None:
-                return self.processor.tokenizer.pad_token_id
-        if hasattr(self.model, "config") and hasattr(self.model.config, "pad_token_id"):
-            if self.model.config.pad_token_id is not None:
-                return self.model.config.pad_token_id
+        if (
+            self.processor
+            and hasattr(self.processor, "tokenizer")
+            and self.processor.tokenizer.pad_token_id is not None
+        ):
+            return self.processor.tokenizer.pad_token_id
+
+        if (
+            hasattr(self.model, "config")
+            and hasattr(self.model.config, "pad_token_id")
+            and self.model.config.pad_token_id is not None
+        ):
+            return self.model.config.pad_token_id
+
         return 0
 
     def _apply_distillation(
@@ -287,15 +293,15 @@ class Trainer:
             Combined student + distillation loss.
         """
         with torch.no_grad():
-            t_q = maybe_first(
-                self.teacher_model(**unpack_query_batch(batch, self.retrieval_mode))
-            )
+            t_q = maybe_first(self.teacher_model(**unpack_query_batch(batch, self.retrieval_mode)))
             t_p = maybe_first(
                 self.teacher_model(**unpack_positive_batch(batch, self.retrieval_mode))
             )
 
         distill_loss = self.distillation_loss_fn(q_embs, p_embs, t_q, t_p)
-        loss = self.distillation_alpha * student_loss + (1.0 - self.distillation_alpha) * distill_loss
+        loss = (
+            self.distillation_alpha * student_loss + (1.0 - self.distillation_alpha) * distill_loss
+        )
         return loss
 
     def _log_step(
@@ -316,9 +322,7 @@ class Trainer:
             steps_per_epoch: Total steps per epoch.
         """
         current_lr = self.scheduler.get_last_lr()[0]
-        self.accelerator.print(
-            f"  step {global_step} | loss={loss_val:.4f} | lr={current_lr:.2e}"
-        )
+        self.accelerator.print(f"  step {global_step} | loss={loss_val:.4f} | lr={current_lr:.2e}")
         if self.accelerator.log_with is not None:
             self.accelerator.log(
                 {
@@ -336,9 +340,7 @@ class Trainer:
         Args:
             global_step: Current global step.
         """
-        checkpoint_dir = os.path.join(
-            self.config["output_dir"], f"checkpoint-step-{global_step}"
-        )
+        checkpoint_dir = os.path.join(self.config["output_dir"], f"checkpoint-step-{global_step}")
         save_checkpoint(
             checkpoint_dir,
             self.model,
@@ -353,9 +355,7 @@ class Trainer:
         Args:
             epoch: Current epoch (0-indexed).
         """
-        checkpoint_dir = os.path.join(
-            self.config["output_dir"], f"checkpoint-epoch-{epoch + 1}"
-        )
+        checkpoint_dir = os.path.join(self.config["output_dir"], f"checkpoint-epoch-{epoch + 1}")
         save_checkpoint(
             checkpoint_dir,
             self.model,

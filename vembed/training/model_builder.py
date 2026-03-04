@@ -106,7 +106,9 @@ def build_teacher_model(config: dict[str, Any]) -> VisualRetrievalModel | None:
     return teacher_model
 
 
-def apply_lora(model: VisualRetrievalModel, config: dict[str, Any], accelerator: Accelerator) -> None:
+def apply_lora(
+    model: VisualRetrievalModel, config: dict[str, Any], accelerator: Accelerator
+) -> None:
     """Apply LoRA to model parameters.
 
     Args:
@@ -172,18 +174,24 @@ def _enable_gradient_checkpointing(target: torch.nn.Module, accelerator: Acceler
             target.enable_input_require_grads()
 
     # Handle composed models (text_model / image_model)
-    if hasattr(target, "text_model") and hasattr(target.text_model, "gradient_checkpointing_enable"):
+    if hasattr(target, "text_model") and hasattr(
+        target.text_model, "gradient_checkpointing_enable"
+    ):
         target.text_model.gradient_checkpointing_enable()
         if hasattr(target.text_model, "enable_input_require_grads"):
             target.text_model.enable_input_require_grads()
 
-    if hasattr(target, "image_model") and hasattr(target.image_model, "gradient_checkpointing_enable"):
+    if hasattr(target, "image_model") and hasattr(
+        target.image_model, "gradient_checkpointing_enable"
+    ):
         target.image_model.gradient_checkpointing_enable()
         if hasattr(target.image_model, "enable_input_require_grads"):
             target.image_model.enable_input_require_grads()
 
 
-def unify_model_dtype_for_fsdp(model: torch.nn.Module, config: dict[str, Any], accelerator: Accelerator) -> None:
+def unify_model_dtype_for_fsdp(
+    model: torch.nn.Module, config: dict[str, Any], accelerator: Accelerator
+) -> None:
     """Ensure all model parameters have uniform dtype for FSDP compatibility.
 
     FSDP requires all parameters to have the same dtype. This function converts
@@ -234,13 +242,15 @@ def _log_fsdp_param_summary(model: torch.nn.Module, accelerator: Accelerator) ->
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    accelerator.print(f"FSDP parameter summary:")
+    accelerator.print("FSDP parameter summary:")
     accelerator.print(f"  Total: {total_params:,} ({total_params/1e9:.2f}B)")
     accelerator.print(f"  Trainable: {trainable_params:,} ({trainable_params/1e9:.2f}B)")
     accelerator.print(f"  Frozen: {total_params - trainable_params:,}")
 
 
-def compile_model(model: torch.nn.Module, config: dict[str, Any], accelerator: Accelerator) -> torch.nn.Module:
+def compile_model(
+    model: torch.nn.Module, config: dict[str, Any], accelerator: Accelerator
+) -> torch.nn.Module:
     """Optionally compile model with torch.compile.
 
     Args:
@@ -261,7 +271,9 @@ def compile_model(model: torch.nn.Module, config: dict[str, Any], accelerator: A
     return model
 
 
-def enable_static_graph(model: torch.nn.Module, config: dict[str, Any], accelerator: Accelerator) -> None:
+def enable_static_graph(
+    model: torch.nn.Module, config: dict[str, Any], accelerator: Accelerator
+) -> None:
     """Enable static graph for DDP optimization.
 
     Args:
@@ -277,10 +289,12 @@ def enable_static_graph(model: torch.nn.Module, config: dict[str, Any], accelera
     use_gradient_cache = config.get("use_gradient_cache", False)
     use_grad_checkpointing = config.get("gradient_checkpointing", False)
 
-    if (encoder_mode != "composed" and
-        not use_gradient_cache and
-        not use_grad_checkpointing and
-        hasattr(model, "_set_static_graph")):
+    if (
+        encoder_mode != "composed"
+        and not use_gradient_cache
+        and not use_grad_checkpointing
+        and hasattr(model, "_set_static_graph")
+    ):
         try:
             model._set_static_graph()
             accelerator.print("Enabled static graph for DDP")

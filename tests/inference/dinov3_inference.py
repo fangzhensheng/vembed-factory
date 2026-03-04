@@ -10,7 +10,7 @@ model = AutoModel.from_pretrained(
     "facebook/dinov3-vits16-pretrain-lvd1689m",
     dtype=torch.float16,
     device_map="auto",
-    attn_implementation="sdpa"
+    attn_implementation="sdpa",
 )
 
 inputs = processor(images=image, return_tensors="pt").to(model.device)

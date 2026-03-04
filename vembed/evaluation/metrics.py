@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-from typing import Optional, Dict, Union
 
 
 def compute_metrics(
@@ -49,13 +48,13 @@ def _is_colbert_embeddings(
 
 
 def compute_recall_at_k(
-    query_embeddings: Union[torch.Tensor, np.ndarray],
-    doc_embeddings: Union[torch.Tensor, np.ndarray],
-    query_labels: Optional[Union[torch.Tensor, np.ndarray]] = None,
-    doc_labels: Optional[Union[torch.Tensor, np.ndarray]] = None,
-    k_list: list[int] = [1, 10, 100],
+    query_embeddings: torch.Tensor | np.ndarray,
+    doc_embeddings: torch.Tensor | np.ndarray,
+    query_labels: torch.Tensor | np.ndarray | None = None,
+    doc_labels: torch.Tensor | np.ndarray | None = None,
+    k_list: list[int] | None = None,
     exclude_diagonal: bool = True,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """Compute Recall@k metrics for label-based retrieval evaluation.
 
     This function computes recall metrics where relevance is determined by label matching,
@@ -85,6 +84,9 @@ def compute_recall_at_k(
         - Only considers pairs with matching labels as relevant
         - Handles in-batch retrieval scenarios automatically
     """
+    if k_list is None:
+        k_list = [1, 10, 100]
+
     if query_labels is None:
         return {}
 
@@ -129,12 +131,12 @@ def compute_recall_at_k(
 
         similarity = []
         for qi in range(0, num_queries, query_batch_size):
-            q_batch = query_embeddings_norm[qi:qi+query_batch_size]  # [B_q, L_q, D]
+            q_batch = query_embeddings_norm[qi : qi + query_batch_size]  # [B_q, L_q, D]
 
             # Compute similarity against all docs in sub-batches
             sim_batch_list = []
             for di in range(0, num_docs, doc_batch_size):
-                d_batch = doc_embeddings_norm[di:di+doc_batch_size]  # [B_d, L_d, D]
+                d_batch = doc_embeddings_norm[di : di + doc_batch_size]  # [B_d, L_d, D]
 
                 # Compute token similarities: [B_q, L_q, D] x [B_d, L_d, D] -> [B_q, B_d, L_q, L_d]
                 # This avoids the massive [B_q, num_docs, L_q, L_d] tensor
@@ -163,7 +165,7 @@ def compute_recall_at_k(
     # Exclude diagonal (self-matching) for in-batch scenarios
     if exclude_diagonal and num_queries == num_docs:
         mask = torch.eye(num_queries, num_docs, dtype=torch.bool, device=device)
-        similarity = similarity.masked_fill(mask, float('-inf'))
+        similarity = similarity.masked_fill(mask, float("-inf"))
 
     # Get max k from k_list for efficiency
     max_k = max(k_list) if k_list else 1
@@ -178,10 +180,7 @@ def compute_recall_at_k(
     # Compute recall@k: for each query, check if any of top-k docs match the label
     metrics = {}
     for k in k_list:
-        if k > num_docs:
-            actual_k = num_docs
-        else:
-            actual_k = k
+        actual_k = min(k, num_docs)
 
         # Recall@k: fraction of queries that have at least one match in top-k
         topk_match = topk_labels_match[:, :actual_k]
@@ -193,42 +192,30 @@ def compute_recall_at_k(
 
 
 def compute_recall_metrics(
-    all_query_embeddings: list[Union[torch.Tensor, np.ndarray]],
-    all_doc_embeddings: list[Union[torch.Tensor, np.ndarray]],
-    all_query_labels: Optional[list[Union[torch.Tensor, np.ndarray]]] = None,
-    all_doc_labels: Optional[list[Union[torch.Tensor, np.ndarray]]] = None,
-    k_list: list[int] = [1, 10, 100],
+    all_query_embeddings: list[torch.Tensor | np.ndarray],
+    all_doc_embeddings: list[torch.Tensor | np.ndarray],
+    all_query_labels: list[torch.Tensor | np.ndarray] | None = None,
+    all_doc_labels: list[torch.Tensor | np.ndarray] | None = None,
+    k_list: list[int] | None = None,
     exclude_diagonal: bool = True,
-) -> Dict[str, float]:
-    """Compute label-based recall metrics from batched embeddings and labels.
-
-    Useful for eval_phase where embeddings and labels are accumulated in batches
-    across multiple validation steps and processes (in distributed training).
+) -> dict[str, float]:
+    """Aggregate embeddings and compute metrics.
 
     Args:
-        all_query_embeddings: List of query embedding batches
-        all_doc_embeddings: List of document embedding batches
-        all_query_labels: List of query label batches (optional, required for recall)
-        all_doc_labels: List of document label batches (optional)
-        k_list: List of k values for recall computation
-        exclude_diagonal: If True, excludes diagonal from top-k when appropriate
+        all_query_embeddings: List of query embedding batches.
+        all_doc_embeddings: List of document embedding batches.
+        all_query_labels: List of query label batches.
+        all_doc_labels: List of document label batches.
+        k_list: List of k values to compute recall at.
+        exclude_diagonal: If True, excludes diagonal (self-matching) from top-k.
 
     Returns:
-        Dictionary with recall metrics (empty dict if no labels provided)
-
-    Example:
-        >>> # In eval loop
-        >>> all_q_embs, all_p_embs, all_q_labels = [], [], []
-        >>> for batch in val_dataloader:
-        ...     q_embs = model(...)
-        ...     p_embs = model(...)
-        ...     all_q_embs.append(accelerator.gather_for_metrics(q_embs).cpu())
-        ...     all_p_embs.append(accelerator.gather_for_metrics(p_embs).cpu())
-        ...     if "labels" in batch:
-        ...         all_q_labels.append(accelerator.gather_for_metrics(batch["labels"]).cpu())
-        >>> metrics = compute_recall_metrics(all_q_embs, all_p_embs, all_q_labels)
+        Dictionary of metrics.
     """
-    if not all_query_embeddings or not all_doc_embeddings:
+    if k_list is None:
+        k_list = [1, 10, 100]
+
+    if not all_query_labels:
         return {}
 
     # Concatenate all batches (embeddings already on CPU from evaluator)

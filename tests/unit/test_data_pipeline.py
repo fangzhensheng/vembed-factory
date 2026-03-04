@@ -5,7 +5,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-import torch
 from torch.utils.data import DataLoader
 
 from vembed.data.dataset import VisualRetrievalDataset

@@ -19,6 +19,7 @@ class LossRegistry:
         Returns:
             Decorator function that registers the loss class.
         """
+
         def decorator(loss_cls: type[nn.Module]):
             cls._registry[name] = loss_cls
             return loss_cls

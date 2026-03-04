@@ -22,6 +22,25 @@ def test_infonce_basic():
     assert loss.item() > 0, "InfoNCE loss should be positive"
 
 
+def test_infonce_negatives_3d():
+    q, p, n = _make_embeds()
+    n = n.view(q.size(0), -1, q.size(1))
+    loss_fn = InfoNCELoss({"temperature": 0.1})
+    loss = loss_fn(q, p, n)
+    assert torch.isfinite(loss), "InfoNCE loss with 3D negatives should be finite"
+    assert loss.item() > 0, "InfoNCE loss should be positive"
+
+
+def test_infonce_negatives_global_flat():
+    q, p, _ = _make_embeds()
+    torch.manual_seed(1)
+    n = torch.randn(q.size(0) * 2 + 1, q.size(1))  # intentionally not divisible by batch size
+    loss_fn = InfoNCELoss({"temperature": 0.1})
+    loss = loss_fn(q, p, n)
+    assert torch.isfinite(loss), "InfoNCE loss with global negatives should be finite"
+    assert loss.item() > 0, "InfoNCE loss should be positive"
+
+
 def test_triplet_margin_basic():
     q, p, n = _make_embeds()
     loss_fn = TripletMarginLoss({"triplet_margin": 0.5})

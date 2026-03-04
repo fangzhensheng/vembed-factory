@@ -36,6 +36,7 @@ class LossFactory:
         # InfoNCE defaults to gather enabled, others default to disabled
         # Can be overridden via config "enable_gather" key
         from .functions.base import BaseLoss
+
         if isinstance(base_loss, BaseLoss):
             base_loss.set_gather(base_loss.enable_gather_default)
 

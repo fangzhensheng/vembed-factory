@@ -1,8 +1,5 @@
 """Unit tests for model building functions."""
 
-import tempfile
-from pathlib import Path
-
 import pytest
 import torch
 
@@ -81,7 +78,7 @@ class TestProcessorLoading:
         processor = load_processor("openai/clip-vit-base-patch32")
 
         # Mock input
-        dummy_input = "test text"
+        # dummy_input = "test text"
         # Processor might return dict or similar
         assert processor is not None
 

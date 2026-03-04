@@ -1,9 +1,10 @@
 """Base class for loss functions with distributed gather support."""
 
+from typing import Any
+
 import torch
 import torch.nn as nn
 from torch import distributed as dist
-from typing import Any
 
 
 class BaseLoss(nn.Module):
@@ -65,6 +66,7 @@ class BaseLoss(nn.Module):
         try:
             # Use differentiable all_gather (allows full-batch gradient)
             from torch.distributed.nn import functional as dist_nn
+
             gathered_tensors = dist_nn.all_gather(t)
             return torch.cat(gathered_tensors, dim=axis)
 

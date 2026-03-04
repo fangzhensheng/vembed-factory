@@ -1,7 +1,6 @@
 from typing import Any
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 from ..registry import LossRegistry
@@ -43,9 +42,9 @@ class DistillationLoss(BaseLoss):
         if teacher_positive is None:
             teacher_positive = kwargs.get("teacher_positive")
 
-        assert teacher_query is not None and teacher_positive is not None, (
-            "Distillation loss requires teacher_query and teacher_positive embeddings"
-        )
+        assert (
+            teacher_query is not None and teacher_positive is not None
+        ), "Distillation loss requires teacher_query and teacher_positive embeddings"
 
         student_query = F.normalize(student_query, p=2, dim=1)
         student_positive = F.normalize(student_positive, p=2, dim=1)

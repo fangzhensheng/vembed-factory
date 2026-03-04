@@ -186,7 +186,7 @@ class TestSchedulerBuilding:
             optimizer, config, num_epochs=3, steps_per_epoch=100
         )
 
-        initial_lr = optimizer.param_groups[0]["lr"]
+        _ = optimizer.param_groups[0]["lr"]
 
         # Step scheduler
         for _ in range(10):
@@ -260,9 +260,7 @@ class TestLearningRateScheduling:
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
 
         config = {"scheduler_type": "cosine", "warmup_ratio": 0.0}
-        scheduler, _ = build_scheduler(
-            optimizer, config, num_epochs=2, steps_per_epoch=100
-        )
+        scheduler, _ = build_scheduler(optimizer, config, num_epochs=2, steps_per_epoch=100)
 
         lrs = []
         for _ in range(200):

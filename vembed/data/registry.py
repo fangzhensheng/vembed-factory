@@ -16,6 +16,7 @@ class CollatorRegistry:
         Returns:
             Decorator function that registers the collator class.
         """
+
         def decorator(collator_cls):
             cls._registry[name] = collator_cls
             return collator_cls

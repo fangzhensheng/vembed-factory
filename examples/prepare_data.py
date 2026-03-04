@@ -265,8 +265,11 @@ def prepare_sop_i2i_dataset(
     """
     if dataset_root is None:
         # Auto-download via kagglehub
-        os.environ.setdefault("KAGGLEHUB_CACHE", os.path.join(os.path.dirname(__file__), "..", "data", "kagglehub"))
+        os.environ.setdefault(
+            "KAGGLEHUB_CACHE", os.path.join(os.path.dirname(__file__), "..", "data", "kagglehub")
+        )
         import kagglehub
+
         dataset_root = kagglehub.dataset_download("liucong12601/stanford-online-products-dataset")
         print(f"Downloaded dataset to: {dataset_root}")
 
