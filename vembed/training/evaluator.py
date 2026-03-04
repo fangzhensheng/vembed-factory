@@ -8,11 +8,7 @@ from accelerate.logging import get_logger
 from tqdm import tqdm
 
 from vembed.evaluation.metrics import compute_recall_metrics
-from vembed.training.data_utils import (
-    maybe_first,
-    unpack_positive_batch,
-    unpack_query_batch,
-)
+from vembed.training.data_utils import maybe_first, unpack_positive_batch, unpack_query_batch
 
 logger = get_logger(__name__)
 

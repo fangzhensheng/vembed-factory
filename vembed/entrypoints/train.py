@@ -21,11 +21,7 @@ import vembed.model  # noqa: F401
 from vembed.data.dataset import VisualRetrievalDataset
 from vembed.data.registry import CollatorRegistry
 from vembed.losses.factory import LossFactory
-from vembed.training.config import (
-    get_distributed_config,
-    load_and_parse_config,
-    prepare_output_dir,
-)
+from vembed.training.config import get_distributed_config, load_and_parse_config, prepare_output_dir
 from vembed.training.evaluator import Evaluator
 from vembed.training.model_builder import (
     _log_fsdp_param_summary,
