@@ -24,6 +24,7 @@ def init_accelerate():
 def mock_huggingface(monkeypatch):
     """Mock HuggingFace model/processor loading."""
     from unittest.mock import MagicMock
+
     import torch
 
     # Mock Processor
