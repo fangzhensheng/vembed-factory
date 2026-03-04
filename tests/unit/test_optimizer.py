@@ -9,8 +9,6 @@ from vembed.training.optimizer_builder import build_optimizer, build_scheduler
 
 
 class SimpleModel(nn.Module):
-    """Simple test model."""
-
     def __init__(self):
         super().__init__()
         self.linear = nn.Linear(10, 5)

@@ -458,4 +458,4 @@ For Qwen3-VL-2B with batch_size=128:
 - **Questions**: Open an [Issue](https://github.com/fangzhensheng/vembed-factory/issues) with `[Question]` prefix
 - **Bug Reports**: Use [bug report template](https://github.com/fangzhensheng/vembed-factory/issues/new?template=bug_report.md)
 - **Feature Requests**: Open an [Issue](https://github.com/fangzhensheng/vembed-factory/issues/new) with `[Feature]` prefix
-- **Contributing**: See [CONTRIBUTING.md](../CONTRIBUTING.md)
+- **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md)

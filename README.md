@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="README_zh-CN.md">中文文档</a> | <a href="README.md">English</a>
+  <a href="docs/README_zh-CN.md">中文文档</a> | <a href="README.md">English</a>
 </p>
 
 <p align="center">
@@ -198,12 +198,15 @@ See [`configs/defaults.yaml`](configs/defaults.yaml) for the full list of availa
 ### Step-by-Step Guides
 
 - **[DINOv2 Image Retrieval](docs/guides/dinov2_finetune.md)** - Fine-tune DINOv2 on the SOP dataset for high-precision image search
+- **[Bidirectional Loss for Dual-Encoders](docs/guides/bidirectional_loss.md)** - Optimize both T2I and I2T directions with bidirectional training
+- **[Bidirectional Loss Decision Table](docs/guides/BIDIRECTIONAL_DECISION_TABLE.md)** - Quick reference: should you use bidirectional loss?
+- **[VLM & Bidirectional Loss Analysis](docs/guides/VLM_BIDIRECTIONAL_QUICKREF.md)** - When does bidirectional loss work in VLM models?
 - **[Jupyter Notebooks](notebooks/)** - Interactive tutorials covering various use cases
 - **[API Documentation](docs/api/)** - Detailed API reference for all modules
 
 ## Development & Contributing
 
-Interested in contributing? See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and guidelines.
+Interested in contributing? See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for setup instructions and guidelines.
 
 ## Benchmark Results
 
