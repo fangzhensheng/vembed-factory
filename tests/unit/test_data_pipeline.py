@@ -109,7 +109,7 @@ class TestCollatorRegistry:
 
     def test_collator_registry_names(self):
         """Test available collator names."""
-        names = CollatorRegistry.list_names()
+        names = CollatorRegistry.list_collators()
 
         assert isinstance(names, list | tuple | set)
         assert "default" in names or len(names) > 0

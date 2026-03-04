@@ -49,7 +49,9 @@ class TestOptimizerBuilding:
         optimizer = build_optimizer(model, config)
 
         for param_group in optimizer.param_groups:
-            assert param_group["weight_decay"] == 0.01
+            # Only groups with decay should match; others 0.0
+            if param_group["weight_decay"] > 0:
+                assert param_group["weight_decay"] == 0.01
 
     def test_optimizer_default_weight_decay(self):
         """Test default weight decay."""

@@ -13,7 +13,10 @@ class DummyModel(nn.Module):
         if input_ids is not None:
             return self.fc(input_ids.float())
         if pixel_values is not None:
-            return self.fc(pixel_values.float())
+            # Add a dimension check to avoid ambiguity
+            if pixel_values.dim() > 1:
+                return self.fc(pixel_values.float())
+            return self.fc(pixel_values.unsqueeze(0).float())
         return None
 
 
