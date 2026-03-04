@@ -34,8 +34,12 @@ def temp_jsonl_data():
         # Create image directory
         img_dir = tmpdir / "images"
         img_dir.mkdir()
+        
+        from PIL import Image
+        img = Image.new('RGB', (100, 100), color = 'red')
+        
         for img_name in ["cat.jpg", "dog.jpg", "bird.jpg"]:
-            (img_dir / img_name).touch()
+            img.save(img_dir / img_name)
 
         yield tmpdir
 
@@ -232,9 +236,11 @@ class TestCollatorTypes:
 
     def test_get_available_collators(self):
         """Test getting available collators."""
-        collators = CollatorRegistry.list_names()
+        collators = CollatorRegistry.list_collators()
 
+        assert isinstance(collators, list)
         assert len(collators) > 0
+        assert "default" in collators
 
 
 if __name__ == "__main__":

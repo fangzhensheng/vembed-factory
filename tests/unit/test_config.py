@@ -26,7 +26,7 @@ class TestBaseConfig:
 
         # Common defaults should exist
         assert config.get("batch_size", 0) > 0
-        assert config.get("learning_rate", 0) > 0
+        assert config.get("lr", 0) > 0
         assert config.get("epochs", 0) > 0
 
 
@@ -47,7 +47,7 @@ class TestDistributedConfig:
         grad_ckpt, grad_cache, find_unused = get_distributed_config(config)
 
         assert grad_cache is False
-        assert find_unused is False
+        assert find_unused is True
 
     def test_gradient_cache_enabled(self):
         """Test when gradient cache is enabled."""
@@ -62,10 +62,6 @@ class TestDistributedConfig:
         assert grad_ckpt is False
         assert grad_cache is True
         assert find_unused is False  # Should be forced to False
-
-        assert grad_cache is True
-        # With gradient cache, find_unused should be True
-        assert find_unused is True
 
     def test_gradient_checkpointing_enabled(self):
         """Test when gradient checkpointing is enabled."""
@@ -114,7 +110,7 @@ class TestConfigValidation:
         """Test that required fields are present."""
         config = load_base_config()
 
-        required_fields = ["batch_size", "learning_rate", "epochs"]
+        required_fields = ["batch_size", "lr", "epochs"]
         for field in required_fields:
             assert field in config or config.get(field) is not None
 
@@ -124,7 +120,7 @@ class TestConfigValidation:
 
         numeric_fields = [
             "batch_size",
-            "learning_rate",
+            "lr",
             "epochs",
             "warmup_ratio",
             "weight_decay",

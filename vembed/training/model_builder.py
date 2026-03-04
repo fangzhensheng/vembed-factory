@@ -233,8 +233,10 @@ def unify_model_dtype_for_fsdp(
                 param.data = param.data.to(target_dtype)
 
         accelerator.print(f"✓ All parameters converted to {target_dtype}")
-    else:
+    elif len(dtypes_found) == 1:
         accelerator.print(f"✓ FSDP dtype check: all parameters already in {list(dtypes_found)[0]}")
+    else:
+        accelerator.print("✓ FSDP dtype check: no parameters found in model")
 
 
 def _log_fsdp_param_summary(model: torch.nn.Module, accelerator: Accelerator) -> None:
