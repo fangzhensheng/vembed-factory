@@ -28,7 +28,7 @@ class TestOptimizerBuilding:
         optimizer = build_optimizer(model, config)
 
         assert optimizer is not None
-        assert isinstance(optimizer, (Adam, AdamW))
+        assert isinstance(optimizer, Adam | AdamW)
 
     def test_optimizer_learning_rate(self):
         """Test optimizer has correct learning rate."""

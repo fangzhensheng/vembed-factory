@@ -167,7 +167,7 @@ class TestConfigValidation:
 
         for field in numeric_fields:
             if field in config:
-                assert isinstance(config[field], (int, float)), f"{field} should be numeric"
+                assert isinstance(config[field], int | float), f"{field} should be numeric"
 
     def test_string_fields_are_strings(self):
         """Test that string fields are strings."""
@@ -237,7 +237,7 @@ class TestConfigOverrides:
         # Simulate override merging
         for key, value in overrides.items():
             if key in base:
-                if isinstance(base[key], (int, float)):
+                if isinstance(base[key], int | float):
                     base[key] = float(value)
                 else:
                     base[key] = value

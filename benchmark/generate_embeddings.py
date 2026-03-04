@@ -15,7 +15,6 @@ import sys
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from accelerate import Accelerator
 from torch.utils.data import DataLoader
 from tqdm import tqdm

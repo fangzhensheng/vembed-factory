@@ -111,7 +111,7 @@ class TestCollatorRegistry:
         """Test available collator names."""
         names = CollatorRegistry.list_names()
 
-        assert isinstance(names, (list, tuple, set))
+        assert isinstance(names, list | tuple | set)
         assert "default" in names or len(names) > 0
 
 
