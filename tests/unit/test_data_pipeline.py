@@ -34,10 +34,11 @@ def temp_jsonl_data():
         # Create image directory
         img_dir = tmpdir / "images"
         img_dir.mkdir()
-        
+
         from PIL import Image
-        img = Image.new('RGB', (100, 100), color = 'red')
-        
+
+        img = Image.new("RGB", (100, 100), color="red")
+
         for img_name in ["cat.jpg", "dog.jpg", "bird.jpg"]:
             img.save(img_dir / img_name)
 
