@@ -36,7 +36,7 @@ class BaseLoss(nn.Module):
             return False
 
         try:
-            return dist.is_initialized() and dist.get_world_size() > 1
+            return bool(dist.is_initialized() and dist.get_world_size() > 1)
         except RuntimeError:
             return False
 

@@ -26,8 +26,8 @@ class DistillationLoss(BaseLoss):
         self,
         student_query: torch.Tensor,
         student_positive: torch.Tensor,
-        teacher_query: torch.Tensor = None,
-        teacher_positive: torch.Tensor = None,
+        negative_emb: torch.Tensor | None = None,
+        labels: torch.Tensor | None = None,
         **kwargs,
     ):
         """Forward pass for distillation loss.
@@ -36,6 +36,9 @@ class DistillationLoss(BaseLoss):
         When used through the standard interface, teacher embeddings should be passed
         as keyword arguments.
         """
+        teacher_query = kwargs.get("teacher_query")
+        teacher_positive = kwargs.get("teacher_positive")
+
         # Handle both direct call and standard interface
         if teacher_query is None:
             teacher_query = kwargs.get("teacher_query")
