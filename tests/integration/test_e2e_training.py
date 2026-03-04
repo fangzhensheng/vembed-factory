@@ -167,7 +167,6 @@ class TestConfigLoading:
         assert config["epochs"] == 1
 
 
-
 class TestDistributedConfig:
     """Test distributed training configuration."""
 
