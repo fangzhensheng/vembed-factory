@@ -40,13 +40,15 @@ vembed/
 │   ├── registry.py         # ModelRegistry for dynamic model loading
 │   ├── backbones/          # Model-specific implementations
 │   │   ├── auto.py         # AutoModel loader (for dual-encoder models)
-│   │   ├── qwen3.py        # Qwen3-VL-Embedding models
+│   │   ├── qwen3_vl_embedding.py    # Qwen3-VL-Embedding models
+│   │   ├── qwen3_embedding.py       # Qwen3-Embedding (text-only) models
 │   │   ├── vlm_generic.py  # Generic VLM loader (Qwen2-VL, Yi-VL)
 │   │   └── composed.py     # Composed encoders (custom text + image pairs)
 │   └── processors/         # Data processors for different models
 │       ├── __init__.py
 │       ├── auto.py         # AutoProcessor wrapper
 │       ├── qwen3_vl.py     # Qwen3-VL processor
+│       ├── qwen3_embedding.py  # Qwen3-Embedding tokenizer
 │       └── registry.py     # ProcessorRegistry
 │
 ├── data/                   # Data layer (loading & preprocessing)

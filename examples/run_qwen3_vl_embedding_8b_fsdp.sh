@@ -7,9 +7,9 @@ source "$(dirname "$0")/_common.sh"
 print_header "Qwen3-VL-8B — t2i / infonce / fsdp / lora / flash_attn"
 resolve_data
 
-python run.py examples/qwen3_8b_fsdp.yaml \
+python run.py examples/qwen3_vl_embedding_8b_fsdp.yaml \
     --data_path "$DATA_PATH" \
     --val_data_path "$VAL_DATA_PATH" \
     --image_root "$IMAGE_ROOT"
 
-echo "Done: experiments/output_qwen3_8b_fsdp/"
+echo "Done: experiments/output_qwen3_vl_embedding_8b_fsdp/"

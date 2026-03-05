@@ -1,3 +1,5 @@
+"""Qwen3-Embedding model for text-only embedding training."""
+
 import logging
 import os
 from typing import Any
@@ -17,8 +19,14 @@ from ..registry import ModelRegistry
 logger = logging.getLogger(__name__)
 
 
-@ModelRegistry.register("qwen3_vl")
-class Qwen3EmbeddingModel(BaseEmbeddingModel):
+@ModelRegistry.register("qwen3_embedding")
+class Qwen3EmbeddingTextModel(BaseEmbeddingModel):
+    """Qwen3-Embedding model for text-only retrieval tasks.
+
+    This is a text-only version of Qwen3-VL, using the same pooling strategy
+    but without vision inputs.
+    """
+
     def __init__(self, config: dict[str, Any]):
         super().__init__(config)
         self.model_name = config["model_name_or_path"]
@@ -32,11 +40,7 @@ class Qwen3EmbeddingModel(BaseEmbeddingModel):
         )
         disable_kv_cache(self.backbone)
         self.hf_config = self.backbone.config
-        text_cfg = getattr(self.hf_config, "text_config", None)
-        if text_cfg:
-            self.feature_dim = text_cfg.hidden_size
-        else:
-            self.feature_dim = self.hf_config.hidden_size
+        self.feature_dim = self.hf_config.hidden_size
 
         mrl_dims = config.get("mrl_dims")
         self.mrl_dims = mrl_dims or [self.feature_dim]
@@ -60,10 +64,9 @@ class Qwen3EmbeddingModel(BaseEmbeddingModel):
     def _probe_hidden_size(model_name: str) -> int:
         try:
             cfg = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
-            text_cfg = getattr(cfg, "text_config", None)
-            return text_cfg.hidden_size if text_cfg else cfg.hidden_size
+            return cfg.hidden_size
         except Exception:
-            return 1536
+            return 3584  # Qwen3-Embedding-8B default
 
     @staticmethod
     def _pool_last_token(hidden: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
@@ -85,15 +88,11 @@ class Qwen3EmbeddingModel(BaseEmbeddingModel):
         self,
         input_ids=None,
         attention_mask=None,
-        pixel_values=None,
-        image_grid_thw=None,
         **kwargs,
     ):
         outputs = self.backbone(
             input_ids=input_ids,
             attention_mask=attention_mask,
-            pixel_values=pixel_values,
-            image_grid_thw=image_grid_thw,
             output_hidden_states=True,
             return_dict=True,
             **kwargs,

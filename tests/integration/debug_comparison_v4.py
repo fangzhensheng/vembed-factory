@@ -23,7 +23,7 @@ except ImportError:
 from transformers import AutoProcessor
 
 from vembed.data.collators.qwen import QwenVisualRetrievalCollator
-from vembed.model.backbones.qwen3 import Qwen3EmbeddingModel
+from vembed.model.backbones.qwen3_vl_embedding import Qwen3VLEmbeddingModel
 
 
 def compare_implementations():
@@ -51,7 +51,7 @@ def compare_implementations():
         "attn_implementation": "eager",
         "torch_dtype": "float32",  # Use float32 to avoid precision issues during comparison
     }
-    factory_model = Qwen3EmbeddingModel(config)
+    factory_model = Qwen3VLEmbeddingModel(config)
     factory_model.eval()
     factory_model.backbone.to(device)  # Backbone is the AutoModel
 

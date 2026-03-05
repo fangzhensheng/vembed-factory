@@ -31,8 +31,8 @@ run() {
 run_models() {
     run run_clip.sh              "CLIP ViT-B/32 (auto, t2i)"
     run run_siglip.sh            "SigLIP (auto, t2i)"
-    run run_qwen3_2b.sh          "Qwen3-VL-2B (qwen3_vl, t2i, flash)"
-    run run_qwen3_8b.sh          "Qwen3-VL-8B (qwen3_vl, t2i, flash)"
+    run run_qwen3_vl_embedding_2b.sh       "Qwen3-VL-2B (qwen3_vl, t2i, flash)"
+    run run_qwen3_vl_embedding_8b.sh       "Qwen3-VL-8B (qwen3_vl, t2i, flash)"
     run run_dinov2_bert.sh       "DINOv2+BERT (composed, t2i)"
     run run_bge_t2t.sh           "BGE-M3 (composed, t2t)"
     run run_bert_t2t.sh          "BERT (auto/custom, t2t)"
@@ -58,7 +58,7 @@ run_modes() {
 }
 
 run_features() {
-    run run_qwen3_8b_fsdp.sh     "FSDP multi-GPU (Qwen3-VL-8B)"
+    run run_qwen3_vl_embedding_8b_fsdp.sh  "FSDP multi-GPU (Qwen3-VL-8B)"
 }
 
 case "$CATEGORY" in

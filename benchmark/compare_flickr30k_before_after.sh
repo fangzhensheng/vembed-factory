@@ -6,7 +6,7 @@
 # Examples:
 #   ./benchmark/compare_flickr30k_before_after.sh openai/clip-vit-base-patch32 ./experiments/output_clip/checkpoint-epoch-5
 #   ./benchmark/compare_flickr30k_before_after.sh google/siglip-base-patch16-224 ./experiments/output_siglip/checkpoint-epoch-5
-#   ./benchmark/compare_flickr30k_before_after.sh models/Qwen/Qwen3-VL-Embedding-2B ./experiments/output_qwen3_2b/checkpoint-epoch-1
+#   ./benchmark/compare_flickr30k_before_after.sh models/Qwen/Qwen3-VL-Embedding-2B ./experiments/output_qwen3_vl_embedding_2b/checkpoint-epoch-1
 
 set -euo pipefail
 

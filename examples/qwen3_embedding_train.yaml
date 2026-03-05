@@ -1,0 +1,25 @@
+# Qwen3-Embedding Training Configuration
+# Text-to-text retrieval with t2t mode
+
+# Model
+model_name: "Qwen/Qwen3-Embedding-8B"
+encoder_mode: "qwen3_embedding"
+retrieval_mode: "t2t"
+attn_implementation: "flash_attention_2"
+torch_dtype: "bfloat16"
+
+# Data
+data_path: "data/train.jsonl"
+val_data_path: "data/val.jsonl"
+
+# Training
+output_dir: "experiments/output_qwen3_embedding"
+epochs: 3
+batch_size: 128
+learning_rate: 2.0e-5
+loss_type: "infonce"
+
+# Memory Optimization
+use_gradient_cache: true
+gradient_checkpointing: true
+use_lora: true
