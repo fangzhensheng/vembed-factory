@@ -47,21 +47,22 @@ class TestDistributedConfig:
         grad_ckpt, grad_cache, find_unused = get_distributed_config(config)
 
         assert grad_cache is False
-        assert find_unused is True
+        assert find_unused is False  # Defaults to False for better performance
 
     def test_gradient_cache_enabled(self):
         """Test when gradient cache is enabled."""
         config = {
             "use_gradient_cache": True,
             "use_gradient_checkpointing": False,
-            "ddp_find_unused_parameters": True,  # Should be overridden
+            # User explicitly sets find_unused
+            "ddp_find_unused_parameters": True,
         }
 
         grad_ckpt, grad_cache, find_unused = get_distributed_config(config)
 
         assert grad_ckpt is False
         assert grad_cache is True
-        assert find_unused is False  # Should be forced to False
+        assert find_unused is True  # User's explicit setting is respected
 
     def test_gradient_checkpointing_enabled(self):
         """Test when gradient checkpointing is enabled."""

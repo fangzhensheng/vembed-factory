@@ -1,0 +1,51 @@
+# InfoNCE + Hard Negative Mining
+# 结合标准 InfoNCE 损失和困难样本挖掘
+
+model_name: "Qwen/Qwen3-VL-Embedding-2B"
+encoder_mode: "qwen3_vl"
+retrieval_mode: "t2i"
+attn_implementation: "flash_attention_2"
+torch_dtype: "bfloat16"
+
+data_path: "data/train.jsonl"
+val_data_path: "data/val.jsonl"
+
+output_dir: "experiments/output_infonce_hard_negative"
+epochs: 3
+batch_size: 128
+learning_rate: 1.0e-5
+
+# ========== 损失函数配置 ==========
+loss_type: "infonce"
+
+# InfoNCE 标准参数
+temperature: 0.05
+loss_bidirectional: false
+
+# ========== 困难样本挖掘 (可选) ==========
+# 启用后会在 InfoNCE 基础上额外添加困难样本挖掘损失
+enable_hard_mining: true
+hard_mining_mode: "in_batch"      # or "memory_bank"
+hard_mining_topk: 16              # 困难样本数量
+hard_mining_lambda: 0.3            # 困难挖掘损失权重 (0.0-1.0)
+hard_mining_temperature: 0.07      # 困难挖掘温度
+
+# Memory Bank (仅 hard_mining_mode="memory_bank" 时需要)
+hard_mining_bank_size: 65536
+hard_mining_bank_momentum: 0.999
+
+# ========== 解释 ==========
+# 总损失 = (1 - hard_mining_lambda) * infonce_loss + hard_mining_lambda * hard_mining_loss
+#
+# enable_hard_mining: false  -> 纯 InfoNCE (默认)
+# enable_hard_mining: true   -> InfoNCE + 困难样本挖掘
+#
+# hard_mining_lambda: 0.0  -> 纯 InfoNCE
+# hard_mining_lambda: 0.3  -> 70% InfoNCE + 30% 困难挖掘 (推荐)
+# hard_mining_lambda: 1.0  -> 纯困难挖掘
+
+# ========== Memory Optimization ==========
+use_gradient_cache: true
+gradient_cache_chunk_size: 2
+gradient_checkpointing: true
+use_lora: true

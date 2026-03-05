@@ -1,0 +1,30 @@
+# In-Batch Hard Negative Mining (方案1)
+# 最简单的困难样本挖掘，从当前 batch 中选取最困难的负样本
+# 额外内存消耗: 0
+
+model_name: "Qwen/Qwen3-VL-Embedding-2B"
+encoder_mode: "qwen3_vl"
+retrieval_mode: "t2i"
+attn_implementation: "flash_attention_2"
+torch_dtype: "bfloat16"
+
+data_path: "data/train.jsonl"
+val_data_path: "data/val.jsonl"
+
+output_dir: "experiments/output_qwen3_vl_in_batch_hard"
+epochs: 3
+batch_size: 128  # 更大的 batch size 有更多负样本可选
+learning_rate: 1.0e-5
+
+loss_type: "in_batch_hard"  # 或者 "hard_negative" 配合 mining_mode: "in_batch"
+
+# In-Batch Hard Mining 配置
+temperature: 0.07
+hard_topk: 8              # 从 batch 中选 8 个最困难的负样本
+use_all_negatives: false  # false=只使用 hard negatives, true=使用所有 batch 负样本
+
+# Memory Optimization
+use_gradient_cache: true
+gradient_cache_chunk_size: 2
+gradient_checkpointing: true
+use_lora: true

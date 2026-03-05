@@ -1,0 +1,38 @@
+# Qwen3-VL-Embedding Training with Online Hard Negative Mining
+# Uses Memory Bank (MoCo-style) for mining hard negatives during training
+
+# Model
+model_name: "Qwen/Qwen3-VL-Embedding-2B"
+encoder_mode: "qwen3_vl"
+retrieval_mode: "t2i"
+attn_implementation: "flash_attention_2"
+torch_dtype: "bfloat16"
+
+# Data
+data_path: "data/train.jsonl"
+val_data_path: "data/val.jsonl"
+
+# Training
+output_dir: "experiments/output_qwen3_vl_hard_negative"
+epochs: 3
+batch_size: 64
+learning_rate: 1.0e-5
+loss_type: "contrastive_with_bank"
+
+# Memory Bank Configuration
+bank_size: 65536              # Number of embeddings in the memory bank
+bank_dim: 3584                # Embedding dimension (Qwen3-VL-2B)
+bank_momentum: 0.999           # Momentum coefficient for key encoder
+hard_topk: 16                  # Number of hard negatives to mine per query
+lambda_bank: 0.5               # Weight for memory bank loss (0.0 = only in-batch, 1.0 = only bank)
+temperature: 0.07              # Temperature for softmax
+
+# Memory Optimization
+use_gradient_cache: true
+gradient_cache_chunk_size: 2
+gradient_checkpointing: true
+use_lora: true
+
+# Logging
+logging_steps: 10
+save_steps: 500
