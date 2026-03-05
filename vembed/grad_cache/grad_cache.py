@@ -69,6 +69,7 @@ class GradCache:
         self.scaler = scaler
 
         self._get_input_tensors_strict = False
+        self._inactive_params_cache = {}
 
     def __call__(self, *args, **kwargs) -> Tensor:
         """Run the cache step."""
@@ -251,6 +252,114 @@ class GradCache:
 
         return cache, loss.detach()
 
+    def _get_device_from_input(self, model_input: Any) -> torch.device:
+        """Extract device from model input."""
+        if isinstance(model_input, Tensor):
+            return model_input.device
+        if isinstance(model_input, (dict, UserDict)):
+            for v in model_input.values():
+                if isinstance(v, Tensor):
+                    return v.device
+        return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    def _get_active_encoder_type(self, model_input: Any) -> str | None:
+        """Detect which encoder is active based on input structure."""
+        if isinstance(model_input, (dict, UserDict)):
+            keys_lower = {k.lower() for k in model_input.keys()}
+
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"GradientCache: Detecting encoder type from input keys: {list(model_input.keys())}")
+
+            text_keywords = {'input_ids', 'attention_mask', 'token_type_ids', 'text'}
+            image_keywords = {'pixel_values', 'image', 'pixel_mask', 'patch_mask'}
+
+            if text_keywords & keys_lower:
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug("GradientCache: Detected text encoder")
+                return 'text'
+            if image_keywords & keys_lower:
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug("GradientCache: Detected image encoder")
+                return 'image'
+
+        if isinstance(model_input, list):
+            if model_input and isinstance(model_input[0], Tensor):
+                tensor = model_input[0]
+                if tensor.dim() == 2 and tensor.dtype in (torch.int64, torch.int32):
+                    return 'text'
+                if tensor.dim() == 4:
+                    return 'image'
+
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("GradientCache: Could not detect encoder type")
+        return None
+
+    def _create_dummy_loss_for_chunk(self, model: nn.Module, model_input: Any) -> Tensor | None:
+        """Create fresh dummy loss for a single chunk (avoid graph reuse).
+
+        Must create fresh dummy loss for each chunk to avoid "backward through graph
+        twice" error. Using 0.0 instead of tensor(0.0, requires_grad=True) for efficiency.
+        """
+        active_type = self._get_active_encoder_type(model_input)
+        if active_type is None:
+            return None
+
+        # Check cache for inactive parameters
+        cache_key = (id(model), active_type)
+        if cache_key in self._inactive_params_cache:
+            inactive_params = self._inactive_params_cache[cache_key]
+            dummy_loss = 0.0
+            for param in inactive_params:
+                dummy_loss = dummy_loss + 0.0 * param.sum()
+            return dummy_loss
+
+        if isinstance(model, nn.parallel.DistributedDataParallel):
+            underlying_model = model.module
+        else:
+            underlying_model = model
+
+        # Handle AutoEmbeddingModel wrapper: access backbone directly
+        search_root = underlying_model.backbone if hasattr(underlying_model, 'backbone') else underlying_model
+
+        # Collect parameters that should be "active" based on input type
+        active_params = set()
+        if active_type == 'text':
+            # Text input: mark text-related parameters as active
+            if hasattr(search_root, 'text_model'):
+                for p in search_root.text_model.parameters():
+                    active_params.add(id(p))
+            if hasattr(search_root, 'text_projection'):
+                for p in search_root.text_projection.parameters():
+                    active_params.add(id(p))
+        elif active_type == 'image':
+            # Image input: mark vision-related parameters as active
+            if hasattr(search_root, 'vision_model'):
+                for p in search_root.vision_model.parameters():
+                    active_params.add(id(p))
+            if hasattr(search_root, 'visual_projection'):
+                for p in search_root.visual_projection.parameters():
+                    active_params.add(id(p))
+
+        # Create dummy loss for all inactive parameters
+        dummy_loss = 0.0
+        param_count = 0
+        inactive_params = []
+        for param in search_root.parameters():
+            if param.requires_grad and id(param) not in active_params:
+                dummy_loss = dummy_loss + 0.0 * param.sum()
+                param_count += 1
+                inactive_params.append(param)
+
+        self._inactive_params_cache[cache_key] = inactive_params
+
+        if param_count == 0:
+            logger.warning(
+                f"GradientCache: No inactive parameters found. active_type={active_type}"
+            )
+            return None
+
+        return dummy_loss
+
     def forward_backward(
         self,
         model: nn.Module,
@@ -259,11 +368,7 @@ class GradCache:
         random_states: list[RandContext],
         no_sync_except_last: bool = False,
     ) -> None:
-        """Recompute forward and backward with cached gradients.
-
-        Forward happens outside no_sync() for checkpointing hook activation.
-        Backward happens inside no_sync() for DDP gradient synchronization control.
-        """
+        """Recompute forward and backward with cached gradients."""
         if no_sync_except_last:
             sync_contexts = [model.no_sync for _ in range(len(model_inputs) - 1)] + [nullcontext]
         else:
@@ -274,30 +379,23 @@ class GradCache:
         ):
             with state:
                 output_chunk = self.model_call(model, input_chunk)
-
             reps = self.get_reps(output_chunk)
 
             with sync_context():
                 surrogate = torch.dot(reps.flatten(), gradient.flatten())
+
+                dummy_loss = self._create_dummy_loss_for_chunk(model, input_chunk)
+                if dummy_loss is not None:
+                    surrogate = surrogate + dummy_loss
+
                 surrogate.backward()
 
     def cache_step(self, *model_inputs, no_sync_except_last: bool = False, **loss_kwargs) -> Tensor:
-        """
-        Run a full Gradient Cache step.
-
-        Args:
-            model_inputs: Inputs for each model (corresponding to self.models).
-            no_sync_except_last: Optimize DDP synchronization.
-            loss_kwargs: Extra args for loss function.
-
-        Returns:
-            The loss value.
-        """
+        """Run a full Gradient Cache step."""
         if no_sync_except_last:
             if not all(isinstance(m, nn.parallel.DistributedDataParallel) for m in self.models):
                 raise ValueError("no_sync_except_last requires all models to be wrapped in DDP.")
 
-        # Split inputs for all models
         chunked_inputs = [
             self.split_inputs(inp, chunk_size)
             for inp, chunk_size in zip(model_inputs, self.chunk_sizes)
@@ -306,19 +404,14 @@ class GradCache:
         all_reps = []
         all_rnd_states = []
 
-        # First pass (no grad)
         for model, inputs in zip(self.models, chunked_inputs):
             model_reps, rnd_states = self.forward_no_grad(model, inputs)
             all_reps.append(model_reps)
             all_rnd_states.append(rnd_states)
 
-        # Compute loss and gradients
         cache, loss = self.build_cache(*all_reps, **loss_kwargs)
-
-        # Split cache back into chunks
         chunked_cache = [c.split(chunk_size) for c, chunk_size in zip(cache, self.chunk_sizes)]
 
-        # Second pass (forward + backward)
         for model, inputs, model_cache, rnd_states in zip(
             self.models, chunked_inputs, chunked_cache, all_rnd_states
         ):
