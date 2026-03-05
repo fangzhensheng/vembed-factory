@@ -1,8 +1,4 @@
-"""Shared configuration utilities for vembed-factory.
-
-Centralises config loading, merging, and serialisation so that both
-``vembed.cli`` and ``vembed.entrypoints.train`` use the same logic.
-"""
+"""Shared configuration utilities."""
 
 import ast
 import dataclasses
@@ -16,15 +12,7 @@ from vembed.hparams import DataArguments, ModelArguments, TrainingArguments
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-# Preset system: Model configurations are stored in PRESETS dict.
-# Users must explicitly reference a preset or set model_name in their config.
-# No automatic inference based on model names.
-
-# All valid field names across the three dataclasses.
+# Cache valid fields across dataclasses
 _VALID_FIELDS: set[str] | None = None
 
 
@@ -38,15 +26,11 @@ def _get_valid_fields() -> set[str]:
     return _VALID_FIELDS
 
 
-# ---------------------------------------------------------------------------
-# Preset loading
-# ---------------------------------------------------------------------------
-
 PRESETS: dict[str, Any] = {}
 
 
 def load_presets() -> dict[str, Any]:
-    """Discover and load all YAML preset files from the configs/ directory."""
+    """Discover and load all YAML preset files from configs/ directory."""
     project_root = Path(__file__).parent.parent
     preset_dir = project_root / "configs"
 
@@ -67,17 +51,12 @@ def load_presets() -> dict[str, Any]:
     return PRESETS
 
 
-# Eagerly load on import so PRESETS is populated.
+# Eager load
 load_presets()
 
 
-# ---------------------------------------------------------------------------
-# Base / defaults config
-# ---------------------------------------------------------------------------
-
-
 def load_base_config(config_path: str | None = None) -> dict[str, Any]:
-    """Load ``defaults.yaml`` (or a custom path) and return as a dict."""
+    """Load defaults.yaml or custom path."""
     if config_path is None:
         root_configs = Path(__file__).parent.parent / "configs"
         config_path = str(root_configs / "defaults.yaml")
@@ -93,28 +72,8 @@ def load_base_config(config_path: str | None = None) -> dict[str, Any]:
         return result if isinstance(result, dict) else {}
 
 
-# ---------------------------------------------------------------------------
-# Preset inference from model name
-# ---------------------------------------------------------------------------
-
-
-# Preset inference is no longer supported.
-# Users must explicitly:
-# 1. Set model_name in their YAML config, OR
-# 2. Use --preset flag to select a preset
-
-
-# ---------------------------------------------------------------------------
-# Override parsing  (key=value strings → typed dict)
-# ---------------------------------------------------------------------------
-
-
 def parse_override_args(args_list: list[str] | None) -> dict[str, Any]:
-    """Parse ``key=value`` strings into a typed dictionary.
-
-    Handles booleans, lists (via ``ast.literal_eval``), ints, floats,
-    and falls back to plain strings.
-    """
+    """Parse key=value strings into typed dict."""
     if not args_list:
         return {}
 
@@ -126,7 +85,7 @@ def parse_override_args(args_list: list[str] | None) -> dict[str, Any]:
 
         key, raw = arg.split("=", 1)
 
-        # Strip surrounding quotes
+        # Strip quotes
         if len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in ("'", '"'):
             raw = raw[1:-1]
 
@@ -151,18 +110,13 @@ def parse_override_args(args_list: list[str] | None) -> dict[str, Any]:
     return overrides
 
 
-# ---------------------------------------------------------------------------
-# Config merging
-# ---------------------------------------------------------------------------
-
-
 def merge_configs(
     defaults: dict[str, Any],
     preset: dict[str, Any],
     yaml_config: dict[str, Any],
     overrides: dict[str, Any],
 ) -> dict[str, Any]:
-    """Single-pass merge: defaults < preset < yaml_config < overrides."""
+    """Merge order: defaults < preset < yaml_config < overrides."""
     merged = defaults.copy()
     merged.update(preset)
     merged.update(yaml_config)
@@ -170,26 +124,20 @@ def merge_configs(
     return merged
 
 
-# ---------------------------------------------------------------------------
-# Dict → argv serialisation for HfArgumentParser
-# ---------------------------------------------------------------------------
-
-
 def config_dict_to_argv(
     config: dict[str, Any],
     valid_fields: set[str] | None = None,
 ) -> list[str]:
-    """Convert a config dict to a list of CLI-style arguments.
-
-    Only keys present in *valid_fields* (defaults to the union of all
-    hparam dataclass fields) are emitted.  Booleans are serialised as
-    ``--key`` / ``--no_key``, lists as ``--key v1 v2 …``, and everything
-    else as ``--key value``.
-    """
+    """Convert config dict to CLI arguments list."""
     if valid_fields is None:
         valid_fields = _get_valid_fields()
 
     argv: list[str] = []
+    for k, v in config.items():
+        if k not in valid_fields or v is None:
+            continue
+        if isinstance(v, bool):
+            if v: list[str] = []
     for k, v in config.items():
         if k not in valid_fields or v is None:
             continue
