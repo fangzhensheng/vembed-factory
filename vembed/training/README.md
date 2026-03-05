@@ -371,9 +371,10 @@ lora_r: 16
    config["use_lora"] = True
    ```
 
-4. **Increase batch size** for distributed training:
+4. **Multi-GPU training** - batch_size is per-device, no adjustment needed:
    ```bash
-   accelerate launch --multi_gpu train.py --config_override batch_size=512
+   accelerate launch --multi_gpu train.py --config config.yaml
+   # With 4 GPUs and batch_size=256, total batch size = 256 × 4 = 1024
    ```
 
 ## Troubleshooting

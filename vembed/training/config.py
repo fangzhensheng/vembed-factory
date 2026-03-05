@@ -94,15 +94,34 @@ def get_distributed_config(config: dict[str, Any]) -> tuple[bool, bool, bool]:
         - find_unused: Whether to find unused parameters in DDP
 
     Note:
-        When using gradient checkpointing or gradient cache, find_unused_parameters
-        is automatically set to False as these techniques modify parameter usage patterns.
+        For gradient checkpointing: find_unused_parameters is automatically set to False.
+
+        For gradient cache with dual-encoder models (CLIP, SigLIP):
+        find_unused_parameters should be True because each chunk may only use one encoder
+        (text or image), leaving the other encoder's parameters unused in that chunk.
+        Set ddp_find_unused_parameters: true in your config for dual-encoder models.
+
+        UPDATE: Gradient cache now adds zero gradients to unused params internally,
+        allowing find_unused_parameters=False (better performance) by default.
+        Users can still override by explicitly setting ddp_find_unused_parameters.
     """
     use_grad_checkpointing = config.get("gradient_checkpointing", False)
     use_gradient_cache = config.get("use_gradient_cache", False)
-    find_unused = bool(config.get("ddp_find_unused_parameters", True))
 
-    # Disable find_unused_parameters when using gradient optimization techniques
-    if use_grad_checkpointing or use_gradient_cache:
+    # Check if user explicitly set ddp_find_unused_parameters
+    user_set_find_unused = "ddp_find_unused_parameters" in config
+
+    if user_set_find_unused:
+        # User explicitly set the value, use it
+        find_unused = bool(config.get("ddp_find_unused_parameters"))
+    else:
+        # Default to False for better performance
+        # Gradient cache now handles DDP compatibility by adding zero gradients
+        find_unused = False
+
+    # Disable find_unused_parameters when using gradient checkpointing
+    # (overrides user setting if using gradient checkpointing)
+    if use_grad_checkpointing:
         find_unused = False
 
     return use_grad_checkpointing, use_gradient_cache, find_unused

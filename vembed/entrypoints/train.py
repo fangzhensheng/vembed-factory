@@ -8,6 +8,9 @@ components from the training package.
 
 import os
 import sys
+import warnings
+
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch.distributed.algorithms.ddp_comm_hooks")
 
 from accelerate import Accelerator, DistributedDataParallelKwargs
 from accelerate.logging import get_logger

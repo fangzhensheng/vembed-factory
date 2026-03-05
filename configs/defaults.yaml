@@ -12,7 +12,7 @@
 output_dir: "output"
 overwrite_output_dir: true
 epochs: 3
-batch_size: 32
+batch_size: 32              # Per-GPU batch size (effective = batch_size × num_gpus)
 save_strategy: "epoch"
 save_steps: 0              # Save every N steps. 0 = disabled.
 logging_steps: 10
