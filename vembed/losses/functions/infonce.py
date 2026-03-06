@@ -78,27 +78,18 @@ class InfoNCELoss(BaseLoss):
         labels_view = labels.view(-1, 1)
         mask = torch.eq(labels_view, labels_view.T).float()
 
-        # Numerical stability
+        # Numerical stability for LogSumExp
         logits_max, _ = torch.max(logits, dim=1, keepdim=True)
         logits = logits - logits_max.detach()
 
-        eye = torch.eye(batch_size, device=device)
-        logits_masked = logits.masked_fill(eye > 0, -1e9)
-
-        exp_logits = torch.exp(logits_masked)
+        # Denominator: Sum of exp(logits) over ALL samples
+        exp_logits = torch.exp(logits)
         log_prob = logits - torch.log(exp_logits.sum(dim=1, keepdim=True))
 
-        mask_pos = mask * (1 - eye)
-        num_pos = mask_pos.sum(dim=1)
-        num_pos = torch.where(num_pos > 0, num_pos, torch.ones_like(num_pos))
+        # Numerator: Average log_prob over POSITIVE pairs (diagonal + same-label)
+        mean_log_prob_pos = (mask * log_prob).sum(dim=1) / mask.sum(dim=1)
 
-        mean_log_prob_pos = (mask_pos * log_prob).sum(dim=1) / num_pos
-
-        valid_anchors = mask_pos.sum(dim=1) > 0
-        if valid_anchors.sum() > 0:
-            return -mean_log_prob_pos[valid_anchors].mean()
-        
-        return torch.tensor(0.0, device=device, requires_grad=True)
+        return -mean_log_prob_pos.mean()
 
     def _forward(
         self,
@@ -113,8 +104,7 @@ class InfoNCELoss(BaseLoss):
         loss = self._compute_loss_direction(query_emb, positive_emb, negative_emb, labels)
 
         if self.loss_bidirectional:
-            # Reverse direction: Positive -> Query
-            # For bidirectional, we use in-batch negatives (symmetric)
+            # Reverse direction: Positive -> Query (symmetric in-batch negatives)
             loss_reverse = self._compute_loss_direction(
                 positive_emb, query_emb, None, labels
             )
