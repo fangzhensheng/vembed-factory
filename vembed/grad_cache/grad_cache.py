@@ -303,7 +303,7 @@ class GradCache:
             for v in model_input.values():
                 if isinstance(v, Tensor):
                     return v.device
-        return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def _get_active_encoder_type(self, model_input: Any) -> str | None:
         """Detect which encoder is active based on input structure."""
@@ -311,27 +311,29 @@ class GradCache:
             keys_lower = {k.lower() for k in model_input.keys()}
 
             if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(f"GradientCache: Detecting encoder type from input keys: {list(model_input.keys())}")
+                logger.debug(
+                    f"GradientCache: Detecting encoder type from input keys: {list(model_input.keys())}"
+                )
 
-            text_keywords = {'input_ids', 'attention_mask', 'token_type_ids', 'text'}
-            image_keywords = {'pixel_values', 'image', 'pixel_mask', 'patch_mask'}
+            text_keywords = {"input_ids", "attention_mask", "token_type_ids", "text"}
+            image_keywords = {"pixel_values", "image", "pixel_mask", "patch_mask"}
 
             if text_keywords & keys_lower:
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug("GradientCache: Detected text encoder")
-                return 'text'
+                return "text"
             if image_keywords & keys_lower:
                 if logger.isEnabledFor(logging.DEBUG):
                     logger.debug("GradientCache: Detected image encoder")
-                return 'image'
+                return "image"
 
         if isinstance(model_input, list):
             if model_input and isinstance(model_input[0], Tensor):
                 tensor = model_input[0]
                 if tensor.dim() == 2 and tensor.dtype in (torch.int64, torch.int32):
-                    return 'text'
+                    return "text"
                 if tensor.dim() == 4:
-                    return 'image'
+                    return "image"
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("GradientCache: Could not detect encoder type")
@@ -362,24 +364,26 @@ class GradCache:
             underlying_model = model
 
         # Handle AutoEmbeddingModel wrapper: access backbone directly
-        search_root = underlying_model.backbone if hasattr(underlying_model, 'backbone') else underlying_model
+        search_root = (
+            underlying_model.backbone if hasattr(underlying_model, "backbone") else underlying_model
+        )
 
         # Collect parameters that should be "active" based on input type
         active_params = set()
-        if active_type == 'text':
+        if active_type == "text":
             # Text input: mark text-related parameters as active
-            if hasattr(search_root, 'text_model'):
+            if hasattr(search_root, "text_model"):
                 for p in search_root.text_model.parameters():
                     active_params.add(id(p))
-            if hasattr(search_root, 'text_projection'):
+            if hasattr(search_root, "text_projection"):
                 for p in search_root.text_projection.parameters():
                     active_params.add(id(p))
-        elif active_type == 'image':
+        elif active_type == "image":
             # Image input: mark vision-related parameters as active
-            if hasattr(search_root, 'vision_model'):
+            if hasattr(search_root, "vision_model"):
                 for p in search_root.vision_model.parameters():
                     active_params.add(id(p))
-            if hasattr(search_root, 'visual_projection'):
+            if hasattr(search_root, "visual_projection"):
                 for p in search_root.visual_projection.parameters():
                     active_params.add(id(p))
 

@@ -73,10 +73,15 @@ projection_dim: null  # Optional: project embeddings to this dimension
 
 **Encoder Modes:**
 - `"auto"`: Auto-detect from model type (CLIP, Qwen, etc.)
-- `"clip_like"`: CLIP-style dual encoders
+- `"clip"`: CLIP-family models (CLIP, SigLIP, etc.)
+- `"vit"`: ViT-family vision models (google/vit-*, DINO, MAE, etc.)
+- `"dinov2"`: DINO-series (alias for vit, for backward compatibility)
+- `"mae"`: MAE-series (alias for vit, for backward compatibility)
+- `"bge"`: Text-only models (BGE, BERT, E5, etc.)
+- `"qwen"`: Qwen text embedding models (Qwen3-Embedding, etc.)
+- `"qwen-vl"`: Qwen VLMs (Qwen2-VL, Qwen2.5-VL, etc.)
+- `"llava"`: LLaVA VLMs
 - `"composed"`: Mix text encoder + image encoder
-- `"vlm_generic"`: Generic vision-language models
-- `"qwen3_vl"`: Optimized for Qwen3-VL-Embedding
 
 ### DataArguments
 

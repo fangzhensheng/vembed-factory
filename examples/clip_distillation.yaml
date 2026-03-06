@@ -3,12 +3,14 @@
 # MRL (Matryoshka Representation Learning) for variable dimensions
 
 model_name: openai/clip-vit-base-patch32
+encoder_mode: clip
+retrieval_mode: "t2i"
 use_lora: true
 use_mrl: true
 loss_type: infonce
 
 output_dir: experiments/output_clip_distill
-epochs: 5
+epochs: 1
 batch_size: 64
 learning_rate: 5.0e-05
 use_gradient_cache: false

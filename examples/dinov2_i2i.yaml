@@ -3,7 +3,8 @@
 # Optimized for 24GB consumer-grade GPUs
 
 model_name: facebook/dinov2-base
-retrieval_mode: i2i
+encoder_mode: dino
+retrieval_mode: "i2i"
 use_lora: true
 loss_type: infonce
 
@@ -15,7 +16,7 @@ use_gradient_cache: true
 gradient_cache_chunk_size: 128
 
 output_dir: experiments/output_sop_dinov2_i2i
-epochs: 20
+epochs: 1
 batch_size: 1024
 eval_batch_size: 64
 learning_rate: 1.0e-04
@@ -27,3 +28,22 @@ image_root: data/stanford_online_products
 report_to: none
 logging_steps: 10
 save_steps: 1000
+
+# Optional: Custom column mapping for non-standard dataset formats
+# If your dataset uses different column names, specify the mapping here.
+# column_mapping:
+#   query_image: "query"
+#   positive: "target_image"
+#   negatives: "hard_negatives"
+
+# Data validation (optional)
+validate_data: false
+
+# Data loading optimization (optional)
+num_workers: 4
+pin_memory: true
+prefetch_factor: 2
+persistent_workers: true
+
+# Image caching (optional)
+enable_image_cache: false

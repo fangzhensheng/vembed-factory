@@ -10,23 +10,31 @@ import os
 import sys
 import warnings
 
-warnings.filterwarnings("ignore", category=FutureWarning, module="torch.distributed.algorithms.ddp_comm_hooks")
+warnings.filterwarnings(
+    "ignore", category=FutureWarning, module="torch.distributed.algorithms.ddp_comm_hooks"
+)
 
-from accelerate import Accelerator, DistributedDataParallelKwargs
-from accelerate.logging import get_logger
-from torch.utils.data import DataLoader
+import torch  # noqa: E402
+from accelerate import Accelerator, DistributedDataParallelKwargs  # noqa: E402
+from accelerate.logging import get_logger  # noqa: E402
+from torch.utils.data import DataLoader  # noqa: E402
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-import vembed.data  # noqa: F401 - trigger registry
-import vembed.losses  # noqa: F401
-import vembed.model  # noqa: F401
-from vembed.data.dataset import VisualRetrievalDataset
-from vembed.data.registry import CollatorRegistry
-from vembed.losses.factory import LossFactory
-from vembed.training.config import get_distributed_config, load_and_parse_config, prepare_output_dir
-from vembed.training.evaluator import Evaluator
-from vembed.training.model_builder import (
+import vembed.data  # noqa: F401, E402 - trigger registry
+import vembed.losses  # noqa: F401, E402
+import vembed.model  # noqa: F401, E402
+from vembed.data.dataset import VisualRetrievalDataset  # noqa: E402
+from vembed.data.registry import CollatorRegistry  # noqa: E402
+from vembed.data.validation import print_validation_report, validate_dataset  # noqa: E402
+from vembed.losses.factory import LossFactory  # noqa: E402
+from vembed.training.config import (  # noqa: E402
+    get_distributed_config,
+    load_and_parse_config,
+    prepare_output_dir,
+)
+from vembed.training.evaluator import Evaluator  # noqa: E402
+from vembed.training.model_builder import (  # noqa: E402
     _log_fsdp_param_summary,
     apply_lora,
     build_model,
@@ -37,8 +45,12 @@ from vembed.training.model_builder import (
     unify_model_dtype_for_fsdp,
     validate_processor,
 )
-from vembed.training.optimizer_builder import build_optimizer, build_scheduler, resolve_tracker
-from vembed.training.training_loop import Trainer
+from vembed.training.optimizer_builder import (  # noqa: E402
+    build_optimizer,
+    build_scheduler,
+    resolve_tracker,
+)
+from vembed.training.training_loop import Trainer  # noqa: E402
 
 # Post-init accelerate logger — only use after Accelerator() is created
 logger = get_logger(__name__)
@@ -49,6 +61,11 @@ def main():
     # Load and merge configuration
     config = load_and_parse_config()
     prepare_output_dir(config)
+
+    # Set GPU memory limit if specified (for consumer GPU testing)
+    debug_gpu_memory = config.get("debug_gpu_memory")
+    if debug_gpu_memory is not None and torch.cuda.is_available():
+        torch.cuda.set_per_process_memory_fraction(min(debug_gpu_memory / 40.0, 0.9))
 
     # Initialize distributed training
     use_grad_checkpointing, use_gradient_cache, find_unused = get_distributed_config(config)
@@ -93,6 +110,18 @@ def main():
         teacher_model = accelerator.prepare(teacher_model)
         distillation_loss_fn = LossFactory.create_distillation_loss(config)
 
+    # Validate dataset if configured
+    if config.get("validate_data", False):
+        accelerator.print("Validating training dataset...")
+        stats = validate_dataset(
+            data_source=config["data_path"],
+            column_mapping=config.get("column_mapping"),
+            sample_size=100,
+            skip_invalid=config.get("skip_invalid_records", True),
+        )
+        if accelerator.is_main_process:
+            print_validation_report(stats)
+
     # Prepare dataset and dataloader
     dataset = VisualRetrievalDataset(
         data_source=config["data_path"],
@@ -100,11 +129,13 @@ def main():
         image_root=config.get("image_root", ""),
         mode="train",
         column_mapping=config.get("column_mapping"),
+        enable_image_cache=config.get("enable_image_cache", False),
     )
 
     collator_kwargs: dict = {
         "processor": processor,
         "mode": "train",
+        "retrieval_mode": retrieval_mode,
         "prompt": config.get("prompt", "Describe this image."),
     }
     if encoder_mode == "composed":
@@ -118,38 +149,84 @@ def main():
             }
         )
 
-    collator_cls = CollatorRegistry.get(encoder_mode) or CollatorRegistry.get("default")
+    # Select collator by encoder_mode (model family)
+    collator_cls = (
+        CollatorRegistry.get(encoder_mode)
+        # retrieval_mode will be used by collator internally
+        or CollatorRegistry.get("clip")  # New default: CLIP-family collator
+    )
     collator = collator_cls(**collator_kwargs)
 
-    dataloader = DataLoader(
-        dataset,
-        batch_size=config["batch_size"],
-        shuffle=True,
-        collate_fn=collator,
-        num_workers=8,
-        pin_memory=True,
-    )
+    # Configure DataLoader with configurable parameters
+    num_workers = config.get("num_workers", 4)
+    pin_memory = config.get("pin_memory", True)
+    prefetch_factor = config.get("prefetch_factor", 2)
+    persistent_workers = num_workers > 0 and config.get("persistent_workers", True)
+
+    dataloader_kwargs = {
+        "batch_size": config["batch_size"],
+        "shuffle": True,
+        "collate_fn": collator,
+        "num_workers": num_workers,
+        "pin_memory": pin_memory,
+    }
+
+    # Add advanced options if num_workers > 0
+    if num_workers > 0:
+        dataloader_kwargs.update(
+            {
+                "prefetch_factor": prefetch_factor,
+                "persistent_workers": persistent_workers,
+            }
+        )
+
+    dataloader = DataLoader(dataset, **dataloader_kwargs)
 
     # Prepare validation dataloader if configured
     val_dataloader = None
     if config.get("val_data_path"):
+        # Validate validation dataset if configured
+        if config.get("validate_data", False):
+            accelerator.print("Validating validation dataset...")
+            val_stats = validate_dataset(
+                data_source=config["val_data_path"],
+                column_mapping=config.get("column_mapping"),
+                sample_size=100,
+                skip_invalid=config.get("skip_invalid_records", True),
+            )
+            if accelerator.is_main_process:
+                accelerator.print("Validation Dataset Report:")
+                print_validation_report(val_stats)
+
         val_dataset = VisualRetrievalDataset(
             data_source=config["val_data_path"],
             processor=processor,
             image_root=config.get("image_root", ""),
             mode="eval",
             column_mapping=config.get("column_mapping"),
+            enable_image_cache=config.get("enable_image_cache", False),
         )
         val_collator = collator_cls(**{**collator_kwargs, "mode": "eval"})
         eval_batch_size = config.get("eval_batch_size", config["batch_size"])
-        val_dataloader = DataLoader(
-            val_dataset,
-            batch_size=eval_batch_size,
-            shuffle=True,
-            collate_fn=val_collator,
-            num_workers=4,
-            pin_memory=True,
-        )
+
+        # Validation dataloader with optimized settings
+        val_dataloader_kwargs = {
+            "batch_size": eval_batch_size,
+            "shuffle": False,  # No need to shuffle validation data
+            "collate_fn": val_collator,
+            "num_workers": num_workers,
+            "pin_memory": pin_memory,
+        }
+
+        if num_workers > 0:
+            val_dataloader_kwargs.update(
+                {
+                    "prefetch_factor": max(1, prefetch_factor // 2),  # Smaller prefetch for eval
+                    "persistent_workers": persistent_workers,
+                }
+            )
+
+        val_dataloader = DataLoader(val_dataset, **val_dataloader_kwargs)
 
     # Build optimizer and scheduler
     optimizer = build_optimizer(model, config)

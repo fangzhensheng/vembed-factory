@@ -28,11 +28,13 @@ class TestInBatchHardMining:
     def test_hard_mining_basic(self):
         """Test basic hard mining loss."""
         q, p = _make_embeds()
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 2,
-            "use_all_negatives": False,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 2,
+                "use_all_negatives": False,
+            }
+        )
         loss = loss_fn(q, p)
 
         assert torch.isfinite(loss), "Hard mining loss should be finite"
@@ -41,11 +43,13 @@ class TestInBatchHardMining:
     def test_hard_mining_use_all_negatives(self):
         """Test hard mining with all negatives (InfoNCE mode)."""
         q, p = _make_embeds()
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 2,
-            "use_all_negatives": True,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 2,
+                "use_all_negatives": True,
+            }
+        )
         loss = loss_fn(q, p)
 
         assert torch.isfinite(loss), "Loss with all negatives should be finite"
@@ -54,11 +58,13 @@ class TestInBatchHardMining:
     def test_hard_mining_with_labels(self):
         """Test hard mining with supervised labels."""
         q, p, labels = _make_embeds_with_labels()
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 2,
-            "use_all_negatives": False,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 2,
+                "use_all_negatives": False,
+            }
+        )
         loss = loss_fn(q, p, labels=labels)
 
         assert torch.isfinite(loss), "Hard mining with labels should be finite"
@@ -67,10 +73,12 @@ class TestInBatchHardMining:
     def test_hard_mining_gradients(self):
         """Test that hard mining produces valid gradients."""
         q, p = _make_embeds()
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 2,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 2,
+            }
+        )
         loss = loss_fn(q, p)
         loss.backward()
 
@@ -85,10 +93,12 @@ class TestInBatchHardMining:
         q, p = _make_embeds(batch=8)
 
         for topk in [1, 2, 4, 6]:
-            loss_fn = InBatchHardMiningLoss({
-                "temperature": 0.05,
-                "hard_topk": topk,
-            })
+            loss_fn = InBatchHardMiningLoss(
+                {
+                    "temperature": 0.05,
+                    "hard_topk": topk,
+                }
+            )
             loss = loss_fn(q, p)
             assert torch.isfinite(loss), f"Hard mining with topk={topk} should be finite"
 
@@ -97,10 +107,12 @@ class TestInBatchHardMining:
         q, p = _make_embeds()
 
         for temp in [0.01, 0.05, 0.1, 0.5]:
-            loss_fn = InBatchHardMiningLoss({
-                "temperature": temp,
-                "hard_topk": 2,
-            })
+            loss_fn = InBatchHardMiningLoss(
+                {
+                    "temperature": temp,
+                    "hard_topk": 2,
+                }
+            )
             loss = loss_fn(q, p)
             assert torch.isfinite(loss), f"Hard mining with temp={temp} should be finite"
 
@@ -109,17 +121,21 @@ class TestInBatchHardMining:
         q, p = _make_embeds()
 
         # Test with hard_mining_topk
-        loss_fn1 = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_mining_topk": 4,
-        })
+        loss_fn1 = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_mining_topk": 4,
+            }
+        )
         loss1 = loss_fn1(q, p)
 
         # Test with hard_topk (backward compatibility)
-        loss_fn2 = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 4,
-        })
+        loss_fn2 = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 4,
+            }
+        )
         loss2 = loss_fn2(q, p)
 
         assert loss1.item() == loss2.item(), "Both config keys should give same result"
@@ -127,10 +143,12 @@ class TestInBatchHardMining:
     def test_hard_mining_small_batch(self):
         """Test hard mining with small batch size."""
         q, p = _make_embeds(batch=2)
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 1,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 1,
+            }
+        )
         loss = loss_fn(q, p)
 
         assert torch.isfinite(loss), "Hard mining with small batch should be finite"
@@ -138,10 +156,12 @@ class TestInBatchHardMining:
     def test_hard_mining_large_batch(self):
         """Test hard mining with larger batch size."""
         q, p = _make_embeds(batch=32)
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 8,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 8,
+            }
+        )
         loss = loss_fn(q, p)
 
         assert torch.isfinite(loss), "Hard mining with large batch should be finite"
@@ -169,44 +189,53 @@ class TestInBatchHardMiningConsistency:
         q, p = _make_embeds(seed=42)
 
         # Hard mining with all negatives should be similar to InfoNCE
-        loss_hard = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "use_all_negatives": True,
-        })
+        loss_hard = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "use_all_negatives": True,
+            }
+        )
         loss_infonce = InfoNCELoss({"temperature": 0.05})
 
         loss_hard_val = loss_hard(q, p)
         loss_infonce_val = loss_infonce(q, p)
 
-        assert abs(loss_hard_val - loss_infonce_val) < 1e-5, \
-            "Hard mining with all negatives should match InfoNCE"
+        assert (
+            abs(loss_hard_val - loss_infonce_val) < 1e-5
+        ), "Hard mining with all negatives should match InfoNCE"
 
     def test_hard_mining_reproducibility(self):
         """Test that hard mining is reproducible with same seed."""
         q, p = _make_embeds(seed=123)
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 2,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 2,
+            }
+        )
 
         loss1 = loss_fn(q, p).item()
 
         # Reset and recompute
         q, p = _make_embeds(seed=123)
-        loss_fn2 = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 2,
-        })
+        loss_fn2 = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 2,
+            }
+        )
         loss2 = loss_fn2(q, p).item()
 
         assert loss1 == loss2, "Hard mining should be reproducible"
 
     def test_hard_mining_different_seeds(self):
         """Test that different seeds give different results."""
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 2,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 2,
+            }
+        )
 
         q1, p1 = _make_embeds(seed=1)
         q2, p2 = _make_embeds(seed=2)
@@ -227,10 +256,12 @@ class TestInBatchHardMiningEdgeCases:
     def test_hard_mining_batch_size_1(self):
         """Test hard mining with batch size 1 (edge case)."""
         q, p = _make_embeds(batch=1)
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 1,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 1,
+            }
+        )
         loss = loss_fn(q, p)
 
         # With batch size 1, there are no valid negatives
@@ -240,10 +271,12 @@ class TestInBatchHardMiningEdgeCases:
     def test_hard_mining_topk_larger_than_batch(self):
         """Test hard mining when topk > available negatives."""
         q, p = _make_embeds(batch=4)
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 100,  # Much larger than batch size
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 100,  # Much larger than batch size
+            }
+        )
         loss = loss_fn(q, p)
 
         assert torch.isfinite(loss), "Should handle topk > batch size gracefully"
@@ -253,10 +286,12 @@ class TestInBatchHardMiningEdgeCases:
         q, p = _make_embeds(batch=4)
         labels = torch.tensor([0, 0, 0, 0])  # All same class
 
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 2,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 2,
+            }
+        )
         loss = loss_fn(q, p, labels=labels)
 
         assert torch.isfinite(loss), "Should handle all same class"
@@ -266,10 +301,12 @@ class TestInBatchHardMiningEdgeCases:
         q, p = _make_embeds(batch=4)
         labels = torch.tensor([0, 0, 1, 1])
 
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 1,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 1,
+            }
+        )
         loss = loss_fn(q, p, labels=labels)
 
         assert torch.isfinite(loss), "Should handle two classes correctly"
@@ -281,10 +318,12 @@ class TestInBatchHardMiningEdgeCases:
         q = torch.randn(4, 16)
         p = q.clone()  # Identical to queries
 
-        loss_fn = InBatchHardMiningLoss({
-            "temperature": 0.05,
-            "hard_topk": 2,
-        })
+        loss_fn = InBatchHardMiningLoss(
+            {
+                "temperature": 0.05,
+                "hard_topk": 2,
+            }
+        )
         loss = loss_fn(q, p)
 
         # With identical queries and positives, pos_sim = 1.0

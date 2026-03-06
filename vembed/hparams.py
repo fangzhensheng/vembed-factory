@@ -72,6 +72,34 @@ class DataArguments:
         default=None,
         metadata={"help": "Root directory for images (if paths in data are relative)."},
     )
+    column_mapping: dict | None = field(
+        default=None,
+        metadata={
+            "help": "Mapping of dataset columns to standard names (query, positive, negatives)."
+        },
+    )
+    num_workers: int = field(
+        default=4, metadata={"help": "Number of workers for data loading. Set to 0 for debugging."}
+    )
+    pin_memory: bool = field(default=True, metadata={"help": "Pin memory for faster GPU transfer."})
+    prefetch_factor: int = field(
+        default=2, metadata={"help": "Number of batches to prefetch per worker."}
+    )
+    persistent_workers: bool = field(
+        default=True, metadata={"help": "Keep workers alive across epochs for faster training."}
+    )
+    enable_image_cache: bool = field(
+        default=False,
+        metadata={
+            "help": "Cache images in memory (useful for small datasets with multiple epochs)."
+        },
+    )
+    validate_data: bool = field(
+        default=False, metadata={"help": "Validate dataset integrity before training."}
+    )
+    skip_invalid_records: bool = field(
+        default=True, metadata={"help": "Skip records with missing/invalid fields."}
+    )
 
 
 @dataclass
@@ -140,7 +168,6 @@ class TrainingArguments:
         default=False, metadata={"help": "Whether to use FSDP (Fully Sharded Data Parallel)."}
     )
 
-    # Missing args from error log
     overwrite_output_dir: bool = field(
         default=False, metadata={"help": "Overwrite the content of the output directory"}
     )
@@ -178,4 +205,8 @@ class TrainingArguments:
     )
     distillation_loss_type: str = field(
         default="kl", metadata={"help": "Distillation loss type (kl, mse, etc.)."}
+    )
+    debug_gpu_memory: int | None = field(
+        default=None,
+        metadata={"help": "GPU memory limit in GB for testing (e.g., 24). null=no limit."},
     )

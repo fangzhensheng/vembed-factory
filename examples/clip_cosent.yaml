@@ -2,11 +2,13 @@
 # Circle loss variant for normalized embeddings
 
 model_name: openai/clip-vit-base-patch32
+encoder_mode: clip
+retrieval_mode: "t2i"
 use_lora: true
 loss_type: cosent
 
 output_dir: experiments/output_clip_cosent
-epochs: 5
+epochs: 1
 batch_size: 128
 learning_rate: 2.0e-5
 use_gradient_cache: false

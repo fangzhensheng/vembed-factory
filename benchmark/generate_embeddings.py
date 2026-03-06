@@ -230,9 +230,14 @@ def main():
         image_root=image_root,
         mode="eval",
     )
-    collator_cls = CollatorRegistry.get(args.encoder_mode) or CollatorRegistry.get("default")
+    # Select collator: encoder_mode takes priority, then fallback to retrieval_mode, then clip (default)
+    collator_cls = (
+        CollatorRegistry.get(args.encoder_mode)
+        or CollatorRegistry.get(retrieval_mode)
+        or CollatorRegistry.get("clip")  # New default: CLIP-family collator
+    )
     # For SigLIP, the processor is monkey-patched to enforce max_length=64.
-    # The default collator will use this processor.
+    # The CLIP-family collator will use this processor.
     collator = collator_cls(processor=processor, image_processor=image_processor, mode="eval")
 
     if is_main:

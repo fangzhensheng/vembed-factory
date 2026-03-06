@@ -3,6 +3,7 @@
 # Optimized for 24GB consumer-grade GPUs
 
 model_name: google/siglip-base-patch16-224
+encoder_mode: siglip
 use_lora: true
 loss_type: sigmoid
 
@@ -14,7 +15,7 @@ use_gradient_cache: true
 gradient_cache_chunk_size: 128
 
 output_dir: experiments/output_siglip
-epochs: 10
+epochs: 1
 batch_size: 1024
 learning_rate: 1.0e-04
 

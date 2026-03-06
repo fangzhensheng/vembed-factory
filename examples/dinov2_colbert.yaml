@@ -2,8 +2,17 @@
 # Late-interaction loss with token-level embeddings
 # Optimized for 24GB consumer-grade GPUs
 
+# Optional: Custom column mapping for non-standard dataset formats
+# For image-to-image (i2i) retrieval, columns should map to: query_image, positive, negatives
+# If your dataset uses different column names, specify the mapping here.
+# column_mapping:
+#   query_image: "query_img"  # If dataset has "query_img" instead of "query_image"
+#   positive: "pos_image"     # If dataset has "pos_image" instead of "positive"
+#   negatives: "neg_images"   # If dataset has "neg_images" instead of "negatives"
+
 model_name: facebook/dinov2-base
-retrieval_mode: i2i
+encoder_mode: dino
+retrieval_mode: "i2i"
 use_lora: true
 loss_type: colbert
 pooling_method: none
@@ -18,7 +27,7 @@ use_gradient_cache: true
 gradient_cache_chunk_size: 128
 
 output_dir: experiments/output_sop_dinov2_colbert
-epochs: 20
+epochs: 1
 batch_size: 128
 eval_batch_size: 32
 learning_rate: 1.0e-04
@@ -26,6 +35,21 @@ learning_rate: 1.0e-04
 data_path: data/stanford_online_products/train.jsonl
 val_data_path: data/stanford_online_products/val.jsonl
 image_root: data/stanford_online_products
+
+# Data validation (optional)
+# Set to true to validate dataset integrity before training
+validate_data: false
+
+# Data loading optimization (optional)
+# Increase num_workers for multi-GPU training, decrease for debugging
+num_workers: 4
+pin_memory: true
+prefetch_factor: 2
+persistent_workers: true
+
+# Image caching (optional)
+# Set to true to cache images in memory for datasets with multiple epochs
+enable_image_cache: false
 
 report_to: none
 logging_steps: 10

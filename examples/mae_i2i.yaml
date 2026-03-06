@@ -3,7 +3,8 @@
 # Optimized for 24GB consumer-grade GPUs
 
 model_name: facebook/vit-mae-base
-retrieval_mode: i2i
+encoder_mode: mae
+retrieval_mode: "i2i"
 use_lora: false
 loss_type: infonce
 pooling_method: mean
@@ -16,7 +17,7 @@ use_gradient_cache: true
 gradient_cache_chunk_size: 128
 
 output_dir: experiments/output_sop_mae_i2i
-epochs: 50
+epochs: 1
 batch_size: 1024
 learning_rate: 1.0e-04
 

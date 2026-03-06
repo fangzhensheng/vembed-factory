@@ -2,7 +2,17 @@
 # Dual-encoder model for text-image retrieval with LoRA fine-tuning
 # Optimized for 24GB consumer-grade GPUs
 
+# Optional: Custom column mapping for non-standard dataset formats
+# For text-to-image (t2i) retrieval, columns should map to: query, positive, negatives
+# If your dataset uses different column names, specify the mapping here.
+# column_mapping:
+#   query: "text"          # If dataset has "text" instead of "query"
+#   positive: "image"      # If dataset has "image" instead of "positive"
+#   negatives: "neg_images" # If dataset has "neg_images" instead of "negatives"
+
 model_name_or_path: "openai/clip-vit-base-patch32"
+encoder_mode: clip
+retrieval_mode: "t2i"
 use_lora: true
 
 # Memory optimization: Gradient Cache for 24GB GPU
@@ -13,10 +23,25 @@ use_gradient_cache: true
 gradient_cache_chunk_size: 128
 
 output_dir: experiments/output_clip
-epochs: 20
+epochs: 1
 batch_size: 1024
 learning_rate: 2.0e-5
 
 data_path: data/train.jsonl
 val_data_path: data/val.jsonl
 image_root: data/images
+
+# Data validation (optional)
+# Set to true to validate dataset integrity before training
+validate_data: false
+
+# Data loading optimization (optional)
+# Increase num_workers for multi-GPU training, decrease for debugging
+num_workers: 4
+pin_memory: true
+prefetch_factor: 2
+persistent_workers: true
+
+# Image caching (optional)
+# Set to true to cache images in memory for datasets with multiple epochs
+enable_image_cache: false

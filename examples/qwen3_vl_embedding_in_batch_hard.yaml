@@ -3,7 +3,7 @@
 # 额外内存消耗: 0
 
 model_name: "Qwen/Qwen3-VL-Embedding-2B"
-encoder_mode: "qwen3_vl"
+encoder_mode: "qwen-vl"
 retrieval_mode: "t2i"
 attn_implementation: "flash_attention_2"
 torch_dtype: "bfloat16"

@@ -6,7 +6,6 @@ as a proper pytest test case.
 """
 
 import os
-from unittest.mock import patch
 
 import pytest
 import torch
@@ -14,7 +13,6 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data import DataLoader, TensorDataset
 
 from vembed.core.gradient_cache import GradientCache
 
@@ -24,7 +22,9 @@ class ToyModel(nn.Module):
 
     def __init__(self, input_dim=10, output_dim=5):
         super().__init__()
-        self.net = nn.Sequential(nn.Linear(input_dim, input_dim), nn.ReLU(), nn.Linear(input_dim, output_dim))
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, input_dim), nn.ReLU(), nn.Linear(input_dim, output_dim)
+        )
 
     def forward(self, x=None, input_ids=None, pixel_values=None, **kwargs):
         # Handle both positional and keyword arguments for testing
@@ -51,7 +51,9 @@ def cleanup_ddp():
         dist.destroy_process_group()
 
 
-@pytest.mark.skipif(torch.cuda.device_count() < 2, reason="Need at least 2 GPUs for distributed test")
+@pytest.mark.skipif(
+    torch.cuda.device_count() < 2, reason="Need at least 2 GPUs for distributed test"
+)
 class TestDistributedGradientCache:
     """Test distributed gradient cache with DDP."""
 
@@ -83,7 +85,11 @@ class TestDistributedGradientCache:
             loss_ddp = nn.MSELoss()(pred_ddp, target)
             loss_ddp.backward()
 
-            grads_ddp = {k.replace("module.", ""): v.grad.clone() for k, v in model_ddp.named_parameters() if v.grad is not None}
+            grads_ddp = {
+                k.replace("module.", ""): v.grad.clone()
+                for k, v in model_ddp.named_parameters()
+                if v.grad is not None
+            }
 
             # --- GradCache backward (using wrapper API) ---
             model_gc = ToyModel().to(device)
@@ -101,7 +107,11 @@ class TestDistributedGradientCache:
                 {"input_ids": x, "pos_input_ids": target, "target": target},
             )
 
-            grads_gc = {k.replace("module.", ""): v.grad.clone() for k, v in model_gc.named_parameters() if v.grad is not None}
+            grads_gc = {
+                k.replace("module.", ""): v.grad.clone()
+                for k, v in model_gc.named_parameters()
+                if v.grad is not None
+            }
 
             # --- Verify results ---
             loss_diff = abs(loss_ddp.item() - loss_gc.item())
@@ -150,7 +160,7 @@ class TestGradientCacheIntegration:
         p_emb = model(positives)
         loss_full = contrastive_loss_fn(q_emb, p_emb)
         loss_full.backward()
-        grads_full = {k: v.grad.clone() for k, v in model.named_parameters() if v.grad is not None}
+        # grads_full = {k: v.grad.clone() for k, v in model.named_parameters() if v.grad is not None}
 
         # --- Chunked forward with GradCache ---
         model.zero_grad()
@@ -160,7 +170,9 @@ class TestGradientCacheIntegration:
             {"input_ids": queries, "pos_input_ids": positives},
         )
 
-        grads_chunked = {k: v.grad.clone() for k, v in model.named_parameters() if v.grad is not None}
+        grads_chunked = {
+            k: v.grad.clone() for k, v in model.named_parameters() if v.grad is not None
+        }
 
         # Verify - loss should be close (may differ due to chunking)
         assert abs(loss_full - loss_chunked) < 0.1, f"Loss mismatch: {loss_full} vs {loss_chunked}"
@@ -185,10 +197,7 @@ class TestGradientCacheIntegration:
 
             if negatives is not None:
                 n = F.normalize(negatives, dim=1)
-                if n.dim() == 2:
-                    neg_sim = q @ n.T
-                else:
-                    neg_sim = (q * n).sum(dim=1, keepdim=True)
+                neg_sim = q @ n.T if n.dim() == 2 else (q * n).sum(dim=1, keepdim=True)
 
                 logits = torch.cat([pos_sim, neg_sim], dim=1) / 0.07
             else:
@@ -253,7 +262,9 @@ def test_grad_cache_empty_batch_handling():
     device = torch.device("cpu")
 
     model = ToyModel().to(device)
-    loss_fn = lambda q, p, **kwargs: ((q - p) ** 2).mean()
+
+    def loss_fn(q, p, **kwargs):
+        return ((q - p) ** 2).mean()
 
     gc = GradientCache(loss_fn=loss_fn, chunk_size=2, retrieval_mode="t2t")
 

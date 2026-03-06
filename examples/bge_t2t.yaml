@@ -1,7 +1,18 @@
 model_name: BAAI/bge-base-en-v1.5
-retrieval_mode: t2t
+encoder_mode: bge
+retrieval_mode: "t2t"
 use_lora: true
+
+# Training parameters
+batch_size: 64
+learning_rate: 2.0e-5
+warmup_ratio: 0.1
+epochs: 1
+loss_type: infonce
+
+# Data paths (can be overridden by CLI args)
 data_path: data/train.jsonl
 val_data_path: data/val.jsonl
+
+# Output
 output_dir: experiments/output_bge_t2t
-epochs: 3

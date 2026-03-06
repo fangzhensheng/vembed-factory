@@ -3,8 +3,9 @@ Adapts VisualRetrievalModel to a uniform encode_text / encode_image interface
 for benchmark evaluation.
 
 Supports all model types including:
-- Text-only models (qwen3_embedding, bge, etc.)
-- Vision-Language models (qwen3_vl, clip, siglip, etc.)
+- Text-only models (qwen, bge, bert, e5, etc.)
+- Vision-only models (dinov2, dino, etc.)
+- Vision-Language models (qwen-vl, llava, clip, siglip, etc.)
 - Composed models (DINOv2+BERT, etc.)
 """
 
@@ -44,20 +45,20 @@ def _auto_detect_encoder_mode(model_path: str) -> str | None:
     """Auto-detect encoder_mode from model path.
 
     Examples:
-        "experiments/output_qwen3_vl_embedding_2b" -> "qwen3_vl"
-        "Qwen/Qwen3-VL-Embedding-2B" -> "qwen3_vl"
-        "experiments/output_qwen3_embedding" -> "qwen3_embedding"
-        "Qwen/Qwen3-Embedding-8B" -> "qwen3_embedding"
+        "experiments/output_qwen3_vl_embedding_2b" -> "qwen-vl"
+        "Qwen/Qwen3-VL-Embedding-2B" -> "qwen-vl"
+        "experiments/output_qwen3_embedding" -> "qwen"
+        "Qwen/Qwen3-Embedding-8B" -> "qwen"
     """
     lower = model_path.lower()
 
-    # Check for Qwen3-VL-Embedding (multimodal)
-    if "qwen3-vl" in lower or "qwen3_vl" in lower:
-        return "qwen3_vl"
+    # Check for Qwen-VL (multimodal)
+    if "qwen" in lower and ("vl" in lower or "vision" in lower or "m3" in lower):
+        return "qwen-vl"
 
-    # Check for Qwen3-Embedding (text-only)
-    if "qwen3-embedding" in lower or "qwen3_embedding" in lower:
-        return "qwen3_embedding"
+    # Check for Qwen text embedding (text-only)
+    if "qwen" in lower and "embedding" in lower:
+        return "qwen"
 
     # Check for SigLIP
     if "siglip" in lower:
@@ -70,8 +71,8 @@ def _auto_detect_encoder_mode(model_path: str) -> str | None:
 class VEmbedWrapper(ModelWrapper):
     """Wraps a trained VisualRetrievalModel checkpoint for benchmarking.
 
-    Supports all encoder_mode values: auto, qwen3_vl, qwen3_embedding,
-    composed, vlm_generic, siglip, etc.
+    Supports all encoder_mode values: auto, clip, siglip, dinov2, bge, bert, e5,
+    qwen (text), qwen-vl, llava, composed, etc.
     """
 
     def __init__(

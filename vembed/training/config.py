@@ -111,13 +111,9 @@ def get_distributed_config(config: dict[str, Any]) -> tuple[bool, bool, bool]:
     # Check if user explicitly set ddp_find_unused_parameters
     user_set_find_unused = "ddp_find_unused_parameters" in config
 
-    if user_set_find_unused:
-        # User explicitly set the value, use it
-        find_unused = bool(config.get("ddp_find_unused_parameters"))
-    else:
-        # Default to False for better performance
-        # Gradient cache now handles DDP compatibility by adding zero gradients
-        find_unused = False
+    # User explicitly set the value, use it; otherwise default to False for better performance
+    # Gradient cache now handles DDP compatibility by adding zero gradients
+    find_unused = bool(config.get("ddp_find_unused_parameters")) if user_set_find_unused else False
 
     # Disable find_unused_parameters when using gradient checkpointing
     # (overrides user setting if using gradient checkpointing)

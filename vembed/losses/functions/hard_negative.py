@@ -120,10 +120,10 @@ class InBatchHardMiningLoss(BaseLoss):
             return torch.tensor(0.0, device=query_emb.device, requires_grad=True)
 
         # Compute similarity with hard negatives: [B, K]
-        neg_sim = torch.bmm(
-            query_emb.unsqueeze(1),
-            hard_negatives.transpose(1, 2)
-        ).squeeze(1) / self.temperature
+        neg_sim = (
+            torch.bmm(query_emb.unsqueeze(1), hard_negatives.transpose(1, 2)).squeeze(1)
+            / self.temperature
+        )
 
         # Concat: [Positive (1) | Hard Negatives (K)]
         logits = torch.cat([pos_sim, neg_sim], dim=1)

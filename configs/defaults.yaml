@@ -24,6 +24,17 @@ image_root: ""
 max_seq_length: 128
 max_image_size: 224        # For CLIP/SigLIP. Qwen-VL handles dynamic resolution.
 
+# Data Loading Optimization
+num_workers: 4             # Number of data loading workers (0=single-process, 4-8 for multi-GPU)
+pin_memory: true           # Pin memory for faster GPU transfer (requires sufficient RAM)
+prefetch_factor: 2         # Number of batches to prefetch per worker
+persistent_workers: true   # Keep workers alive across epochs (faster)
+enable_image_cache: false  # Cache images in memory (useful for small datasets with multiple epochs)
+
+# Data Validation & Processing
+validate_data: false       # Validate dataset integrity before training
+skip_invalid_records: true # Skip records with missing/invalid fields
+
 # Optimizer
 lr: 2.0e-5
 weight_decay: 0.01
@@ -45,7 +56,17 @@ gradient_cache_chunk_size: 8   # Micro-batch size for Gradient Cache
 # NOTE: Must be overridden in example YAML files!
 model_name_or_path: null
 model_name: null
-encoder_mode: "auto"       # auto, composed, vlm_generic
+encoder_mode: "auto"       # Model family collator selection
+                           # Options: auto, clip, siglip, vit, dinov2, mae, bert, bge, e5, qwen, qwen-vl, llava, composed
+                           # - clip: CLIP-family models (CLIP, SigLIP, etc.)
+                           # - vit: ViT-family vision models (google/vit-*, DINO, MAE, etc.)
+                           # - dinov2: DINO-series (alias for vit, for backward compatibility)
+                           # - mae: MAE-series (alias for vit, for backward compatibility)
+                           # - bert: BERT-family text encoders (BERT, BGE, E5, Qwen-Embedding, etc.)
+                           # - bge/e5/qwen: Aliases for bert (for backward compatibility)
+                           # - qwen-vl/llava: VLMs with chat templates
+                           # - composed: Dual-processor mode (separate text/image encoders)
+                           # - auto: Auto-detect from model_name (falls back to clip)
 projection_dim: null       # Optional output dimension projection (Linear layer)
 
 # Token Pruning (for late-interaction / ColBERT models)
@@ -86,3 +107,7 @@ topk_tokens: 0             # 0=keep all tokens (default). >0=attention-guided to
 
 # Experiment Tracking
 report_to: "none"          # Options: wandb, tensorboard, swanlab, all, none
+
+# GPU Memory Management
+debug_gpu_memory: null     # For testing on consumer GPU: set to GB limit (e.g., 24 for 24GB GPU)
+                           # null = no limit (use full GPU memory available)

@@ -1,11 +1,12 @@
 model_name: Qwen/Qwen2-VL-7B-Instruct
-retrieval_mode: m2i
+encoder_mode: qwen-vl
+retrieval_mode: "m2i"
 use_lora: true
 data_path: data/train.jsonl
 val_data_path: data/val.jsonl
 image_root: data/images
 output_dir: experiments/output_qwen_m2i
-epochs: 3
+epochs: 1
 batch_size: 128
 use_gradient_cache: true
 gradient_cache_chunk_size: 4

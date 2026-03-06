@@ -1,8 +1,35 @@
+# BERT text-to-text (t2t) configuration
+# Text encoder for semantic text search/retrieval
+
+# Optional: Custom column mapping for non-standard dataset formats
+# For text-to-text (t2t) retrieval, columns should map to: query, positive, negatives
+# If your dataset uses different column names, specify the mapping here.
+# column_mapping:
+#   query: "question"      # If dataset has "question" instead of "query"
+#   positive: "answer"     # If dataset has "answer" instead of "positive"
+#   negatives: "hard_negs" # If dataset has "hard_negs" instead of "negatives"
+
 model_name: bert-base-uncased
-retrieval_mode: t2t
+encoder_mode: bert
+retrieval_mode: "t2t"
 use_lora: true
+
+output_dir: experiments/output_bert_t2t
+epochs: 1
+batch_size: 128
+learning_rate: 2.0e-5
+
 data_path: data/train.jsonl
 val_data_path: data/val.jsonl
-output_dir: experiments/output_bert_t2t
-epochs: 3
+
+# Memory optimization
 use_gradient_cache: true
+gradient_cache_chunk_size: 64
+
+# Data validation (optional)
+validate_data: false
+
+# Data loading optimization
+num_workers: 4
+pin_memory: true
+persistent_workers: true

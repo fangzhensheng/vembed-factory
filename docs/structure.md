@@ -58,8 +58,11 @@ vembed/
 │   ├── registry.py         # CollatorRegistry for batch processing
 │   └── collators/          # Batch collation logic
 │       ├── __init__.py
-│       ├── default.py      # Default collator for dual-encoders
-│       ├── qwen3_vl.py     # Qwen3-VL specific collator
+│       ├── base.py        # BaseRetrievalCollator with shared methods
+│       ├── clip.py        # CLIP-family collator (CLIP, SigLIP)
+│       ├── vit.py         # ViT-family collator (ViT, DINO, MAE)
+│       ├── bge.py         # Text-only collator (BGE, BERT, E5, Qwen)
+│       ├── vlm.py         # Universal VLM collator (Qwen-VL, LLaVA)
 │       └── registry.py     # Dynamic collator selection
 │
 ├── losses/                 # Loss functions (training objectives)

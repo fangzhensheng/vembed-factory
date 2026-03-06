@@ -1,7 +1,6 @@
 """Extended unit tests for CoSENT and Triplet losses."""
 
 import torch
-import torch.nn.functional as F
 
 from vembed.losses.functions.cosent import CoSENTLoss
 from vembed.losses.functions.infonce import InfoNCELoss
@@ -254,7 +253,7 @@ class TestLossRegistry:
                 loss = LossFactory.create(config)
                 assert loss is not None, f"Should be able to create {loss_type}"
             except Exception as e:
-                raise AssertionError(f"Failed to create {loss_type}: {e}")
+                raise AssertionError(f"Failed to create {loss_type}: {e}") from e
 
 
 class TestLossComparison:

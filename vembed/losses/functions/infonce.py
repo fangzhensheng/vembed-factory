@@ -48,7 +48,7 @@ class InfoNCELoss(BaseLoss):
         if negative_emb.dim() == 2:
             pos_sim = (query_emb * positive_emb).sum(dim=1, keepdim=True)
             neg_sim = query_emb @ negative_emb.T
-            
+
             logits = torch.cat([pos_sim, neg_sim], dim=1) / self.temperature
             target_labels = torch.zeros(batch_size, dtype=torch.long, device=query_emb.device)
             return self.cross_entropy(logits, target_labels)
@@ -56,23 +56,21 @@ class InfoNCELoss(BaseLoss):
         # Per-query negatives
         if negative_emb.dim() == 3:
             if negative_emb.size(0) != batch_size:
-                raise ValueError(f"Batch size mismatch: query {batch_size}, neg {negative_emb.size(0)}")
-            
+                raise ValueError(
+                    f"Batch size mismatch: query {batch_size}, neg {negative_emb.size(0)}"
+                )
+
             pos_sim = (query_emb * positive_emb).sum(dim=1, keepdim=True)
             neg_sim = torch.bmm(query_emb.unsqueeze(1), negative_emb.transpose(1, 2)).squeeze(1)
-            
+
             logits = torch.cat([pos_sim, neg_sim], dim=1) / self.temperature
             target_labels = torch.zeros(batch_size, dtype=torch.long, device=query_emb.device)
             return self.cross_entropy(logits, target_labels)
-            
+
         return torch.tensor(0.0, device=query_emb.device, requires_grad=True)
 
     def _compute_supcon_loss(
-        self, 
-        logits: torch.Tensor, 
-        labels: torch.Tensor, 
-        batch_size: int, 
-        device: torch.device
+        self, logits: torch.Tensor, labels: torch.Tensor, batch_size: int, device: torch.device
     ) -> torch.Tensor:
         """Compute Supervised Contrastive Loss."""
         labels_view = labels.view(-1, 1)
@@ -105,9 +103,7 @@ class InfoNCELoss(BaseLoss):
 
         if self.loss_bidirectional:
             # Reverse direction: Positive -> Query (symmetric in-batch negatives)
-            loss_reverse = self._compute_loss_direction(
-                positive_emb, query_emb, None, labels
-            )
+            loss_reverse = self._compute_loss_direction(positive_emb, query_emb, None, labels)
             loss = (loss + loss_reverse) / 2
 
         return loss

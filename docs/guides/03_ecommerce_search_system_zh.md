@@ -123,7 +123,7 @@ def augment_product_descriptions(product):
 ```yaml
 # ecommerce_search_config.yaml
 model_name_or_path: "Qwen/Qwen3-VL-Embedding-2B"
-encoder_mode: "qwen3_vl"
+encoder_mode: "qwen-vl"
 
 # 电商场景参数
 data_path: "data/ecommerce_train.jsonl"

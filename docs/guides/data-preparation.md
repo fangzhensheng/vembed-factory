@@ -208,13 +208,46 @@ dataset = load_data_from_path(
 
 ## Collators
 
-The training loop uses collators to batch data:
+The training loop uses collators to batch data, selected by `encoder_mode`:
 
-- **default.py**: For CLIP-style dual encoders
-- **qwen.py**: For Qwen-VL models with special image handling
+### Collator Selection by encoder_mode
 
-Collators handle:
+- **clip.py**: CLIPFamilyCollator - for CLIP/SigLIP dual encoders (T2I, I2I, etc.)
+- **vit.py**: VITFamilyCollator - for ViT/DINO vision-only models (I2I mode)
+- **bert.py**: BERTFamilyCollator - for BERT text-only models (T2T mode)
+- **vlm.py**: VLMRetrievalCollator - for Vision-Language Models (Qwen-VL, LLaVA, Phi-3-Vision)
+
+### VLM Collator Architecture
+
+The `VLMRetrievalCollator` uses a Strategy Pattern for different VLM families:
+
+- **QwenVLMStrategy**: Handles Qwen-VL models with `process_vision_info()` for dynamic resolution
+- **GenericVLMStrategy**: Handles generic VLMs like LLaVA using standard HF APIs
+
+### Data Alignment Mechanism
+
+VLM collators maintain strict alignment between:
+- Image placeholders in conversations
+- Actual image tensors being processed
+- Query/positive/negative samples
+
+Example:
+```
+conversations = [
+  {"role": "user", "content": [{"type": "text", "text": "red shoes"}]},  # No image
+  {"role": "user", "content": [{"type": "image"}, {"type": "text"}]},    # Has image
+]
+
+aligned_images = [None, PIL.Image]  # Aligned with placeholders
+```
+
+This ensures compatibility with processor requirements and avoids tensor shape mismatches.
+
+### Collators handle:
+
 - Tokenization with max length
 - Image resizing and normalization
-- Dynamic batch composition
+- Dynamic batch composition with alignment
 - Negative sampling
+- Multi-strategy VLM processing
+- Query/Positive/Negative sample differentiation

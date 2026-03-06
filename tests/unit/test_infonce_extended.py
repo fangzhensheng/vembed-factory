@@ -1,5 +1,6 @@
 """Extended unit tests for InfoNCE loss."""
 
+import pytest
 import torch
 
 from vembed.losses.functions.infonce import InfoNCELoss
@@ -87,11 +88,8 @@ class TestInfoNCEExplicitNegatives:
 
         loss_fn = InfoNCELoss({"temperature": 0.05})
 
-        try:
-            loss = loss_fn(q, p, n)
-            assert False, "Should raise ValueError for batch size mismatch"
-        except ValueError as e:
-            assert "Batch size mismatch" in str(e)
+        with pytest.raises(ValueError, match="Batch size mismatch"):
+            loss_fn(q, p, n)
 
 
 class TestInfoNCESupCon:

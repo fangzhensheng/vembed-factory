@@ -201,7 +201,7 @@ convert_to_t2i(products, "data/products_t2i.jsonl")
 ```yaml
 # ========== 模型配置 ==========
 model_name_or_path: "Qwen/Qwen3-VL-Embedding-2B"
-encoder_mode: "qwen3_vl"                    # 必须指定 qwen3_vl 模式
+encoder_mode: "qwen-vl"                    # Qwen VLM 模式
 torch_dtype: "bfloat16"                     # 使用低精度加速
 attn_implementation: "flash_attention_2"    # 使用 Flash Attention 加速
 
@@ -304,6 +304,108 @@ accelerate launch run.py examples/qwen3_multimodal_t2i.yaml
 python run.py examples/qwen3_multimodal_t2i.yaml \
     --config_override batch_size=32 epochs=5 use_mrl=false
 ```
+
+---
+
+## 4.5 数据流与 VLM Collator 机制（可选了解）
+
+### Dataset 和 Collator 的协作
+
+虽然不需要手动配置，理解数据流对调试有帮助：
+
+#### 第 1 步：Dataset 返回对齐的数据
+
+```python
+# vembed/data/dataset.py 返回的数据结构
+dataset[idx] = {
+    # Query 部分
+    "query_text": "red shoes",
+    "query_image_path": "path/to/query.jpg",
+    "query_image": PIL.Image,  # 已加载的图片
+    
+    # Positive 部分
+    "pos_text": "",
+    "pos_image_path": "path/to/positive.jpg",
+    "pos_image": PIL.Image,  # 已加载的图片
+    
+    # Negative 部分
+    "neg_images": [PIL.Image, PIL.Image, ...],  # 负样本
+    "neg_image_paths": ["path/to/neg1.jpg", ...],  # 对应路径
+}
+```
+
+特点：
+- **双返回**：既返回 PIL.Image 也返回路径字符串
+- **Success Flag**：只在加载成功时才返回路径
+- **黑图回退**：加载失败时返回 224×224 的黑图（避免崩溃）
+
+#### 第 2 步：Collator 创建对话并对齐
+
+`VLMRetrievalCollator` 使用 Strategy Pattern 处理不同 VLM：
+
+**QwenVLMStrategy**（用于 Qwen-VL）：
+```python
+# 优先使用路径而非 PIL.Image
+img_input = img_path if img_path else img
+conversation = format_conversation(text, img_input)
+# format_conversation 会在 image_input is not None 时添加 image placeholder
+```
+
+**GenericVLMStrategy**（用于 LLaVA、Phi-3-Vision）：
+```python
+# 使用 PIL.Image 对象
+conversation = format_conversation(text, img)
+# 只在 img is not None 时添加 image placeholder
+```
+
+关键点：**image placeholder 数 = 实际图片数**
+
+#### 第 3 步：严格的对齐机制保证
+
+```python
+# _process_batch_chunk 中的对齐
+conversations = []
+aligned_images = [None] * len(texts)  # 预初始化
+
+for i, text in enumerate(texts):
+    img = images[i] if images and i < len(images) else None
+    
+    # 只有真的有图时才在 aligned_images 中放图
+    if img is not None:
+        aligned_images[i] = img
+    
+    # format_conversation 会根据 img 是否为 None 决定是否添加 placeholder
+    conv = strategy.format_conversation(text, img)
+    conversations.append(conv)
+
+# 结果保证：
+# len(conversations) == len(aligned_images)
+# conversations[i] 中 image placeholder 数 == (1 if aligned_images[i] is not None else 0)
+
+# 传给 processor 的数据完全对齐
+result = strategy.process_batch(conversations, aligned_images)
+```
+
+### 为什么需要这种对齐？
+
+1. **处理混合批次**：支持同一批中有的样本有图、有的没图
+   ```
+   Batch: [s1=(text, no_img), s2=(text, img), s3=(text, no_img)]
+   ```
+
+2. **避免维度错误**：HF processor 会检查 text placeholders 与 images 是否对齐
+
+3. **支持多个 VLM**：Qwen 使用路径，LLaVA 使用 PIL.Image，统一处理
+
+### 关键改进点
+
+在最新版本中修复的 3 个关键问题：
+
+| 问题 | 修复 | 效果 |
+|------|------|------|
+| 空数据检查 | `not any(texts)` 而非 `not texts` | 正确处理全 None 列表 |
+| 图片过滤破坏对齐 | 不过滤 None，保持列表长度 | 维度匹配，无崩溃 |
+| Placeholder 不对齐 | format_conversation 只在图片存在时添加 | 严格的 1-to-1 对应 |
 
 ### 4.4 预期训练时间
 

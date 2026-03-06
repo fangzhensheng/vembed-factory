@@ -9,11 +9,10 @@ Tests cover:
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 import torch
 
-from vembed.model.registry import ModelRegistry
 from vembed.model.processors.registry import ProcessorRegistry
+from vembed.model.registry import ModelRegistry
 
 
 class TestQwen3ModelRegistration:
@@ -124,10 +123,12 @@ class TestQwen3VLEmbeddingModel:
 
         # Create test data
         hidden = torch.randn(2, 10, 3584)
-        attention_mask = torch.tensor([
-            [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],  # 5 tokens
-            [1, 1, 1, 1, 1, 1, 1, 1, 0, 0],  # 8 tokens
-        ])
+        attention_mask = torch.tensor(
+            [
+                [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],  # 5 tokens
+                [1, 1, 1, 1, 1, 1, 1, 1, 0, 0],  # 8 tokens
+            ]
+        )
 
         result = Qwen3VLEmbeddingModel._pool_last_token(hidden, attention_mask)
 
@@ -223,7 +224,7 @@ class TestQwen3Processors:
         assert not Qwen3EmbeddingProcessorLoader.match("qwen3-vl")
 
         # Test loading (verify padding_side is set to "left")
-        result = Qwen3EmbeddingProcessorLoader.load("test/path")
+        Qwen3EmbeddingProcessorLoader.load("test/path")
 
         # Verify from_pretrained was called with padding_side="left"
         mock_tokenizer_cls.from_pretrained.assert_called_once()
@@ -258,11 +259,12 @@ class TestModelIntegration:
 
         model = VisualRetrievalModel(
             model_name_or_path="Qwen/Qwen3-VL-Embedding-2B",
-            encoder_mode="qwen3_vl",
+            encoder_mode="qwen-vl",
         )
 
         # Verify backend is set correctly
         from vembed.model.backbones.qwen3_vl_embedding import Qwen3VLEmbeddingModel
+
         assert isinstance(model.backend, Qwen3VLEmbeddingModel)
 
     @patch("vembed.model.backbones.qwen3_embedding.AutoModel")
@@ -291,4 +293,5 @@ class TestModelIntegration:
 
         # Verify backend is set correctly
         from vembed.model.backbones.qwen3_embedding import Qwen3EmbeddingTextModel
+
         assert isinstance(model.backend, Qwen3EmbeddingTextModel)

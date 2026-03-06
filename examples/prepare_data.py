@@ -300,6 +300,144 @@ def prepare_sop_i2i_dataset(
     print(f"  - val:   {val_jsonl} ({val_count} pairs)")
 
 
+def prepare_msmarco_t2t_dataset(output_dir: str = "data/msmarco") -> None:
+    """Download and prepare MS MARCO passage ranking dataset for t2t training.
+
+    Uses the sentence-transformers version of MS MARCO which provides
+    query-positive passage pairs in the correct format.
+
+    Args:
+        output_dir: Output directory for JSONL files.
+    """
+    print("Downloading MS MARCO dataset for text-to-text training...")
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Load MS MARCO from HuggingFace (sentence-transformers version)
+    # This version provides ready-to-use (query, positive) pairs
+    try:
+        print("Loading msmarco dataset from HuggingFace...")
+        ds = load_dataset("sentence-transformers/msmarco-cohere-embeddings", split="train")
+        print(f"Dataset size: {len(ds)}")
+    except Exception as e:
+        print(f"Failed to load MS MARCO: {e}")
+        print("Trying alternative: creating dummy t2t data...")
+        create_dummy_t2t_data(output_dir)
+        return
+
+    # Process and convert to JSONL format
+    # Format: {"query_text": "...", "pos_text": "..."}
+    train_data = []
+
+    print("Converting dataset to JSONL format...")
+    for item in tqdm(ds, desc="Processing"):
+        # Extract query and positive passage
+        # The dataset format varies, so we need to handle different field names
+        query_text = item.get("query") or item.get("query_text") or item.get("question", "")
+        pos_text = item.get("positive") or item.get("pos_text") or item.get("passage", "")
+
+        if not query_text or not pos_text:
+            continue
+
+        train_data.append(
+            {
+                "query_text": query_text,
+                "pos_text": pos_text,
+            }
+        )
+
+    # Write training data
+    train_jsonl = os.path.join(output_dir, "train.jsonl")
+    print(f"Saving training data ({len(train_data)} pairs) -> {train_jsonl}")
+    with open(train_jsonl, "w", encoding="utf-8") as f:
+        for entry in train_data:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    # Create a small validation set from the end of training data
+    val_size = min(1000, len(train_data) // 10)
+    val_data = train_data[-val_size:]
+    train_data = train_data[:-val_size]
+
+    # Re-write train data without validation samples
+    print(f"Saving training data ({len(train_data)} pairs) -> {train_jsonl}")
+    with open(train_jsonl, "w", encoding="utf-8") as f:
+        for entry in train_data:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    # Write validation data
+    val_jsonl = os.path.join(output_dir, "val.jsonl")
+    print(f"Saving validation data ({len(val_data)} pairs) -> {val_jsonl}")
+    with open(val_jsonl, "w", encoding="utf-8") as f:
+        for entry in val_data:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    print("\n✓ MS MARCO t2t dataset preparation complete:")
+    print(f"  - train: {train_jsonl} ({len(train_data)} pairs)")
+    print(f"  - val:   {val_jsonl} ({len(val_data)} pairs)")
+
+
+def create_dummy_t2t_data(output_dir: str) -> None:
+    """Creates dummy t2t data if download fails."""
+    print("Creating dummy t2t data for testing...")
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Sample query-positive pairs
+    dummy_data = [
+        {
+            "query_text": "What is the capital of France?",
+            "pos_text": "The capital of France is Paris.",
+        },
+        {
+            "query_text": "Who wrote Romeo and Juliet?",
+            "pos_text": "Romeo and Juliet was written by William Shakespeare.",
+        },
+        {
+            "query_text": "What is machine learning?",
+            "pos_text": "Machine learning is a subset of artificial intelligence.",
+        },
+        {
+            "query_text": "How do you bake a cake?",
+            "pos_text": "To bake a cake, mix flour, sugar, eggs, and butter.",
+        },
+        {
+            "query_text": "What is the meaning of life?",
+            "pos_text": "The meaning of life is a philosophical question.",
+        },
+        {
+            "query_text": "How does photosynthesis work?",
+            "pos_text": "Photosynthesis converts light energy into chemical energy.",
+        },
+        {
+            "query_text": "What is Python programming?",
+            "pos_text": "Python is a high-level programming language.",
+        },
+        {
+            "query_text": "Who discovered America?",
+            "pos_text": "Christopher Columbus reached the Americas in 1492.",
+        },
+    ]
+
+    # Duplicate for more training data
+    train_data = dummy_data * 10  # 80 pairs
+    val_data = dummy_data[:2]  # 2 pairs for validation
+
+    train_jsonl = os.path.join(output_dir, "train.jsonl")
+    val_jsonl = os.path.join(output_dir, "val.jsonl")
+
+    with open(train_jsonl, "w", encoding="utf-8") as f:
+        for entry in train_data:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    with open(val_jsonl, "w", encoding="utf-8") as f:
+        for entry in val_data:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+    print(f"\n✓ Dummy t2t data created at {output_dir}")
+    print(f"  - train: {train_jsonl} ({len(train_data)} pairs)")
+    print(f"  - val:   {val_jsonl} ({len(val_data)} pairs)")
+
+
 if __name__ == "__main__":
     import sys
 
@@ -313,4 +451,10 @@ if __name__ == "__main__":
         prepare_flickr30k_dataset()
         sys.exit(0)
 
-    sys.exit(0)
+    if dataset == "msmarco_t2t":
+        prepare_msmarco_t2t_dataset()
+        sys.exit(0)
+
+    print(f"Unknown dataset: {dataset}")
+    print("Available datasets: sop_i2i, flickr30k, msmarco_t2t")
+    sys.exit(1)

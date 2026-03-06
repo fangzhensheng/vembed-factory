@@ -174,7 +174,7 @@ prepare_custom_data(custom_data, "data/custom/train.jsonl")
 ```yaml
 # ========== 模型配置 ==========
 model_name_or_path: "openai/clip-vit-base-patch32"
-encoder_mode: "auto"              # 自动检测模型类型（auto/qwen3_vl/vlm_generic/composed）
+encoder_mode: "auto"              # 自动检测模型类型（clip/siglip/vit/dinov2/mae/bge/bert/e5/qwen/qwen-vl/llava/composed）
 
 # ========== 参数高效微调 ==========
 use_lora: true                    # 启用 LoRA，大幅降低显存占用

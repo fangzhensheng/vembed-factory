@@ -2,8 +2,8 @@
 
 Tests the new VEmbedWrapper features including:
 - encoder_mode auto-detection
-- text-only model support (qwen3_embedding)
-- multimodal model support (qwen3_vl)
+- text-only model support (qwen)
+- multimodal model support (qwen-vl)
 - supports_images property
 """
 
@@ -15,10 +15,10 @@ from unittest.mock import MagicMock, patch
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import pytest
-import torch
+import pytest  # noqa: E402
+import torch  # noqa: E402
 
-from benchmark.model_wrapper import VEmbedWrapper, _auto_detect_encoder_mode
+from benchmark.model_wrapper import VEmbedWrapper, _auto_detect_encoder_mode  # noqa: E402
 
 
 class TestEncoderModeDetection:
@@ -27,15 +27,15 @@ class TestEncoderModeDetection:
     @pytest.mark.parametrize(
         "model_path,expected_mode",
         [
-            # Qwen3-VL (multimodal)
-            ("experiments/output_qwen3_vl_embedding_2b", "qwen3_vl"),
-            ("Qwen/Qwen3-VL-Embedding-2B", "qwen3_vl"),
-            ("models/Qwen/Qwen3-VL-Embedding-8B", "qwen3_vl"),
-            ("checkpoint/qwen3_vl", "qwen3_vl"),
-            # Qwen3-Embedding (text-only)
-            ("experiments/output_qwen3_embedding", "qwen3_embedding"),
-            ("Qwen/Qwen3-Embedding-8B", "qwen3_embedding"),
-            ("checkpoint/qwen3_embedding", "qwen3_embedding"),
+            # Qwen-VL (multimodal)
+            ("experiments/output_qwen3_vl_embedding_2b", "qwen-vl"),
+            ("Qwen/Qwen3-VL-Embedding-2B", "qwen-vl"),
+            ("models/Qwen/Qwen3-VL-Embedding-8B", "qwen-vl"),
+            ("checkpoint/qwen3_vl", "qwen-vl"),
+            # Qwen-Embedding (text-only)
+            ("experiments/output_qwen3_embedding", "qwen"),
+            ("Qwen/Qwen3-Embedding-8B", "qwen"),
+            ("checkpoint/qwen3_embedding", "qwen"),
             # SigLIP
             ("google/siglip-base-patch16-224", "siglip"),
             ("checkpoint/siglip", "siglip"),
@@ -51,8 +51,8 @@ class TestEncoderModeDetection:
 
     def test_case_insensitive_detection(self):
         """Test that detection is case-insensitive."""
-        assert _auto_detect_encoder_mode("QWEN3_VL_EMBEDDING") == "qwen3_vl"
-        assert _auto_detect_encoder_mode("QWEN3-EMBEDDING") == "qwen3_embedding"
+        assert _auto_detect_encoder_mode("QWEN3_VL_EMBEDDING") == "qwen-vl"
+        assert _auto_detect_encoder_mode("QWEN3-EMBEDDING") == "qwen"
         assert _auto_detect_encoder_mode("SIGLIP") == "siglip"
 
 
@@ -62,7 +62,9 @@ class TestVEmbedWrapperInit:
     @patch("benchmark.model_wrapper.VisualRetrievalModel")
     @patch("vembed.model.processors.ProcessorRegistry")
     @patch("vembed.model.processors.registry.ProcessorRegistry")
-    def test_init_with_encoder_mode(self, mock_proc_registry_local, mock_proc_registry, mock_model_cls):
+    def test_init_with_encoder_mode(
+        self, mock_proc_registry_local, mock_proc_registry, mock_model_cls
+    ):
         """Test initialization with explicit encoder_mode."""
         mock_processor = MagicMock()
         # Create a mock loader class with a static load method
@@ -78,15 +80,17 @@ class TestVEmbedWrapperInit:
         mock_model.eval = MagicMock()
         mock_model_cls.return_value = mock_model
 
-        wrapper = VEmbedWrapper("test_path", encoder_mode="qwen3_vl")
+        VEmbedWrapper("test_path", encoder_mode="qwen-vl")
 
-        mock_proc_registry_local.get.assert_called_once_with("qwen3_vl")
+        mock_proc_registry_local.get.assert_called_once_with("qwen-vl")
         mock_model_cls.assert_called_once()
 
     @patch("benchmark.model_wrapper.VisualRetrievalModel")
     @patch("vembed.model.processors.ProcessorRegistry")
     @patch("vembed.model.processors.registry.ProcessorRegistry")
-    def test_init_with_attn_implementation(self, mock_proc_registry_local, mock_proc_registry, mock_model_cls):
+    def test_init_with_attn_implementation(
+        self, mock_proc_registry_local, mock_proc_registry, mock_model_cls
+    ):
         """Test initialization with attention implementation hint."""
         mock_processor = MagicMock()
         mock_loader = MagicMock()
@@ -100,9 +104,9 @@ class TestVEmbedWrapperInit:
         mock_model.eval = MagicMock()
         mock_model_cls.return_value = mock_model
 
-        wrapper = VEmbedWrapper(
+        VEmbedWrapper(
             "test_path",
-            encoder_mode="qwen3_vl",
+            encoder_mode="qwen-vl",
             attn_implementation="flash_attention_2",
             torch_dtype="bfloat16",
         )
@@ -119,7 +123,9 @@ class TestVEmbedWrapperImageSupport:
     @patch("benchmark.model_wrapper.VisualRetrievalModel")
     @patch("vembed.model.processors.ProcessorRegistry")
     @patch("vembed.model.processors.registry.ProcessorRegistry")
-    def test_multimodal_model_supports_images(self, mock_proc_registry_local, mock_proc_registry, mock_model_cls):
+    def test_multimodal_model_supports_images(
+        self, mock_proc_registry_local, mock_proc_registry, mock_model_cls
+    ):
         """Test that multimodal models report supports_images=True."""
         mock_processor = MagicMock()
         mock_processor.image_processor = MagicMock()
@@ -138,7 +144,9 @@ class TestVEmbedWrapperImageSupport:
     @patch("benchmark.model_wrapper.VisualRetrievalModel")
     @patch("vembed.model.processors.ProcessorRegistry")
     @patch("vembed.model.processors.registry.ProcessorRegistry")
-    def test_text_only_model_does_not_support_images(self, mock_proc_registry_local, mock_proc_registry, mock_model_cls):
+    def test_text_only_model_does_not_support_images(
+        self, mock_proc_registry_local, mock_proc_registry, mock_model_cls
+    ):
         """Test that text-only models report supports_images=False."""
         # Processor without image_processor indicates text-only model
         mock_processor = MagicMock()

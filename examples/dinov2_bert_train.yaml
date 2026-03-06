@@ -4,6 +4,7 @@
 
 model_name: facebook/dinov2-small
 encoder_mode: composed
+retrieval_mode: "i2i"
 use_lora: true
 
 # Memory optimization: Gradient Cache for 24GB GPU
@@ -14,7 +15,7 @@ use_gradient_cache: true
 gradient_cache_chunk_size: 128
 
 output_dir: experiments/output_dinov2_bert
-epochs: 3
+epochs: 1
 batch_size: 1024
 eval_batch_size: 64
 learning_rate: 1.0e-04

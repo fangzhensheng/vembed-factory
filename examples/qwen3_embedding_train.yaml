@@ -3,7 +3,7 @@
 
 # Model
 model_name: "Qwen/Qwen3-Embedding-8B"
-encoder_mode: "qwen3_embedding"
+encoder_mode: "qwen"
 retrieval_mode: "t2t"
 attn_implementation: "flash_attention_2"
 torch_dtype: "bfloat16"

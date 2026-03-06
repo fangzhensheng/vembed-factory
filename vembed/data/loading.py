@@ -6,6 +6,7 @@ from typing import Any
 import pandas as pd
 from datasets import Dataset
 from datasets import load_dataset as hf_load_dataset
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +67,23 @@ def load_data(
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     """Load JSONL file with error handling."""
     records = []
+
+    # Estimate total lines for progress bar if possible
+    total_size = path.stat().st_size
+    # Rough estimate: assume average line length of 500 bytes (adjustable)
+    # Just for visual feedback, doesn't need to be perfect
+    estimated_lines = total_size // 500
+
     with path.open("r", encoding="utf-8") as f:
-        for line_num, line in enumerate(f, 1):
+        # Use tqdm to wrap the file iterator
+        pbar = tqdm(
+            f,
+            total=estimated_lines,
+            desc=f"Loading {path.name}",
+            unit=" lines",
+            mininterval=1.0,
+        )
+        for line_num, line in enumerate(pbar, 1):
             try:
                 records.append(json.loads(line))
             except json.JSONDecodeError as exc:
@@ -78,12 +94,14 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
 
 def _load_csv(path: Path, sep: str) -> list[dict[str, Any]]:
     """Load CSV/TSV file."""
+    print(f"Loading {path.name}...")  # Simple feedback for pandas which is usually fast/C-optimized
     dataframe = pd.read_csv(path, sep=sep)
     return dataframe.to_dict("records")
 
 
 def _load_parquet(path: Path) -> list[dict[str, Any]]:
     """Load Parquet file."""
+    print(f"Loading {path.name}...")
     dataframe = pd.read_parquet(path)
     return dataframe.to_dict("records")
 

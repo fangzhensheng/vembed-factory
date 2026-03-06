@@ -2,8 +2,9 @@
 # Late-interaction loss with token-level embeddings from VLM
 
 model_name: Qwen/Qwen2-7B-Instruct
+encoder_mode: qwen
+retrieval_mode: "t2t"
 use_lora: true
-retrieval_mode: t2t
 
 # ColBERT: MaxSim-based late-interaction scoring
 # VLM outputs [B, seq_len, D] with L2-normalized tokens
@@ -18,7 +19,7 @@ image_root: data/images
 output_dir: experiments/output_qwen_colbert
 
 # Training: gradient cache for handling large LLM
-epochs: 3
+epochs: 1
 batch_size: 64
 learning_rate: 5.0e-05
 use_gradient_cache: true
