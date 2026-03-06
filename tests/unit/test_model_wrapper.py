@@ -16,6 +16,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 import pytest
+import torch
 
 from benchmark.model_wrapper import VEmbedWrapper, _auto_detect_encoder_mode
 
@@ -59,12 +60,19 @@ class TestVEmbedWrapperInit:
     """Test VEmbedWrapper initialization with different configurations."""
 
     @patch("benchmark.model_wrapper.VisualRetrievalModel")
-    @patch("benchmark.model_wrapper.ProcessorRegistry")
-    def test_init_with_encoder_mode(self, mock_processor_registry, mock_model_cls):
+    @patch("vembed.model.processors.ProcessorRegistry")
+    @patch("vembed.model.processors.registry.ProcessorRegistry")
+    def test_init_with_encoder_mode(self, mock_proc_registry_local, mock_proc_registry, mock_model_cls):
         """Test initialization with explicit encoder_mode."""
         mock_processor = MagicMock()
-        mock_processor_registry.resolve.return_value = mock_processor
-        mock_processor_registry.get.return_value = MagicMock(load=MagicMock(return_value=mock_processor))
+        # Create a mock loader class with a static load method
+        mock_loader = MagicMock()
+        mock_loader.load = MagicMock(return_value=mock_processor)
+
+        mock_proc_registry.resolve.return_value = mock_processor
+        mock_proc_registry.get.return_value = mock_loader
+        mock_proc_registry_local.resolve.return_value = mock_processor
+        mock_proc_registry_local.get.return_value = mock_loader
 
         mock_model = MagicMock()
         mock_model.eval = MagicMock()
@@ -72,15 +80,21 @@ class TestVEmbedWrapperInit:
 
         wrapper = VEmbedWrapper("test_path", encoder_mode="qwen3_vl")
 
-        mock_processor_registry.get.assert_called_once_with("qwen3_vl")
+        mock_proc_registry_local.get.assert_called_once_with("qwen3_vl")
         mock_model_cls.assert_called_once()
 
     @patch("benchmark.model_wrapper.VisualRetrievalModel")
-    @patch("benchmark.model_wrapper.ProcessorRegistry")
-    def test_init_with_attn_implementation(self, mock_processor_registry, mock_model_cls):
+    @patch("vembed.model.processors.ProcessorRegistry")
+    @patch("vembed.model.processors.registry.ProcessorRegistry")
+    def test_init_with_attn_implementation(self, mock_proc_registry_local, mock_proc_registry, mock_model_cls):
         """Test initialization with attention implementation hint."""
         mock_processor = MagicMock()
-        mock_processor_registry.resolve.return_value = mock_processor
+        mock_loader = MagicMock()
+        mock_loader.load = MagicMock(return_value=mock_processor)
+        mock_proc_registry.resolve.return_value = mock_processor
+        mock_proc_registry.get.return_value = mock_loader
+        mock_proc_registry_local.resolve.return_value = mock_processor
+        mock_proc_registry_local.get.return_value = mock_loader
 
         mock_model = MagicMock()
         mock_model.eval = MagicMock()
@@ -103,12 +117,16 @@ class TestVEmbedWrapperImageSupport:
     """Test supports_images property for different model types."""
 
     @patch("benchmark.model_wrapper.VisualRetrievalModel")
-    @patch("benchmark.model_wrapper.ProcessorRegistry")
-    def test_multimodal_model_supports_images(self, mock_processor_registry, mock_model_cls):
+    @patch("vembed.model.processors.ProcessorRegistry")
+    @patch("vembed.model.processors.registry.ProcessorRegistry")
+    def test_multimodal_model_supports_images(self, mock_proc_registry_local, mock_proc_registry, mock_model_cls):
         """Test that multimodal models report supports_images=True."""
         mock_processor = MagicMock()
         mock_processor.image_processor = MagicMock()
-        mock_processor_registry.resolve.return_value = mock_processor
+        mock_proc_registry.resolve.return_value = mock_processor
+        mock_proc_registry.get.return_value = None  # No specific loader
+        mock_proc_registry_local.resolve.return_value = mock_processor
+        mock_proc_registry_local.get.return_value = None
 
         mock_model = MagicMock()
         mock_model.eval = MagicMock()
@@ -118,13 +136,17 @@ class TestVEmbedWrapperImageSupport:
         assert wrapper.supports_images is True
 
     @patch("benchmark.model_wrapper.VisualRetrievalModel")
-    @patch("benchmark.model_wrapper.ProcessorRegistry")
-    def test_text_only_model_does_not_support_images(self, mock_processor_registry, mock_model_cls):
+    @patch("vembed.model.processors.ProcessorRegistry")
+    @patch("vembed.model.processors.registry.ProcessorRegistry")
+    def test_text_only_model_does_not_support_images(self, mock_proc_registry_local, mock_proc_registry, mock_model_cls):
         """Test that text-only models report supports_images=False."""
         # Processor without image_processor indicates text-only model
         mock_processor = MagicMock()
         del mock_processor.image_processor
-        mock_processor_registry.resolve.return_value = mock_processor
+        mock_proc_registry.resolve.return_value = mock_processor
+        mock_proc_registry.get.return_value = None  # No specific loader
+        mock_proc_registry_local.resolve.return_value = mock_processor
+        mock_proc_registry_local.get.return_value = None
 
         mock_model = MagicMock()
         mock_model.eval = MagicMock()
@@ -144,8 +166,8 @@ class TestVEmbedWrapperEncoding:
             mock_processor = MagicMock()
             mock_processor.tokenizer = MagicMock()
             mock_processor.tokenizer.return_value = {
-                "input_ids": [[1, 2, 3]],
-                "attention_mask": [[1, 1, 1]],
+                "input_ids": torch.tensor([[1, 2, 3]]),
+                "attention_mask": torch.tensor([[1, 1, 1]]),
             }
 
             mock_model = MagicMock()
@@ -190,6 +212,7 @@ class TestTextOnlyWrapper:
         """Test TextOnlyWrapper initialization."""
         mock_processor = MagicMock()
         mock_processor_registry.resolve.return_value = mock_processor
+        mock_processor_registry.get.return_value = None  # No specific loader
 
         mock_model = MagicMock()
         mock_model.eval = MagicMock()
@@ -206,6 +229,7 @@ class TestTextOnlyWrapper:
         """Test that TextOnlyWrapper.encode_image raises NotImplementedError."""
         mock_processor = MagicMock()
         mock_processor_registry.resolve.return_value = mock_processor
+        mock_processor_registry.get.return_value = None  # No specific loader
 
         mock_model = MagicMock()
         mock_model.eval = MagicMock()
@@ -225,8 +249,8 @@ def test_forward_interface_compatibility():
         mock_processor = MagicMock()
         mock_processor.tokenizer = MagicMock()
         mock_processor.tokenizer.return_value = {
-            "input_ids": [[1, 2, 3]],
-            "attention_mask": [[1, 1, 1]],
+            "input_ids": torch.tensor([[1, 2, 3]]),
+            "attention_mask": torch.tensor([[1, 1, 1]]),
         }
 
         # Mock that returns tuple

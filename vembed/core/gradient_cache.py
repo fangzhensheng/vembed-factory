@@ -120,21 +120,27 @@ class GradientCache:
         if mode.endswith("t"):
             if "pos_input_ids" in batch:
                 p["input_ids"] = batch["pos_input_ids"]
-                p["attention_mask"] = batch["pos_attention_mask"]
+                if "pos_attention_mask" in batch:
+                    p["attention_mask"] = batch["pos_attention_mask"]
         else:
             # Prefer prefixed keys
-            pv = batch.get("pos_pixel_values") or batch.get("pixel_values")
+            pv = batch.get("pos_pixel_values")
+            if pv is None:
+                pv = batch.get("pixel_values")
             if pv is not None:
                 p["pixel_values"] = pv
-            
-            grid = batch.get("pos_image_grid_thw") or batch.get("image_grid_thw")
+
+            grid = batch.get("pos_image_grid_thw")
+            if grid is None:
+                grid = batch.get("image_grid_thw")
             if grid is not None:
                 p["image_grid_thw"] = grid
-            
+
             # VLM image items need input_ids (placeholder tokens)
             if "pos_input_ids" in batch:
                 p["input_ids"] = batch["pos_input_ids"]
-                p["attention_mask"] = batch["pos_attention_mask"]
+                if "pos_attention_mask" in batch:
+                    p["attention_mask"] = batch["pos_attention_mask"]
 
         if "neg_pixel_values" in batch:
             n["pixel_values"] = batch["neg_pixel_values"]
@@ -142,7 +148,8 @@ class GradientCache:
                 n["image_grid_thw"] = batch["neg_image_grid_thw"]
             if "neg_input_ids" in batch:
                 n["input_ids"] = batch["neg_input_ids"]
-                n["attention_mask"] = batch["neg_attention_mask"]
+                if "neg_attention_mask" in batch:
+                    n["attention_mask"] = batch["neg_attention_mask"]
 
         return q, p, n
 

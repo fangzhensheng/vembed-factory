@@ -137,11 +137,6 @@ def config_dict_to_argv(
         if k not in valid_fields or v is None:
             continue
         if isinstance(v, bool):
-            if v: list[str] = []
-    for k, v in config.items():
-        if k not in valid_fields or v is None:
-            continue
-        if isinstance(v, bool):
             # HfArgumentParser only recognises --flag (store_true).
             # False booleans cannot be expressed as argv; they are
             # handled by apply_false_booleans() after parsing.

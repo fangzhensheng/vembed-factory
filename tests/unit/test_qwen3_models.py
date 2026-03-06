@@ -65,10 +65,16 @@ class TestQwen3VLEmbeddingModel:
         mock_auto_model.from_pretrained.assert_called_once()
 
     @patch("vembed.model.backbones.qwen3_vl_embedding.AutoModel")
-    def test_forward_with_vision_inputs(self, mock_auto_model):
+    @patch("vembed.model.backbones.qwen3_vl_embedding.AutoConfig")
+    def test_forward_with_vision_inputs(self, mock_config, mock_auto_model):
         """Test forward pass with vision inputs."""
+        mock_cfg = MagicMock()
+        mock_cfg.hidden_size = 3584
+        mock_cfg.text_config = None
+        mock_config.from_pretrained.return_value = mock_cfg
+
         mock_model = MagicMock()
-        mock_model.config = MagicMock()
+        mock_model.config = mock_cfg
         mock_model.config.text_config = None
         mock_model.config.hidden_size = 3584
 
@@ -101,10 +107,16 @@ class TestQwen3VLEmbeddingModel:
         assert torch.allclose(output.norm(dim=1), torch.ones(1), atol=1e-5)
 
     @patch("vembed.model.backbones.qwen3_vl_embedding.AutoModel")
-    def test_pool_last_token(self, mock_auto_model):
+    @patch("vembed.model.backbones.qwen3_vl_embedding.AutoConfig")
+    def test_pool_last_token(self, mock_config, mock_auto_model):
         """Test last token pooling implementation."""
+        mock_cfg = MagicMock()
+        mock_cfg.hidden_size = 3584
+        mock_cfg.text_config = None
+        mock_config.from_pretrained.return_value = mock_cfg
+
         mock_model = MagicMock()
-        mock_model.config = MagicMock()
+        mock_model.config = mock_cfg
         mock_model.config.hidden_size = 3584
         mock_auto_model.from_pretrained.return_value = mock_model
 
@@ -150,10 +162,15 @@ class TestQwen3EmbeddingTextModel:
         assert model.feature_dim == 3584
 
     @patch("vembed.model.backbones.qwen3_embedding.AutoModel")
-    def test_forward_text_only(self, mock_auto_model):
+    @patch("vembed.model.backbones.qwen3_embedding.AutoConfig")
+    def test_forward_text_only(self, mock_config, mock_auto_model):
         """Test forward pass without vision inputs."""
+        mock_cfg = MagicMock()
+        mock_cfg.hidden_size = 3584
+        mock_config.from_pretrained.return_value = mock_cfg
+
         mock_model = MagicMock()
-        mock_model.config = MagicMock()
+        mock_model.config = mock_cfg
         mock_model.config.hidden_size = 3584
 
         mock_output = MagicMock()
@@ -192,12 +209,11 @@ class TestQwen3Processors:
         assert Qwen3VLProcessorLoader.match("qwen3_vl_embedding")
         assert not Qwen3VLProcessorLoader.match("qwen3_embedding")
 
-    @patch("transformers.AutoTokenizer")
-    def test_qwen3_embedding_processor_loading(self, mock_tokenizer):
+    @patch("vembed.model.processors.qwen3_embedding.AutoTokenizer")
+    def test_qwen3_embedding_processor_loading(self, mock_tokenizer_cls):
         """Test Qwen3-Embedding processor (tokenizer) loading."""
-        mock_tokenizer_cls = MagicMock()
-        mock_tokenizer.from_pretrained = MagicMock(return_value=MagicMock())
-        mock_tokenizer.AutoTokenizer = mock_tokenizer_cls
+        mock_tokenizer = MagicMock()
+        mock_tokenizer_cls.from_pretrained = MagicMock(return_value=mock_tokenizer)
 
         from vembed.model.processors.qwen3_embedding import Qwen3EmbeddingProcessorLoader
 
@@ -207,21 +223,29 @@ class TestQwen3Processors:
         assert not Qwen3EmbeddingProcessorLoader.match("qwen3-vl")
 
         # Test loading (verify padding_side is set to "left")
-        Qwen3EmbeddingProcessorLoader.load("test/path")
+        result = Qwen3EmbeddingProcessorLoader.load("test/path")
 
-        # The actual tokenizer call should have padding_side="left"
-        # This is verified by the implementation, but we can't easily test
-        # without a real tokenizer
+        # Verify from_pretrained was called with padding_side="left"
+        mock_tokenizer_cls.from_pretrained.assert_called_once()
+        call_kwargs = mock_tokenizer_cls.from_pretrained.call_args[1]
+        assert call_kwargs["padding_side"] == "left"
+        assert call_kwargs["trust_remote_code"] is True
 
 
 class TestModelIntegration:
     """Integration tests for Qwen3 models through VisualRetrievalModel."""
 
     @patch("vembed.model.backbones.qwen3_vl_embedding.AutoModel")
-    def test_vl_model_through_visual_retrieval_model(self, mock_auto_model):
+    @patch("vembed.model.backbones.qwen3_vl_embedding.AutoConfig")
+    def test_vl_model_through_visual_retrieval_model(self, mock_config, mock_auto_model):
         """Test that qwen3_vl mode works through VisualRetrievalModel."""
+        mock_cfg = MagicMock()
+        mock_cfg.hidden_size = 3584
+        mock_cfg.text_config = None
+        mock_config.from_pretrained.return_value = mock_cfg
+
         mock_model = MagicMock()
-        mock_model.config = MagicMock()
+        mock_model.config = mock_cfg
         mock_model.config.text_config = None
         mock_model.config.hidden_size = 3584
 
@@ -242,10 +266,15 @@ class TestModelIntegration:
         assert isinstance(model.backend, Qwen3VLEmbeddingModel)
 
     @patch("vembed.model.backbones.qwen3_embedding.AutoModel")
-    def test_embedding_model_through_visual_retrieval_model(self, mock_auto_model):
+    @patch("vembed.model.backbones.qwen3_embedding.AutoConfig")
+    def test_embedding_model_through_visual_retrieval_model(self, mock_config, mock_auto_model):
         """Test that qwen3_embedding mode works through VisualRetrievalModel."""
+        mock_cfg = MagicMock()
+        mock_cfg.hidden_size = 3584
+        mock_config.from_pretrained.return_value = mock_cfg
+
         mock_model = MagicMock()
-        mock_model.config = MagicMock()
+        mock_model.config = mock_cfg
         mock_model.config.hidden_size = 3584
 
         mock_output = MagicMock()

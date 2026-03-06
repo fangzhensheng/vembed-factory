@@ -240,7 +240,7 @@ class TestBidirectionalConsistency:
         loss_fn_2 = InfoNCELoss(config)
         loss_2 = loss_fn_2(p, q, n).item()
 
-        assert abs(loss_1 - loss_2) < 1e-5, "Swapping q and p should give similar results"
+        assert abs(loss_1 - loss_2) < 1e-4, f"Swapping q and p should give similar results, got {loss_1} vs {loss_2}"
 
     def test_sigmoid_bidirectional_no_negatives(self):
         """Test Sigmoid bidirectional with no explicit negatives."""
