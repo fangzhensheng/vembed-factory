@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 
 # Column name aliases for flexible dataset support
 COLUMN_ALIASES = {
-    "query": ["query", "caption", "text", "question", "instruction", "prompt"],
-    "positive": ["positive", "image", "answer", "content", "document", "paragraph"],
+    "query": ["query", "caption", "text", "question", "instruction", "prompt", "query_text"],
+    "positive": ["positive", "image", "answer", "content", "document", "paragraph", "pos_text"],
     "negatives": ["negatives", "negative_samples", "hard_negatives", "distractors"],
     "query_image": ["query_image", "source_image"],
 }
@@ -54,10 +54,10 @@ class GenericRetrievalDataset(Dataset):
         self.mode = mode
         self.column_mapping = column_mapping or {}
         self.enable_image_cache = enable_image_cache
-        self._image_cache = {}  # Cache for loaded images
+        self._image_cache = {}
+        self._resolved_keys = {}
 
         if isinstance(data_source, str):
-            # load_data returns list[dict] or HF Dataset
             self.data = load_data(data_source)
         else:
             self.data = data_source
@@ -106,20 +106,49 @@ class GenericRetrievalDataset(Dataset):
         """Check if content looks like an image file path."""
         return looks_like_image_path(content)
 
+    def _resolve_column_name(self, key: str, record: dict[str, Any]) -> str:
+        """Resolve column name using mapping, aliases, or default value.
+
+        Priority:
+        1. Explicit column_mapping
+        2. Auto-detect via COLUMN_ALIASES
+        3. Default fallback
+        """
+        if key in self._resolved_keys:
+            return self._resolved_keys[key]
+
+        mapped_key = self.column_mapping.get(key)
+        if mapped_key:
+            self._resolved_keys[key] = mapped_key
+            return mapped_key
+
+        aliases = COLUMN_ALIASES.get(key, [])
+        for alias in aliases:
+            if alias in record:
+                self._resolved_keys[key] = alias
+                return alias
+
+        default_key = {"query": "query", "positive": "positive", "negatives": "negatives"}.get(
+            key, key
+        )
+        self._resolved_keys[key] = default_key
+
+        if default_key not in record and aliases:
+            logger.warning(
+                f"Column '{key}' not found. Tried: {aliases}. Using default: '{default_key}'. "
+                f"Available columns: {list(record.keys())}. "
+                f"Consider setting column_mapping or adding aliases to COLUMN_ALIASES."
+            )
+
+        return default_key
+
     def __getitem__(self, idx: int) -> dict[str, Any]:
         record = self.data[idx]
 
-        # Resolve column names
-        query_key = self.column_mapping.get("query", "query")
+        query_key = self._resolve_column_name("query", record)
+        positive_key = self._resolve_column_name("positive", record)
+        negative_key = self._resolve_column_name("negatives", record)
         query_image_key = self.column_mapping.get("query_image", "query_image")
-        positive_key = self.column_mapping.get("positive", "positive")
-        negative_key = self.column_mapping.get("negatives", "negatives")
-
-        # Fallback for standard caption/image datasets
-        if query_key not in record and "caption" in record:
-            query_key = "caption"
-        if positive_key not in record and "image" in record:
-            positive_key = "image"
 
         query_text = record.get(query_key, "")
         query_image_path = record.get(query_image_key, "")

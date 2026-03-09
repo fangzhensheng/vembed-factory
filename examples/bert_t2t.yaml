@@ -19,8 +19,8 @@ epochs: 1
 batch_size: 128
 learning_rate: 2.0e-5
 
-data_path: data/train.jsonl
-val_data_path: data/val.jsonl
+data_path: data/msmarco/train.jsonl
+val_data_path: data/msmarco/val.jsonl
 
 # Memory optimization
 use_gradient_cache: true
