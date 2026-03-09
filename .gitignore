@@ -53,6 +53,7 @@ results/
 wandb/
 examples/data/
 examples/prepare_data_local.py
+examples_local/
 test_output/
 
 # Model Weights & Large Files
