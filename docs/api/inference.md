@@ -4,7 +4,7 @@ High-level inference interface for embedding models.
 
 ## Overview
 
-The inference module provides the `VEmbedFactoryPredictor` class for loading trained models and encoding text/images into embeddings. Supports batching, multi-modality, and optional dimension reduction via MRL.
+The inference module provides the `VEmbedModel` class for loading trained models and encoding text/images into embeddings. Supports batching, multi-modality, and optional dimension reduction via MRL.
 
 ### Key Features
 - Simple model loading from checkpoint
@@ -16,10 +16,10 @@ The inference module provides the `VEmbedFactoryPredictor` class for loading tra
 ## Quick Start
 
 ```python
-from vembed.inference import VEmbedFactoryPredictor
+from vembed.inference import VEmbedModel
 
 # Load model
-predictor = VEmbedFactoryPredictor("output/checkpoint-epoch-3")
+predictor = VEmbedModel("output/checkpoint-epoch-3")
 
 # Encode text
 text_emb = predictor.encode_text("a photo of a cat")  # (768,)
@@ -38,7 +38,7 @@ print(f"Similarity: {similarity:.4f}")
 ```python
 import numpy as np
 
-predictor = VEmbedFactoryPredictor("models/clip-fine-tuned")
+predictor = VEmbedModel("models/clip-fine-tuned")
 
 # Encode query
 query_emb = predictor.encode_image("query.jpg")
@@ -55,7 +55,7 @@ top_indices = np.argsort(similarities)[::-1][:10]
 ### MRL Dimension Reduction
 ```python
 # Use 256-dim embeddings for faster search
-predictor = VEmbedFactoryPredictor(
+predictor = VEmbedModel(
     "models/qwen3-mrl",
     mrl_dim=256
 )
@@ -65,7 +65,7 @@ text_emb = predictor.encode_text("hello")  # (256,) instead of (1536,)
 
 ### Pooling Methods
 ```python
-predictor = VEmbedFactoryPredictor(
+predictor = VEmbedModel(
     "model_path",
     pooling_method="cls"  # Options: "mean", "cls", "max"
 )
@@ -82,4 +82,4 @@ Where D = embedding_dim, N = batch size
 
 ---
 
-::: vembed.inference.VEmbedFactoryPredictor
+::: vembed.inference.VEmbedModel

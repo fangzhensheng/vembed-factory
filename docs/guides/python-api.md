@@ -114,10 +114,10 @@ trainer.train(
 ### Basic Usage
 
 ```python
-from vembed.inference import VEmbedFactoryPredictor
+from vembed.inference import VEmbedModel
 
 # Initialize with trained model
-predictor = VEmbedFactoryPredictor(
+predictor = VEmbedModel(
     model_path="output/checkpoint-epoch-3"
 )
 
@@ -135,7 +135,7 @@ embeddings = predictor.encode_text(texts, batch_size=32)
 ### Methods
 
 ```python
-predictor = VEmbedFactoryPredictor(model_path)
+predictor = VEmbedModel(model_path)
 
 # Text encoding
 embeddings = predictor.encode_text(
@@ -160,19 +160,19 @@ similarities = predictor.similarity(
 
 ```python
 # Specify device
-predictor = VEmbedFactoryPredictor(
+predictor = VEmbedModel(
     model_path="output/checkpoint-epoch-3",
     device="cuda:0",
 )
 
 # Half precision
-predictor = VEmbedFactoryPredictor(
+predictor = VEmbedModel(
     model_path="output/checkpoint-epoch-3",
     dtype="float16",  # or "bfloat16", "float32"
 )
 
 # Pooling method
-predictor = VEmbedFactoryPredictor(
+predictor = VEmbedModel(
     model_path="output/checkpoint-epoch-3",
     pooling_method="mean",  # or "cls", "last"
 )
@@ -467,11 +467,11 @@ trainer.train()  # Automatically uses FSDP if configured
 ### Example 4: Inference Pipeline
 
 ```python
-from vembed.inference import VEmbedFactoryPredictor
+from vembed.inference import VEmbedModel
 import numpy as np
 
 # Load model
-predictor = VEmbedFactoryPredictor("output/checkpoint-epoch-3")
+predictor = VEmbedModel("output/checkpoint-epoch-3")
 
 # Encode texts
 queries = ["a cat", "a dog", "a bird"]
@@ -518,8 +518,8 @@ model = build_model(config)
 - Building applications
 
 ```python
-from vembed.inference import VEmbedFactoryPredictor
-predictor = VEmbedFactoryPredictor(model_path)
+from vembed.inference import VEmbedModel
+predictor = VEmbedModel(model_path)
 embeddings = predictor.encode_text("query")
 ```
 

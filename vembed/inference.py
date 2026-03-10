@@ -15,7 +15,7 @@ from .model.processors import ProcessorRegistry, build_image_processor, build_te
 logger = logging.getLogger(__name__)
 
 
-class VEmbedFactoryPredictor:
+class VEmbedModel:
     """Inference engine for vembed-factory models.
 
     Loads a trained checkpoint and encodes text/images into embeddings.

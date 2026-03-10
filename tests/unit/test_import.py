@@ -9,12 +9,12 @@ def test_import_vembed():
     assert hasattr(vembed, "Trainer")
     assert hasattr(vembed, "Predictor")
     assert hasattr(vembed, "VEmbedFactoryTrainer")
-    assert hasattr(vembed, "VEmbedFactoryPredictor")
+    assert hasattr(vembed, "VEmbedModel")
 
 
 def test_import_core_modules():
     """Test that core sub-packages can be imported."""
-    from vembed.inference import VEmbedFactoryPredictor  # noqa: F401
+    from vembed.inference import VEmbedModel  # noqa: F401
     from vembed.losses.factory import LossFactory  # noqa: F401
     from vembed.model.modeling import VisualRetrievalModel  # noqa: F401
     from vembed.trainer import VEmbedFactoryTrainer  # noqa: F401
