@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import torch
 
@@ -7,8 +8,8 @@ from vembed.cli import main as cli_main
 logger = logging.getLogger(__name__)
 
 
-class VEmbedFactoryTrainer:
-    """High-level training API that wraps the CLI into a Python interface."""
+class VEmbedTrainer:
+    """Flexible training API for custom components."""
 
     def __init__(
         self,
@@ -16,11 +17,25 @@ class VEmbedFactoryTrainer:
         mode: str = "auto",
         output_dir: str = "output",
         use_gpu: bool = True,
+        loss_type: str = "infonce",
+        collator_type: str | None = None,
     ):
+        """Initialize trainer.
+
+        Args:
+            model_name: Model name or path.
+            mode: Encoder mode ('auto', 'clip', 'qwen', etc.).
+            output_dir: Directory to save outputs.
+            use_gpu: Whether to use GPU.
+            loss_type: Registered loss function name.
+            collator_type: Registered collator name.
+        """
         self.model_name = model_name
         self.mode = self._detect_mode(model_name) if mode == "auto" else mode
         self.output_dir = output_dir
         self.use_gpu = use_gpu and torch.cuda.is_available()
+        self.loss_type = loss_type
+        self.collator_type = collator_type
 
     @staticmethod
     def _detect_mode(model_name: str) -> str:
@@ -86,6 +101,15 @@ class VEmbedFactoryTrainer:
             f"model_name={self.model_name}",
             f"encoder_mode={encoder_mode}",
         ]
+
+        if self.loss_type and self.loss_type != "infonce":
+            overrides.append(f"loss_type={self.loss_type}")
+
+        if self.collator_type:
+            overrides.append(f"encoder_mode={self.collator_type}")
+        elif encoder_mode:
+            pass
+
         if text_model_name:
             overrides.append(f"text_model_name={text_model_name}")
         if image_model_name:
@@ -102,11 +126,9 @@ class VEmbedFactoryTrainer:
 
         if overrides:
             cli_args.append("--config_override")
-            # Flatten overrides and handle splitting if needed
             for override in overrides:
                 cli_args.extend(override.split())
 
-        # Launch
         logger.info(f"Starting training for {self.model_name}...")
         logger.info(f"   Mode: {self.mode}, Retrieval: {retrieval_mode}")
 

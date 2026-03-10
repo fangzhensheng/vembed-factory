@@ -18,13 +18,11 @@ from vembed.inference import VEmbedModel  # noqa: F401
 from vembed.inference import VEmbedModel as Predictor
 from vembed.losses.factory import LossFactory  # noqa: F401
 from vembed.model.modeling import VisualRetrievalModel  # noqa: F401
-from vembed.trainer import VEmbedFactoryTrainer  # noqa: F401
-from vembed.trainer import VEmbedFactoryTrainer as Trainer
+from vembed.trainer import VEmbedTrainer  # noqa: F401
 
 __all__ = [
-    "Trainer",
     "Predictor",
-    "VEmbedFactoryTrainer",
+    "VEmbedTrainer",
     "VEmbedModel",
     "VisualRetrievalModel",
     "LossFactory",
