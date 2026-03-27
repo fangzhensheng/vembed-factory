@@ -82,10 +82,8 @@ class GenericRetrievalDataset(Dataset):
             return img_input.convert("RGB"), True
 
         if not img_input:
-            # Return a black image as fallback
             return Image.new("RGB", (224, 224), (0, 0, 0)), False
 
-        # Check cache first if enabled
         if self.enable_image_cache and str(img_input) in self._image_cache:
             return self._image_cache[str(img_input)].copy(), True
 
@@ -93,7 +91,6 @@ class GenericRetrievalDataset(Dataset):
 
         try:
             img = Image.open(full_path).convert("RGB")
-            # Cache if enabled
             if self.enable_image_cache:
                 self._image_cache[str(img_input)] = img
             return img, True
@@ -147,7 +144,6 @@ class GenericRetrievalDataset(Dataset):
         query_image_path = record.get(query_image_key, "")
         positive_content = record.get(positive_key, "")
 
-        # Detect if positive content is text (t2t) or image path (t2i/i2i)
         is_text_positive = self._looks_like_image_path(positive_content) is False
 
         result = {
@@ -155,49 +151,40 @@ class GenericRetrievalDataset(Dataset):
             "pos_text": str(positive_content),
         }
 
-        # Load images only for visual retrieval modes
         query_image = None
         if query_image_path:
             query_image, q_success = self._load_image(query_image_path)
-            # Only set path if load successful to avoid downstream errors
             if q_success:
                 result["query_image_path"] = str(self._resolve_path(query_image_path))
 
         if not is_text_positive:
-            # Visual retrieval: load positive as image
             pos_img, p_success = self._load_image(positive_content)
             result["pos_image"] = pos_img
             if p_success:
                 result["pos_image_path"] = str(self._resolve_path(positive_content))
         else:
-            # Text retrieval: skip image loading (avoids unnecessary black placeholder)
             result["pos_image"] = None
 
         if query_image is not None:
             result["query_image"] = query_image
 
-        # Try to find a label/class_id for false negative cancellation
         label = record.get("label", record.get("class_id", record.get("id")))
         if label is not None:
             with contextlib.suppress(ValueError, TypeError):
                 result["label"] = int(label)
 
-        # Load negatives for training
         if self.mode == "train" and negative_key in record:
             negative_inputs = record.get(negative_key, [])
             if isinstance(negative_inputs, str):
                 negative_inputs = [negative_inputs]
 
             if is_text_positive:
-                # Text-to-text: negatives are text passages
                 result["neg_texts"] = negative_inputs
             else:
-                # Visual retrieval: negatives are images
                 neg_results = [self._load_image(p) for p in negative_inputs]
                 negative_images = [res[0] for res in neg_results]
                 result["neg_images"] = negative_images
 
-                # Only include paths for successfully loaded images
                 neg_paths = []
                 for p, (_, success) in zip(negative_inputs, neg_results, strict=True):
                     if success:
@@ -209,5 +196,4 @@ class GenericRetrievalDataset(Dataset):
         return result
 
 
-# Alias for backward compatibility
 VisualRetrievalDataset = GenericRetrievalDataset

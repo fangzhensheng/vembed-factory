@@ -40,7 +40,6 @@ def main(args_list=None):
 
     known_args, remaining_args = pre_parser.parse_known_args(args_list)
 
-    # Limit GPU memory for debugging/testing on consumer-grade GPUs
     if known_args.debug_gpu_memory:
         import torch
 
@@ -72,10 +71,8 @@ def main(args_list=None):
             logger.error("Config file not found: %s", known_args.config_file)
             sys.exit(1)
 
-    # Parse CLI overrides
     overrides = parse_override_args(known_args.config_override)
 
-    # Simple merge: defaults < yaml_config < overrides
     merged = merge_configs(defaults, {}, yaml_config, overrides)
 
     # ── 4. Build final argv and parse via HfArgumentParser ────────────

@@ -41,7 +41,6 @@ def load_data(
         elif path_obj.suffix == ".parquet":
             data_format = "parquet"
         elif path_obj.is_dir() or not path_obj.exists():
-            # Assume it's a local or remote HF dataset
             data_format = "huggingface"
         else:
             raise ValueError(f"Cannot infer format for {path}. Please specify `data_format`.")
@@ -68,14 +67,10 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     """Load JSONL file with error handling."""
     records = []
 
-    # Estimate total lines for progress bar if possible
     total_size = path.stat().st_size
-    # Rough estimate: assume average line length of 500 bytes (adjustable)
-    # Just for visual feedback, doesn't need to be perfect
     estimated_lines = total_size // 500
 
     with path.open("r", encoding="utf-8") as f:
-        # Use tqdm to wrap the file iterator
         pbar = tqdm(
             f,
             total=estimated_lines,
@@ -94,7 +89,7 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
 
 def _load_csv(path: Path, sep: str) -> list[dict[str, Any]]:
     """Load CSV/TSV file."""
-    print(f"Loading {path.name}...")  # Simple feedback for pandas which is usually fast/C-optimized
+    print(f"Loading {path.name}...")
     dataframe = pd.read_csv(path, sep=sep)
     return dataframe.to_dict("records")
 
@@ -109,8 +104,6 @@ def _load_parquet(path: Path) -> list[dict[str, Any]]:
 def _load_huggingface(path: str, split: str, **kwargs: Any) -> Dataset:
     """Load dataset from HuggingFace Hub."""
     try:
-        # Cast to Dataset because load_dataset can return DatasetDict or other types
-        # depending on arguments, but we generally expect a specific split here.
         dataset = hf_load_dataset(path, split=split, **kwargs)
         return dataset  # type: ignore
     except Exception as exc:
