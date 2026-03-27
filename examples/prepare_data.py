@@ -1,10 +1,24 @@
 import json
 import os
 import random
+from collections import defaultdict
 
-import requests
-from datasets import load_dataset
-from tqdm import tqdm
+try:
+    import requests
+except ImportError:
+    requests = None
+
+try:
+    from datasets import load_dataset
+except ImportError:
+    load_dataset = None
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    # Fallback: simple progress
+    def tqdm(iterable, desc=None, **kwargs):
+        return iterable
 
 # Karpathy Splits URLs
 KARPATHY_URLS = {
@@ -438,23 +452,307 @@ def create_dummy_t2t_data(output_dir: str) -> None:
     print(f"  - val:   {val_jsonl} ({len(val_data)} pairs)")
 
 
+def prepare_coco_from_huggingface(
+    split: str = "train,val",
+    year: int = 2017,
+    output_dir: str = "data/coco",
+) -> None:
+    """Prepare COCO dataset from HuggingFace.
+
+    Args:
+        split: "train", "val", or comma-separated multiple splits
+        year: 2014 or 2017
+        output_dir: Output directory for JSONL files
+    """
+    if load_dataset is None:
+        print("Error: HuggingFace 'datasets' library not installed")
+        print("Install with: pip install datasets")
+        return
+
+    splits = [s.strip() for s in split.split(",")]
+    os.makedirs(output_dir, exist_ok=True)
+
+    dataset_id = "detection-datasets/coco"
+    print(f"Loading COCO {year} from HuggingFace: {dataset_id}")
+
+    for split_name in splits:
+        try:
+            print(f"\nProcessing {split_name} split...")
+
+            # Load dataset
+            config = f"{year}" if year in [2014, 2017] else "2017"
+            ds = load_dataset(
+                dataset_id,
+                name=config,
+                split=split_name,
+                streaming=False,
+            )
+
+            print(f"Dataset size: {len(ds)}")
+
+            records = []
+            image_cache = {}  # Cache to avoid duplicate image processing
+
+            for item in tqdm(ds, desc=f"Processing {split_name}"):
+                # HuggingFace COCO format varies, handle common fields
+                image_id = item.get("image_id")
+                if not image_id:
+                    continue
+
+                image = item.get("image")
+                captions = item.get("captions")
+
+                # Fallback for different formats
+                if not captions:
+                    if "caption" in item:
+                        captions = [item["caption"]]
+                    elif "text" in item:
+                        captions = [item["text"]]
+                    else:
+                        continue
+
+                if not isinstance(captions, list):
+                    captions = [captions]
+
+                captions = [c.strip() for c in captions if c and isinstance(c, str)]
+                if not captions:
+                    continue
+
+                # Save image (only once per image_id)
+                if image_id not in image_cache and image is not None:
+                    try:
+                        image_dir = os.path.join(output_dir, "images")
+                        os.makedirs(image_dir, exist_ok=True)
+                        image_path = os.path.join(image_dir, f"{image_id:012d}.jpg")
+
+                        if isinstance(image, str):
+                            # URL case - skip for now
+                            pass
+                        else:
+                            # PIL Image
+                            image.convert("RGB").save(image_path)
+
+                        image_cache[image_id] = image_path
+                    except (OSError, ValueError) as e:
+                        print(f"Error saving image {image_id}: {e}")
+                        continue
+
+                # Create records for each caption
+                relative_image_path = os.path.join("images", f"{image_id:012d}.jpg")
+                for caption in captions:
+                    record = {
+                        "query": caption,
+                        "positive": relative_image_path,
+                        "image_id": image_id,
+                    }
+                    records.append(record)
+
+            # Save JSONL
+            if records:
+                output_jsonl = os.path.join(output_dir, f"{split_name}.jsonl")
+                print(f"Saving {len(records)} pairs to {output_jsonl}")
+
+                with open(output_jsonl, "w", encoding="utf-8") as f:
+                    for record in records:
+                        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+                print(f"✓ {split_name}: {output_jsonl} ({len(records)} pairs)")
+
+        except Exception as e:
+            print(f"Failed to process {split_name}: {e}")
+            return
+
+
+def prepare_coco_official(
+    dataset_root: str,
+    year: int = 2017,
+    output_dir: str = "data/coco",
+) -> None:
+    """Prepare COCO dataset from official distribution.
+
+    Expects directory structure:
+    dataset_root/
+    ├── train2017/
+    ├── val2017/
+    ├── annotations/
+    │   ├── captions_train2017.json
+    │   └── captions_val2017.json
+
+    Args:
+        dataset_root: Root directory of COCO dataset
+        year: 2014 or 2017
+        output_dir: Output directory for JSONL files
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    # For 2014, use "train2014" etc.
+    split_names = ["train", "val"]
+
+    for split in split_names:
+        # Build paths
+        if year == 2014:
+            images_dir = os.path.join(dataset_root, f"{split}2014")
+            anno_file = os.path.join(
+                dataset_root, "annotations", f"captions_{split}2014.json"
+            )
+        else:  # 2017
+            images_dir = os.path.join(dataset_root, f"{split}2017")
+            anno_file = os.path.join(
+                dataset_root, "annotations", f"captions_{split}2017.json"
+            )
+
+        if not os.path.exists(anno_file):
+            print(f"Skip {split}: annotation file not found at {anno_file}")
+            continue
+
+        print(f"\nProcessing {split} split (year {year})...")
+
+        # Load annotations
+        with open(anno_file, encoding="utf-8") as f:
+            coco_data = json.load(f)
+
+        # Build image_id -> captions mapping
+        image_captions: dict[int, list[str]] = defaultdict(list)
+        for ann in coco_data.get("annotations", []):
+            image_id = ann.get("image_id")
+            caption = ann.get("caption", "").strip()
+            if image_id and caption:
+                image_captions[image_id].append(caption)
+
+        print(f"Found {len(image_captions)} images with captions")
+
+        # Generate records
+        records = []
+        missing_images = 0
+
+        for image_id, captions in tqdm(image_captions.items(), desc=f"Generating pairs for {split}"):
+            # Find image file (search for common extensions)
+            image_path = None
+            for ext in [".jpg", ".png"]:
+                candidate = os.path.join(images_dir, f"{image_id:012d}{ext}")
+                if os.path.exists(candidate):
+                    image_path = candidate
+                    break
+
+            if not image_path:
+                missing_images += 1
+                continue
+
+            # Create record for each caption
+            relative_path = os.path.join("images", os.path.basename(image_path))
+            for caption in captions:
+                record = {
+                    "query": caption,
+                    "positive": relative_path,
+                    "image_id": image_id,
+                }
+                records.append(record)
+
+        # Save JSONL
+        if records:
+            output_jsonl = os.path.join(output_dir, f"{split}.jsonl")
+            print(f"Saving {len(records)} pairs to {output_jsonl}")
+
+            with open(output_jsonl, "w", encoding="utf-8") as f:
+                for record in records:
+                    f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+            print(f"✓ {split}: {output_jsonl}")
+            print(f"  - Pairs: {len(records)}")
+            print(f"  - Missing images: {missing_images}")
+        else:
+            print(f"⚠ No records generated for {split}")
+
+    print("\n✓ COCO dataset preparation complete")
+
+
 if __name__ == "__main__":
     import sys
 
-    dataset = sys.argv[1] if len(sys.argv) >= 2 else ""
+    if len(sys.argv) < 2:
+        print("Usage:")
+        print("  python prepare_data.py flickr30k")
+        print("  python prepare_data.py sop_i2i")
+        print("  python prepare_data.py msmarco_t2t")
+        print("  python prepare_data.py coco dummy")
+        print("  python prepare_data.py coco hf [--split train,val] [--year 2017] [--output data/coco]")
+        print("  python prepare_data.py coco official /path/to/coco [--year 2017] [--output data/coco]")
+        sys.exit(1)
 
-    if dataset == "sop_i2i":
-        prepare_sop_i2i_dataset(None, "data/stanford_online_products")
-        sys.exit(0)
+    dataset = sys.argv[1]
 
     if dataset == "flickr30k":
         prepare_flickr30k_dataset()
+        sys.exit(0)
+
+    if dataset == "sop_i2i":
+        prepare_sop_i2i_dataset(None, "data/stanford_online_products")
         sys.exit(0)
 
     if dataset == "msmarco_t2t":
         prepare_msmarco_t2t_dataset()
         sys.exit(0)
 
+    if dataset == "coco":
+        if len(sys.argv) < 3:
+            print("COCO usage:")
+            print("  python prepare_data.py coco hf [--split train,val] [--year 2017] [--output data/coco]")
+            print("  python prepare_data.py coco official /path/to/coco [--year 2017] [--output data/coco]")
+            sys.exit(1)
+
+        mode = sys.argv[2]
+
+        if mode == "hf":
+            split = "train,val"
+            year = 2017
+            output_dir = "data/coco"
+
+            i = 3
+            while i < len(sys.argv):
+                if sys.argv[i] == "--split" and i + 1 < len(sys.argv):
+                    split = sys.argv[i + 1]
+                    i += 2
+                elif sys.argv[i] == "--year" and i + 1 < len(sys.argv):
+                    year = int(sys.argv[i + 1])
+                    i += 2
+                elif sys.argv[i] == "--output" and i + 1 < len(sys.argv):
+                    output_dir = sys.argv[i + 1]
+                    i += 2
+                else:
+                    i += 1
+
+            prepare_coco_from_huggingface(split, year, output_dir)
+            sys.exit(0)
+
+        elif mode == "official":
+            if len(sys.argv) < 4:
+                print("Error: official mode requires dataset root path")
+                print("Usage: python prepare_data.py coco official /path/to/coco [--year 2017] [--output data/coco]")
+                sys.exit(1)
+
+            dataset_root = sys.argv[3]
+            year = 2017
+            output_dir = "data/coco"
+
+            i = 4
+            while i < len(sys.argv):
+                if sys.argv[i] == "--year" and i + 1 < len(sys.argv):
+                    year = int(sys.argv[i + 1])
+                    i += 2
+                elif sys.argv[i] == "--output" and i + 1 < len(sys.argv):
+                    output_dir = sys.argv[i + 1]
+                    i += 2
+                else:
+                    i += 1
+
+            prepare_coco_official(dataset_root, year, output_dir)
+            sys.exit(0)
+
+        else:
+            print(f"Unknown COCO mode: {mode}")
+            print("Available modes: hf, official")
+            sys.exit(1)
+
     print(f"Unknown dataset: {dataset}")
-    print("Available datasets: sop_i2i, flickr30k, msmarco_t2t")
+    print("Available datasets: flickr30k, sop_i2i, msmarco_t2t, coco")
     sys.exit(1)

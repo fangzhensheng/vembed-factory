@@ -12,7 +12,7 @@ data_path: "data/train.jsonl"
 val_data_path: "data/val.jsonl"
 
 output_dir: "experiments/output_qwen3_vl_in_batch_hard"
-epochs: 3
+epochs: 5
 batch_size: 128  # 更大的 batch size 有更多负样本可选
 learning_rate: 1.0e-5
 

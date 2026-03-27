@@ -11,7 +11,7 @@ data_path: "data/train.jsonl"
 val_data_path: "data/val.jsonl"
 
 output_dir: "experiments/output_infonce_hard_negative"
-epochs: 3
+epochs: 5
 batch_size: 128
 learning_rate: 1.0e-5
 

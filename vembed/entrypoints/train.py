@@ -228,8 +228,11 @@ def main():
 
         val_dataloader = DataLoader(val_dataset, **val_dataloader_kwargs)
 
+    # Build loss function
+    criterion = LossFactory.create(config)
+
     # Build optimizer and scheduler
-    optimizer = build_optimizer(model, config)
+    optimizer = build_optimizer(model, config, criterion=criterion)
     num_epochs = int(config["epochs"])
     steps_per_epoch = len(dataloader)
 
@@ -240,9 +243,6 @@ def main():
         f"Scheduler: {config.get('scheduler_type', 'cosine')}, "
         f"warmup={warmup_steps}, total={max_train_steps}"
     )
-
-    # Build loss function
-    criterion = LossFactory.create(config)
 
     # Unify dtype before FSDP wrapping to avoid "mixed dtype" errors during all_gather
     unify_model_dtype_for_fsdp(model, config, accelerator)

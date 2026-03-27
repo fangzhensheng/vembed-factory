@@ -19,7 +19,7 @@ image_root: data/images
 output_dir: experiments/output_qwen_colbert
 
 # Training: gradient cache for handling large LLM
-epochs: 1
+epochs: 5
 batch_size: 64
 learning_rate: 5.0e-05
 use_gradient_cache: true

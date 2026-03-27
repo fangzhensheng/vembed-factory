@@ -27,7 +27,7 @@ use_gradient_cache: true
 gradient_cache_chunk_size: 128
 
 output_dir: experiments/output_sop_dinov2_colbert
-epochs: 1
+epochs: 20
 batch_size: 128
 eval_batch_size: 32
 learning_rate: 1.0e-04

@@ -7,7 +7,7 @@ use_lora: true
 batch_size: 64
 learning_rate: 2.0e-5
 warmup_ratio: 0.1
-epochs: 1
+epochs: 5
 loss_type: infonce
 
 # Data paths (can be overridden by CLI args)

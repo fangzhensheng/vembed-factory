@@ -15,7 +15,7 @@ retrieval_mode: "t2t"
 use_lora: true
 
 output_dir: experiments/output_bert_t2t
-epochs: 1
+epochs: 5
 batch_size: 128
 learning_rate: 2.0e-5
 

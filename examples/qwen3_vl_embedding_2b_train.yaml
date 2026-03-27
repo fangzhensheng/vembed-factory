@@ -14,7 +14,7 @@ image_root: "data/images"
 
 # Training
 output_dir: "experiments/output_qwen3_2b"
-epochs: 1
+epochs: 5
 batch_size: 128
 learning_rate: 2.0e-5
 loss_type: "infonce"

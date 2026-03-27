@@ -133,13 +133,6 @@ class GenericRetrievalDataset(Dataset):
         )
         self._resolved_keys[key] = default_key
 
-        if default_key not in record and aliases:
-            logger.warning(
-                f"Column '{key}' not found. Tried: {aliases}. Using default: '{default_key}'. "
-                f"Available columns: {list(record.keys())}. "
-                f"Consider setting column_mapping or adding aliases to COLUMN_ALIASES."
-            )
-
         return default_key
 
     def __getitem__(self, idx: int) -> dict[str, Any]:

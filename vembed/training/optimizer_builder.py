@@ -10,17 +10,24 @@ from transformers import get_scheduler
 logger = get_logger(__name__)
 
 
-def build_optimizer(model: torch.nn.Module, config: dict[str, Any]) -> torch.optim.Optimizer:
+def build_optimizer(
+    model: torch.nn.Module,
+    config: dict[str, Any],
+    criterion: torch.nn.Module | None = None,
+) -> torch.optim.Optimizer:
     """Build AdamW optimizer with weight decay for non-bias and LayerNorm parameters.
 
     Args:
         model: The model to optimize.
         config: Configuration dict with 'lr' and optional 'weight_decay'.
+        criterion: Optional loss module with learnable parameters (e.g. SigLIP bias).
 
     Returns:
         Configured AdamW optimizer.
     """
     no_decay = {"bias", "LayerNorm.weight", "layer_norm.weight"}
+    
+    # Model parameters
     param_groups = [
         {
             "params": [
@@ -39,6 +46,19 @@ def build_optimizer(model: torch.nn.Module, config: dict[str, Any]) -> torch.opt
             "weight_decay": 0.0,
         },
     ]
+
+    # Criterion parameters (e.g. logit_scale, logit_bias in SigLIP)
+    if criterion is not None:
+        criterion_params = [p for p in criterion.parameters() if p.requires_grad]
+        if criterion_params:
+            logger.info(f"Adding {len(criterion_params)} learnable parameters from criterion to optimizer")
+            # Usually loss params like scalar/bias don't need weight decay
+            param_groups.append({
+                "params": criterion_params,
+                "weight_decay": 0.0,
+                "lr": float(config.get("lr", 1e-4)), # Use same LR
+            })
+
     if "lr" not in config and "learning_rate" in config:
         config["lr"] = config["learning_rate"]
 
