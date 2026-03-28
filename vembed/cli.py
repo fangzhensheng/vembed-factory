@@ -148,10 +148,13 @@ def main(args_list=None):
     if train_config.get("model_name_or_path") and not train_config.get("model_name"):
         train_config["model_name"] = train_config["model_name_or_path"]
 
-    # FSDP + gradient cache incompatibility
+    # FSDP + gradient cache compatibility notice
     if train_config.get("use_fsdp") and train_config.get("use_gradient_cache"):
-        logger.warning("Disabling Gradient Cache (incompatible with FSDP)")
-        train_config["use_gradient_cache"] = False
+        logger.info(
+            "Using FSDP with Gradient Cache. "
+            "This enables memory-efficient training for very large models. "
+            "Ensure all GPUs have consistent FSDP wrapping."
+        )
 
     # ── 7. Save config & launch training ──────────────────────────────
     os.makedirs(train_config["output_dir"], exist_ok=True)

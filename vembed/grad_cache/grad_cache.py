@@ -9,6 +9,7 @@ import torch
 from torch import Tensor, nn
 from torch.cuda.amp import GradScaler, autocast
 from torch.utils.checkpoint import get_device_states, set_device_states
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 
 class RandContext:
@@ -111,6 +112,10 @@ class GradCache:
         self.fp16 = fp16
         self.scaler = scaler
 
+        # Detect distributed training framework (FSDP or DDP)
+        self.is_fsdp = any(isinstance(m, FSDP) for m in models)
+        self.is_ddp = any(isinstance(m, nn.parallel.DistributedDataParallel) for m in models)
+
         self._get_input_tensors_strict = False
         self._inactive_params_cache = {}
 
@@ -205,25 +210,28 @@ class GradCache:
         return []
 
     def model_call(self, model: nn.Module, model_input: Any) -> Any:
-        """Call the model with the given input."""
-        with autocast() if self.fp16 else nullcontext():
-            if isinstance(model_input, Tensor):
-                return model(model_input)
+        """Call the model with the given input.
 
-            if isinstance(model_input, list):
-                return model(*model_input)
+        Note: AMP (autocast) is delegated to the external accelerator framework.
+        Do NOT apply autocast here to avoid conflicts with FSDP's MixedPrecision settings.
+        """
+        if isinstance(model_input, Tensor):
+            return model(model_input)
 
-            if isinstance(model_input, (dict, UserDict)):
-                return model(**model_input)
+        if isinstance(model_input, list):
+            return model(*model_input)
 
-            if isinstance(model_input, tuple) and len(model_input) == 2:
-                model_args, model_kwargs = model_input
-                if isinstance(model_args, list) and isinstance(model_kwargs, dict):
-                    return model(*model_args, **model_kwargs)
+        if isinstance(model_input, (dict, UserDict)):
+            return model(**model_input)
 
-            raise NotImplementedError(
-                f"Model call not implemented for input type {type(model_input)}"
-            )
+        if isinstance(model_input, tuple) and len(model_input) == 2:
+            model_args, model_kwargs = model_input
+            if isinstance(model_args, list) and isinstance(model_kwargs, dict):
+                return model(*model_args, **model_kwargs)
+
+        raise NotImplementedError(
+            f"Model call not implemented for input type {type(model_input)}"
+        )
 
     def get_reps(self, model_out: Any) -> Tensor:
         """Extract representation tensor from model output."""
@@ -273,18 +281,15 @@ class GradCache:
         """
         Compute gradients w.r.t representations (the "cache").
 
+        Note: Loss computation and scaling are handled by external accelerator framework.
+        Do NOT apply autocast or GradScaler here to maintain compatibility with FSDP.
+
         Returns:
             Tuple of (list of gradient tensors, loss tensor).
         """
         reps_with_grad = [r.detach().requires_grad_() for r in reps]
-
-        with autocast() if self.fp16 else nullcontext():
-            loss = self.compute_loss(*reps_with_grad, **loss_kwargs)
-
-        if self.fp16 and self.scaler is not None:
-            self.scaler.scale(loss).backward()
-        else:
-            loss.backward()
+        loss = self.compute_loss(*reps_with_grad, **loss_kwargs)
+        loss.backward()
 
         cache = []
         for r in reps_with_grad:
@@ -415,9 +420,22 @@ class GradCache:
         random_states: list[RandContext],
         no_sync_except_last: bool = False,
     ) -> None:
-        """Recompute forward and backward with cached gradients."""
+        """Recompute forward and backward with cached gradients.
+
+        Note: FSDP's no_sync() behavior differs significantly from DDP and can cause
+        parameter sharding state machine errors. Disabled for FSDP models to ensure safety.
+        """
         if no_sync_except_last:
-            sync_contexts = [model.no_sync for _ in range(len(model_inputs) - 1)] + [nullcontext]
+            if isinstance(model, nn.parallel.DistributedDataParallel):
+                sync_contexts = [model.no_sync for _ in range(len(model_inputs) - 1)] + [nullcontext]
+            elif isinstance(model, FSDP):
+                logger.warning(
+                    "no_sync_except_last disabled for FSDP model to avoid parameter sharding state errors. "
+                    "Consider using Accelerator's gradient_accumulation instead."
+                )
+                sync_contexts = [nullcontext] * len(model_inputs)
+            else:
+                sync_contexts = [nullcontext] * len(model_inputs)
         else:
             sync_contexts = [nullcontext] * len(model_inputs)
 
@@ -439,9 +457,8 @@ class GradCache:
 
     def cache_step(self, *model_inputs, no_sync_except_last: bool = False, **loss_kwargs) -> Tensor:
         """Run a full Gradient Cache step."""
-        if no_sync_except_last:
-            if not all(isinstance(m, nn.parallel.DistributedDataParallel) for m in self.models):
-                raise ValueError("no_sync_except_last requires all models to be wrapped in DDP.")
+        if no_sync_except_last and not (self.is_fsdp or self.is_ddp):
+            logging.warning("no_sync_except_last has no effect on non-distributed models")
 
         chunked_inputs = [
             self.split_inputs(inp, chunk_size)

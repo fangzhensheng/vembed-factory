@@ -281,6 +281,10 @@ def main():
     if val_dataloader:
         val_dataloader = accelerator.prepare(val_dataloader)
 
+    # Log FSDP + GradCache compatibility status
+    if config.get("use_fsdp") and config.get("use_gradient_cache"):
+        accelerator.print("✓ FSDP + Gradient Cache enabled for memory-efficient distributed training")
+
     # Enable static graph for DDP optimization
     enable_static_graph(model, config, accelerator)
 

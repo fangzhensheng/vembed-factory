@@ -166,24 +166,23 @@ class GradientCache:
             inputs.append(n_batch)
             models.append(model)
 
-        fp16 = False
-        scaler = None
-        if self.accelerator:
-            mixed = self.accelerator.mixed_precision
-            if mixed == "fp16":
-                fp16 = True
-                scaler = getattr(self.accelerator, "scaler", None)
-
         gc = LibGradCache(
             models=models,
             chunk_sizes=self.chunk_size,
             loss_fn=self.loss_fn,
             split_input_fn=_split_vlm_inputs,
             get_rep_fn=_extract_rep,
-            fp16=fp16,
-            scaler=scaler,
+            fp16=False,
+            scaler=None,
         )
 
-        no_sync = bool(self.accelerator and self.accelerator.num_processes > 1)
-        loss = gc.cache_step(*inputs, no_sync_except_last=no_sync, **loss_kwargs)
+        use_no_sync = False
+        if self.accelerator and self.accelerator.num_processes > 1:
+            from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+            is_fsdp = isinstance(model, FSDP) or (
+                hasattr(model, "module") and isinstance(model.module, FSDP)
+            )
+            use_no_sync = not is_fsdp
+
+        loss = gc.cache_step(*inputs, no_sync_except_last=use_no_sync, **loss_kwargs)
         return loss.item()
