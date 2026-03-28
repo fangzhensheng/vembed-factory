@@ -46,7 +46,7 @@ There are excellent embedding libraries out there. Here's where **vembed-factory
 | **Composed Encoders** | ✅ | ❌ | ❌ |
 | **Knowledge Distillation** | ✅ | ✅ | ✅ |
 | **LoRA fine-tuning** | ✅ | ❌ | ❌ |
-| **W&B / TensorBoard** | ✅ | ✅ | ❌ |
+| **WandB / SwanLab / TensorBoard** | ✅ | ✅ | ❌ |
 
 **Core philosophy**: *"Do one thing and do it well."* We focus solely on **Training** and **Evaluation**, and output standard HuggingFace weights that you can deploy anywhere — LangChain, Milvus, Vespa, or any vector database.
 
@@ -64,7 +64,7 @@ There are excellent embedding libraries out there. Here's where **vembed-factory
   - **LR Scheduling**: Cosine, linear, constant with warmup
   - **LoRA**: Parameter-efficient fine-tuning
 - **Universal Data Engine**: JSONL, CSV, Parquet, HuggingFace Datasets with flexible column mapping
-- **Experiment Tracking**: Built-in W&B and TensorBoard integration
+- **Experiment Tracking**: Built-in WandB, SwanLab and TensorBoard integration
 
 ## Supported Models
 
@@ -142,12 +142,12 @@ image_emb = predictor.encode_image("cat.jpg")
 
 ```bash
 # Train using a YAML config (Recommended)
-python run.py examples/qwen3_2b_train.yaml
-
-# Train CLIP with MRL
 python run.py examples/clip_train.yaml
 
-# Train ColPali (Late Interaction)
+# Train Qwen3-VL 2B (Multimodal)
+python run.py examples/qwen3_vl_embedding_2b_train.yaml
+
+# Train ColBERT (Late Interaction)
 python run.py examples/qwen_colbert.yaml
 ```
 
@@ -184,7 +184,10 @@ Key configuration options (can be set in YAML or CLI):
 | `warmup_ratio` | `0.1` | Fraction of training steps for warmup |
 | `weight_decay` | `0.01` | AdamW weight decay |
 | `max_grad_norm` | `1.0` | Gradient clipping (0 to disable) |
-| `report_to` | `none` | Experiment tracker: `wandb`, `tensorboard`, `all`, `none` |
+| `report_to` | `none` | Experiment tracker: `wandb`, `swanlab`, `tensorboard`, `none` |
+| `run_name` | `None` | Experiment name (shown in WandB/SwanLab dashboard) |
+| `run_tags` | `None` | Tags for organizing experiments in WandB/SwanLab |
+| `run_notes` | `None` | Notes/description for the experiment (visible in WandB/SwanLab) |
 | `logging_steps` | `10` | Log metrics every N steps |
 | `use_gradient_cache` | `true` | Memory-efficient large batch training |
 | `use_mrl` | `false` | Matryoshka Representation Learning |
