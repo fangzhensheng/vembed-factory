@@ -148,7 +148,24 @@ class TrainingArguments:
     )
     report_to: str | None = field(
         default=None,
-        metadata={"help": "The list of integrations to report the results and logs to."},
+        metadata={
+            "help": "Experiment tracking platform (wandb, swanlab, tensorboard, or none). "
+            "wandb: Weights & Biases (pip install wandb), swanlab: SwanLab (pip install swanlab), "
+            "tensorboard: TensorBoard (local, no account needed), "
+            "none: no tracking (default)."
+        },
+    )
+    run_name: str | None = field(
+        default=None,
+        metadata={"help": "Experiment name to show in WandB/SwanLab dashboard (e.g., 'clip-baseline-v1')"},
+    )
+    run_tags: list[str] | None = field(
+        default=None,
+        metadata={"help": "Tags for organizing experiments in WandB/SwanLab (e.g., ['baseline', 'clip', 'v1'])"},
+    )
+    run_notes: str | None = field(
+        default=None,
+        metadata={"help": "Notes/description for the experiment (visible in WandB/SwanLab)"},
     )
     gradient_checkpointing: bool = field(
         default=False,

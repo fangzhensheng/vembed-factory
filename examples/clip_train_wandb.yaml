@@ -1,0 +1,40 @@
+# CLIP ViT-B/32 with WandB Tracking
+# This example shows how to integrate W&B for experiment tracking
+
+# Model and data
+model_name: openai/clip-vit-base-patch32
+data_path: data/stanford_online_products/train.jsonl
+val_data_path: data/stanford_online_products/val.jsonl
+image_root: data/stanford_online_products
+
+# Training setup
+batch_size: 128
+epochs: 3
+learning_rate: 1e-4
+warmup_steps: 100
+
+# Loss and retrieval
+loss_type: infonce
+retrieval_mode: t2i
+pooling_method: cls
+
+# Experiment tracking with Weights & Biases
+# Installation: pip install wandb
+# Usage: wandb login (if not already authenticated)
+report_to: wandb
+run_name: "clip-sop-baseline"  # Experiment name visible in W&B dashboard
+
+# Optional: Add tags for filtering in W&B dashboard
+run_tags: [baseline, clip, infonce]
+
+# Optional: Add notes/description visible in W&B
+run_notes: "Baseline CLIP training on SOP dataset with default hyperparameters"
+
+# Output
+output_dir: experiments/clip_wandb_v1
+logging_steps: 10
+save_steps: 100
+eval_steps: 500
+
+# Optional: Validate data during training
+validate_data: false

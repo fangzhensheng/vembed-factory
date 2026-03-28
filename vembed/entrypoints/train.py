@@ -65,14 +65,20 @@ def main():
     # Note: GPU memory limit is set in cli.py before accelerator initialization
     # Do NOT call torch.cuda.set_per_process_memory_fraction here (can only be called once per process)
 
-    # Initialize distributed training
     use_grad_checkpointing, use_gradient_cache, find_unused = get_distributed_config(config)
 
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=find_unused)
     report_to = config.get("report_to", "none")
-    log_with, init_kwargs = resolve_tracker(report_to)
+    run_name = config.get("run_name")
+    run_tags = config.get("run_tags")
+    run_notes = config.get("run_notes")
+    log_with, init_kwargs = resolve_tracker(
+        report_to,
+        run_name=run_name,
+        run_tags=run_tags,
+        run_notes=run_notes,
+    )
 
-    # Configure gradient accumulation for accelerator
     gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
 
     accelerator = Accelerator(

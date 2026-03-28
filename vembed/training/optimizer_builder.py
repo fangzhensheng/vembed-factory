@@ -26,8 +26,7 @@ def build_optimizer(
         Configured AdamW optimizer.
     """
     no_decay = {"bias", "LayerNorm.weight", "layer_norm.weight"}
-    
-    # Model parameters
+
     param_groups = [
         {
             "params": [
@@ -47,16 +46,14 @@ def build_optimizer(
         },
     ]
 
-    # Criterion parameters (e.g. logit_scale, logit_bias in SigLIP)
     if criterion is not None:
         criterion_params = [p for p in criterion.parameters() if p.requires_grad]
         if criterion_params:
             logger.info(f"Adding {len(criterion_params)} learnable parameters from criterion to optimizer")
-            # Usually loss params like scalar/bias don't need weight decay
             param_groups.append({
                 "params": criterion_params,
                 "weight_decay": 0.0,
-                "lr": float(config.get("lr", 1e-4)), # Use same LR
+                "lr": float(config.get("lr", 1e-4)),
             })
 
     if "lr" not in config and "learning_rate" in config:
@@ -98,11 +95,19 @@ def build_scheduler(
     return scheduler, warmup_steps
 
 
-def resolve_tracker(report_to: str | None) -> tuple[str | None, dict[str, Any]]:
+def resolve_tracker(
+    report_to: str | None,
+    run_name: str | None = None,
+    run_tags: list[str] | None = None,
+    run_notes: str | None = None,
+) -> tuple[str | None, dict[str, Any]]:
     """Resolve experiment tracker configuration for accelerate.
 
     Args:
         report_to: Tracker name (e.g., 'wandb', 'tensorboard', 'swanlab', 'none').
+        run_name: Experiment name for the tracker.
+        run_tags: Tags for organizing experiments.
+        run_notes: Notes/description for the experiment.
 
     Returns:
         Tuple of (log_with, init_kwargs) for accelerator.init_trackers().
@@ -113,21 +118,25 @@ def resolve_tracker(report_to: str | None) -> tuple[str | None, dict[str, Any]]:
 
     init_kwargs: dict[str, Any] = {}
 
-    # swanlab became a built-in tracker in accelerate 1.8.0
     if report_to == "swanlab":
         try:
             import accelerate
             from packaging.version import Version
 
             if Version(accelerate.__version__) >= Version("1.8.0"):
-                return "swanlab", {"swanlab": {"experiment_name": "vembed-factory"}}
+                swanlab_config = {"experiment_name": run_name or "vembed-factory"}
+                if run_tags:
+                    swanlab_config["tags"] = run_tags
+                if run_notes:
+                    swanlab_config["description"] = run_notes
+                return "swanlab", {"swanlab": swanlab_config}
         except ImportError:
             pass
 
         try:
             from swanlab.integration.accelerate import SwanLabTracker
 
-            tracker = SwanLabTracker("vembed-factory")
+            tracker = SwanLabTracker(run_name or "vembed-factory")
             return tracker, {}
         except ImportError:
             logger.warning(
@@ -135,5 +144,29 @@ def resolve_tracker(report_to: str | None) -> tuple[str | None, dict[str, Any]]:
                 "Install with: pip install swanlab"
             )
             return None, {}
+
+    if report_to == "wandb":
+        try:
+            import wandb  # noqa: F401
+        except ImportError:
+            logger.warning(
+                "wandb requested but wandb package not found. "
+                "Install with: pip install wandb"
+            )
+            return None, {}
+
+        wandb_config = {}
+        if run_name:
+            wandb_config["name"] = run_name
+        if run_tags:
+            wandb_config["tags"] = run_tags
+        if run_notes:
+            wandb_config["notes"] = run_notes
+
+        if wandb_config:
+            init_kwargs["wandb"] = wandb_config
+
+    elif report_to == "tensorboard":
+        pass
 
     return report_to, init_kwargs

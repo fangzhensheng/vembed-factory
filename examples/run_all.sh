@@ -72,10 +72,12 @@ run_test() {
 run_models() {
     run_test clip_train.yaml                          "CLIP ViT-B/32 (auto, t2i)"
     run_test siglip_train.yaml                        "SigLIP (auto, t2i)"
+    run_test coco_clip_train.yaml                     "CLIP on COCO (auto, t2i)"
+    run_test qwen3_embedding_train.yaml               "Qwen3-Embedding (qwen3_embedding, t2t)"
     run_test qwen3_vl_embedding_2b_train.yaml         "Qwen3-VL-2B (qwen3_vl, t2i, flash)"
     run_test qwen3_vl_embedding_8b_train.yaml         "Qwen3-VL-8B (qwen3_vl, t2i, flash)"
     run_test dinov2_bert_train.yaml                   "DINOv2+BERT (composed, t2i)"
-    run_test bge_t2t.yaml                             "BGE-M3 (composed, t2t)"
+    run_test bge_t2t.yaml                             "BGE-M3 (bge backend, t2t)"
     run_test bert_t2t.yaml                            "BERT (auto/custom, t2t)"
     run_test dinov2_i2i.yaml                          "DINOv2 (auto/custom, i2i)"
     run_test dinov3_i2i.yaml                          "DINOv3 (auto/custom, i2i)"
@@ -84,10 +86,12 @@ run_models() {
 
 run_losses() {
     run_test clip_train.yaml                          "InfoNCE (default)"
+    run_test infonce_with_hard_mining.yaml            "InfoNCE + Hard Negative Mining"
     run_test clip_triplet.yaml                        "Triplet (hardest-neg mining)"
     run_test clip_cosent.yaml                         "CoSENT (cosine sentence)"
     run_test qwen_colbert.yaml                        "ColBERT (late interaction, Qwen)"
     run_test dinov2_colbert.yaml                      "ColBERT (late interaction, DINOv2)"
+    run_test dinov2_colbert_small_val.yaml            "ColBERT Small Validation (fast)"
     run_test clip_distillation.yaml                   "Knowledge Distillation (KL)"
 }
 
@@ -102,6 +106,10 @@ run_modes() {
 
 run_features() {
     run_test qwen3_vl_embedding_8b_fsdp.yaml          "FSDP multi-GPU (Qwen3-VL-8B)"
+    run_test qwen3_vl_embedding_hard_negative.yaml    "Hard Negative Mining (Qwen3-VL)"
+    run_test qwen3_vl_embedding_in_batch_hard.yaml    "In-Batch Hard Negatives (Qwen3-VL)"
+    run_test clip_train_wandb.yaml                    "WandB config smoke test (CLIP)" --report_to none
+    run_test qwen3_vl_train_swanlab.yaml              "SwanLab config smoke test (Qwen3-VL)" --report_to none
 }
 
 # ========== Main Execution ==========
