@@ -210,3 +210,23 @@ class TrainingArguments:
         default=None,
         metadata={"help": "GPU memory limit in GB for testing (e.g., 24). null=no limit."},
     )
+    gradient_accumulation_steps: int = field(
+        default=1,
+        metadata={"help": "Number of updates steps to accumulate before performing backward/update pass."},
+    )
+    eval_steps: int = field(
+        default=0,
+        metadata={"help": "Run validation every N steps. 0 means validation only at end of epoch."},
+    )
+    early_stopping_patience: int = field(
+        default=-1,
+        metadata={"help": "Early stopping patience. Stops training if metric doesn't improve for N evaluations. -1 disables."},
+    )
+    eval_metric: str = field(
+        default="val/loss",
+        metadata={"help": "Metric to monitor for early stopping (e.g., val/loss, val/recall@1)."},
+    )
+    eval_metric_better: str = field(
+        default="min",
+        metadata={"help": "Direction for optimization: 'min' for loss-like metrics, 'max' for recall-like metrics."},
+    )

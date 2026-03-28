@@ -22,7 +22,13 @@ logger = get_logger(__name__)
 
 
 class Trainer:
-    """Orchestrates the training loop with support for distributed training, gradient caching, and distillation."""
+    """Orchestrates the training loop with support for distributed training, gradient caching, and distillation.
+
+    Gradient Accumulation:
+        Uses accelerator.accumulate(model) for proper distributed training support.
+        This handles DDP synchronization, loss scaling, and boundary cases automatically.
+        Simply wrap the training step with: `with self.accelerator.accumulate(self.model):`
+    """
 
     def __init__(
         self,
@@ -89,6 +95,17 @@ class Trainer:
         self.processor = config.get("processor")
         self.encoder_mode = config.get("encoder_mode", "auto")
 
+        # Gradient accumulation and validation config
+        self.grad_accum_steps = int(config.get("gradient_accumulation_steps", 1))
+        self.eval_steps = int(config.get("eval_steps", 0))
+        self.early_stopping_patience = int(config.get("early_stopping_patience", -1))
+        self.eval_metric = config.get("eval_metric", "val/loss")
+        self.eval_metric_better = config.get("eval_metric_better", "min")
+
+        # Early stopping state tracking
+        self.best_metric = float("inf") if self.eval_metric_better == "min" else float("-inf")
+        self.patience_counter = 0
+
     def train(self) -> None:
         """Run the complete training loop."""
         self.model.train()
@@ -101,24 +118,36 @@ class Trainer:
             for step, batch in enumerate(
                 tqdm(self.dataloader, disable=not self.accelerator.is_local_main_process)
             ):
-                global_step += 1
+                with self.accelerator.accumulate(self.model):
+                    loss_val = self._train_step(batch)
+                    global_step += 1
 
-                loss_val = self._train_step(batch)
+                    if global_step % self.logging_steps == 0:
+                        self._log_step(global_step, loss_val, epoch, step, steps_per_epoch)
 
-                if global_step % self.logging_steps == 0:
-                    self._log_step(global_step, loss_val, epoch, step, steps_per_epoch)
+                    if self.save_steps > 0 and global_step % self.save_steps == 0:
+                        self._save_checkpoint(global_step)
 
-                if self.save_steps > 0 and global_step % self.save_steps == 0:
-                    self._save_checkpoint(global_step)
+                    # Mid-epoch validation
+                    if self.eval_steps > 0 and global_step % self.eval_steps == 0 and self.val_dataloader:
+                        val_metric = self.evaluator.evaluate(self.val_dataloader, global_step)
+                        if self.accelerator.log_with is not None:
+                            self.accelerator.log({"val/loss": val_metric}, step=global_step)
+                        if self._check_early_stopping(val_metric):
+                            self.accelerator.print(f"Early stopping triggered at step {global_step}")
+                            return
 
             # Save checkpoint after each epoch
             self._save_checkpoint_epoch(epoch)
 
-            # Validate if dataloader is provided
-            if self.val_dataloader:
+            # Epoch-end validation
+            if self.val_dataloader and self.eval_steps == 0:
                 avg_loss = self.evaluator.evaluate(self.val_dataloader, global_step)
                 if self.accelerator.log_with is not None:
                     self.accelerator.log({"val/loss": avg_loss}, step=global_step)
+                if self._check_early_stopping(avg_loss):
+                    self.accelerator.print(f"Early stopping triggered at epoch {epoch + 1}")
+                    return
 
     def _train_step(self, batch: dict[str, Any]) -> float:
         """Execute a single training step.
@@ -144,11 +173,14 @@ class Trainer:
             Loss value.
         """
         loss_val = self.grad_cache.step(self.model, batch)
-        if self.max_grad_norm > 0:
+
+        if self.accelerator.sync_gradients and self.max_grad_norm > 0:
             self.accelerator.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+
         self.optimizer.step()
         self.scheduler.step()
         self.optimizer.zero_grad()
+
         return loss_val
 
     def _step_standard(self, batch: dict[str, Any]) -> float:
@@ -179,13 +211,14 @@ class Trainer:
 
         loss = self.criterion(q_embs, p_embs, n_embs, **loss_kwargs)
 
-        # Knowledge distillation
         if self.teacher_model is not None and self.distillation_loss_fn is not None:
             loss = self._apply_distillation(batch, q_embs, p_embs, loss)
 
         self.accelerator.backward(loss)
-        if self.max_grad_norm > 0:
+
+        if self.accelerator.sync_gradients and self.max_grad_norm > 0:
             self.accelerator.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+
         self.optimizer.step()
         self.scheduler.step()
         self.optimizer.zero_grad()
@@ -303,6 +336,41 @@ class Trainer:
             self.distillation_alpha * student_loss + (1.0 - self.distillation_alpha) * distill_loss
         )
         return loss
+
+    def _check_early_stopping(self, metric_value: float) -> bool:
+        """Check if early stopping should be triggered.
+
+        Args:
+            metric_value: The metric value to evaluate.
+
+        Returns:
+            True if early stopping should be triggered, False otherwise.
+        """
+        if self.early_stopping_patience < 0:
+            return False
+
+        is_better = (
+            metric_value < self.best_metric
+            if self.eval_metric_better == "min"
+            else metric_value > self.best_metric
+        )
+
+        if is_better:
+            self.best_metric = metric_value
+            self.patience_counter = 0
+            self.accelerator.print(
+                f"Metric improved to {metric_value:.4f}. Best: {self.best_metric:.4f}"
+            )
+            return False
+
+        self.patience_counter += 1
+        self.accelerator.print(
+            f"Metric did not improve. Patience: {self.patience_counter}/{self.early_stopping_patience}"
+        )
+        if self.patience_counter >= self.early_stopping_patience:
+            return True
+
+        return False
 
     def _log_step(
         self,

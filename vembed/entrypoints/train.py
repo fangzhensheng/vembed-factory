@@ -74,10 +74,14 @@ def main():
     report_to = config.get("report_to", "none")
     log_with, init_kwargs = resolve_tracker(report_to)
 
+    # Configure gradient accumulation for accelerator
+    gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
+
     accelerator = Accelerator(
         kwargs_handlers=[ddp_kwargs],
         log_with=log_with,
         project_dir=config["output_dir"],
+        gradient_accumulation_steps=gradient_accumulation_steps,
     )
     if log_with is not None:
         accelerator.init_trackers(
@@ -245,10 +249,23 @@ def main():
     scheduler, warmup_steps = build_scheduler(optimizer, config, num_epochs, steps_per_epoch)
 
     max_train_steps = num_epochs * steps_per_epoch
+    grad_accum_steps = config.get("gradient_accumulation_steps", 1)
+    effective_batch_size = config["batch_size"] * grad_accum_steps
     accelerator.print(
         f"Scheduler: {config.get('scheduler_type', 'cosine')}, "
         f"warmup={warmup_steps}, total={max_train_steps}"
     )
+    accelerator.print(
+        f"Gradient Accumulation: {grad_accum_steps} steps, "
+        f"Effective Batch Size: {effective_batch_size}"
+    )
+    if config.get("eval_steps", 0) > 0:
+        accelerator.print(f"Evaluation: every {config['eval_steps']} steps")
+    if config.get("early_stopping_patience", -1) > 0:
+        accelerator.print(
+            f"Early Stopping: patience={config['early_stopping_patience']}, "
+            f"metric={config.get('eval_metric', 'val/loss')}"
+        )
 
     # Unify dtype before FSDP wrapping to avoid "mixed dtype" errors during all_gather
     unify_model_dtype_for_fsdp(model, config, accelerator)
