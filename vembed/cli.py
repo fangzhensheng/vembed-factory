@@ -26,7 +26,27 @@ logger = logging.getLogger(__name__)
 
 
 def main(args_list=None):
-    """CLI entrypoint for vembed-factory training."""
+    """CLI entrypoint for vembed-factory with subcommands."""
+    # ── Check for subcommands first ───────────────────────────────────
+    if args_list is None:
+        args_list = sys.argv[1:]
+
+    # Handle validate-data subcommand
+    if args_list and args_list[0] == "validate-data":
+        from vembed.entrypoints.validate_data import validate_data_command
+        import argparse as ap
+
+        parser = ap.ArgumentParser(prog="vembed validate-data")
+        parser.add_argument("data_path", help="Path to data file")
+        parser.add_argument("--sample", type=int, default=100)
+        parser.add_argument("--column-mapping", nargs="+", default=[])
+        parser.add_argument("--check-images", action="store_true")
+        parser.add_argument("--image-root", default="")
+
+        args = parser.parse_args(args_list[1:])
+        return validate_data_command(args)
+
+    # ── Default: training mode ──────────────────────────────────────────
     # ── 1. Pre-parse: config_file, config_override ──────────────────────
     pre_parser = argparse.ArgumentParser(add_help=False)
     pre_parser.add_argument("config_file", nargs="?", default=None, help="Path to YAML config file")

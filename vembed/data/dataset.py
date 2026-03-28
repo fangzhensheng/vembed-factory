@@ -6,6 +6,8 @@ from typing import Any
 from PIL import Image
 from torch.utils.data import Dataset
 
+from .column_validator import early_validate_dataset
+from .data_cleaner import DataCleaningConfig, validate_and_clean_data
 from .loading import load_data
 from .utils import looks_like_image_path
 
@@ -37,9 +39,12 @@ class GenericRetrievalDataset(Dataset):
         mode: str = "train",
         column_mapping: dict[str, str] | None = None,
         enable_image_cache: bool = False,
+        auto_clean: bool = True,
+        cleaning_config: DataCleaningConfig | None = None,
+        validate_columns: bool = True,
     ):
         """
-        Initialize the dataset.
+        Initialize the dataset with automatic validation and cleaning.
 
         Args:
             data_source: File path or loaded data object.
@@ -48,6 +53,9 @@ class GenericRetrievalDataset(Dataset):
             mode: 'train' or 'eval'.
             column_mapping: Optional mapping for dataset columns.
             enable_image_cache: Cache images in memory for faster multi-epoch training.
+            auto_clean: Automatically remove invalid records.
+            cleaning_config: DataCleaningConfig for custom cleaning behavior.
+            validate_columns: Validate column names early (before training).
         """
         self.processor = processor
         self.image_root = Path(image_root)
@@ -56,11 +64,43 @@ class GenericRetrievalDataset(Dataset):
         self.enable_image_cache = enable_image_cache
         self._image_cache = {}
         self._resolved_keys = {}
+        self.clean_report = None
 
+        # Load data
         if isinstance(data_source, str):
             self.data = load_data(data_source)
         else:
             self.data = data_source
+
+        # Early validation of columns (before cleaning)
+        if validate_columns:
+            try:
+                early_validate_dataset(
+                    self.data,
+                    column_mapping=column_mapping,
+                    raise_on_error=True,
+                )
+            except ValueError as e:
+                logger.error("Column validation failed: %s", e)
+                raise
+
+        # Auto-clean invalid records
+        if auto_clean:
+            cleaning_config = cleaning_config or DataCleaningConfig()
+            self.data, self.clean_report = validate_and_clean_data(
+                self.data,
+                config=cleaning_config,
+                image_root=image_root,
+            )
+
+            if self.clean_report["invalid"] > 0:
+                logger.warning(
+                    "Cleaned data: removed %d invalid records (%.1f%%)",
+                    self.clean_report["invalid"],
+                    self.clean_report["invalid"] * 100 / max(self.clean_report["total"], 1),
+                )
+                for issue_type, count in self.clean_report["issues"].items():
+                    logger.debug("  • %s: %d", issue_type, count)
 
         logger.info("Initialized dataset with %d examples", len(self.data))
         if self.enable_image_cache:

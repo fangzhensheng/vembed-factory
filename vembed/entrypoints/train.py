@@ -123,14 +123,17 @@ def main():
             print_validation_report(stats)
 
     # Prepare dataset and dataloader
-    dataset = VisualRetrievalDataset(
-        data_source=config["data_path"],
-        processor=processor,
-        image_root=config.get("image_root", ""),
-        mode="train",
-        column_mapping=config.get("column_mapping"),
-        enable_image_cache=config.get("enable_image_cache", False),
-    )
+    with accelerator.main_process_first():
+        dataset = VisualRetrievalDataset(
+            data_source=config["data_path"],
+            processor=processor,
+            image_root=config.get("image_root", ""),
+            mode="train",
+            column_mapping=config.get("column_mapping"),
+            enable_image_cache=config.get("enable_image_cache", False),
+            auto_clean=False,
+            validate_columns=False,
+        )
 
     collator_kwargs: dict = {
         "processor": processor,
@@ -198,14 +201,17 @@ def main():
                 accelerator.print("Validation Dataset Report:")
                 print_validation_report(val_stats)
 
-        val_dataset = VisualRetrievalDataset(
-            data_source=config["val_data_path"],
-            processor=processor,
-            image_root=config.get("image_root", ""),
-            mode="eval",
-            column_mapping=config.get("column_mapping"),
-            enable_image_cache=config.get("enable_image_cache", False),
-        )
+        with accelerator.main_process_first():
+            val_dataset = VisualRetrievalDataset(
+                data_source=config["val_data_path"],
+                processor=processor,
+                image_root=config.get("image_root", ""),
+                mode="eval",
+                column_mapping=config.get("column_mapping"),
+                enable_image_cache=config.get("enable_image_cache", False),
+                auto_clean=False,
+                validate_columns=False,
+            )
         val_collator = collator_cls(**{**collator_kwargs, "mode": "eval"})
         eval_batch_size = config.get("eval_batch_size", config["batch_size"])
 
