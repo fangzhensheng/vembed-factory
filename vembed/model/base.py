@@ -1,4 +1,5 @@
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -111,6 +112,38 @@ class BaseEmbeddingModel(nn.Module, ABC):
     def __init__(self, config: dict[str, Any]):
         super().__init__()
         self.config = config
+
+    @staticmethod
+    def _load_lora_adapter(backbone: torch.nn.Module, model_path: str, merge: bool = True) -> torch.nn.Module:
+        """Load LoRA adapter from model directory if present.
+
+        Args:
+            backbone: Model to wrap with LoRA
+            model_path: Path or model name (checked for adapter_config.json)
+            merge: If True, merge adapter weights and unload wrapper for inference
+
+        Returns:
+            backbone with LoRA loaded (or original if no adapter found)
+        """
+        adapter_config = os.path.join(model_path, "adapter_config.json")
+        if not os.path.exists(adapter_config):
+            return backbone
+
+        try:
+            from peft import PeftModel
+
+            logger.info(f"Loading LoRA adapter from {model_path}")
+            backbone = PeftModel.from_pretrained(backbone, model_path)
+            if merge:
+                logger.info("Merging LoRA adapter weights")
+                backbone = backbone.merge_and_unload()
+            return backbone
+        except ImportError:
+            logger.warning("Found adapter_config.json but 'peft' is not installed.")
+            return backbone
+        except Exception as e:
+            logger.warning(f"Failed to load LoRA adapter: {e}")
+            return backbone
 
     @abstractmethod
     def forward(

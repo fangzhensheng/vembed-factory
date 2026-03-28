@@ -62,10 +62,8 @@ def main():
     config = load_and_parse_config()
     prepare_output_dir(config)
 
-    # Set GPU memory limit if specified (for consumer GPU testing)
-    debug_gpu_memory = config.get("debug_gpu_memory")
-    if debug_gpu_memory is not None and torch.cuda.is_available():
-        torch.cuda.set_per_process_memory_fraction(min(debug_gpu_memory / 40.0, 0.9))
+    # Note: GPU memory limit is set in cli.py before accelerator initialization
+    # Do NOT call torch.cuda.set_per_process_memory_fraction here (can only be called once per process)
 
     # Initialize distributed training
     use_grad_checkpointing, use_gradient_cache, find_unused = get_distributed_config(config)

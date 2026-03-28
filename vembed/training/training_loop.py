@@ -118,24 +118,47 @@ class Trainer:
             for step, batch in enumerate(
                 tqdm(self.dataloader, disable=not self.accelerator.is_local_main_process)
             ):
-                with self.accelerator.accumulate(self.model):
-                    loss_val = self._train_step(batch)
-                    global_step += 1
+                try:
+                    with self.accelerator.accumulate(self.model):
+                        loss_val = self._train_step(batch)
+                        global_step += 1
 
-                    if global_step % self.logging_steps == 0:
-                        self._log_step(global_step, loss_val, epoch, step, steps_per_epoch)
+                        if global_step % self.logging_steps == 0:
+                            self._log_step(global_step, loss_val, epoch, step, steps_per_epoch)
 
-                    if self.save_steps > 0 and global_step % self.save_steps == 0:
-                        self._save_checkpoint(global_step)
+                        if self.save_steps > 0 and global_step % self.save_steps == 0:
+                            self._save_checkpoint(global_step)
 
-                    # Mid-epoch validation
-                    if self.eval_steps > 0 and global_step % self.eval_steps == 0 and self.val_dataloader:
-                        val_metric = self.evaluator.evaluate(self.val_dataloader, global_step)
-                        if self.accelerator.log_with is not None:
-                            self.accelerator.log({"val/loss": val_metric}, step=global_step)
-                        if self._check_early_stopping(val_metric):
-                            self.accelerator.print(f"Early stopping triggered at step {global_step}")
-                            return
+                        # Mid-epoch validation
+                        if self.eval_steps > 0 and global_step % self.eval_steps == 0 and self.val_dataloader:
+                            val_metric = self.evaluator.evaluate(self.val_dataloader, global_step)
+                            if self.accelerator.log_with is not None:
+                                self.accelerator.log({"val/loss": val_metric}, step=global_step)
+                            if self._check_early_stopping(val_metric):
+                                self.accelerator.print(f"Early stopping triggered at step {global_step}")
+                                return
+                except RuntimeError as e:
+                    error_msg = str(e)
+                    if "out of memory" in error_msg.lower():
+                        batch_size = 0
+                        if isinstance(batch, dict) and "input_ids" in batch:
+                            batch_size = batch["input_ids"].shape[0]
+                        elif isinstance(batch, dict) and "pixel_values" in batch:
+                            batch_size = batch["pixel_values"].shape[0]
+
+                        self.accelerator.print("\n" + "=" * 70)
+                        self.accelerator.print("❌ OUT OF MEMORY ERROR")
+                        self.accelerator.print("=" * 70)
+                        self.accelerator.print(f"Step {global_step}, Epoch {epoch + 1}/{self.num_epochs}")
+                        self.accelerator.print(f"Batch size: {batch_size}")
+                        self.accelerator.print("\n💡 Recommended Solutions:")
+                        self.accelerator.print(f"  1. Reduce batch_size (current: {batch_size})")
+                        self.accelerator.print("  2. Enable gradient_accumulation_steps")
+                        self.accelerator.print("  3. Enable gradient_checkpointing: true")
+                        self.accelerator.print("  4. Use smaller model")
+                        self.accelerator.print("  5. Reduce max_seq_length or image_size")
+                        self.accelerator.print("=" * 70 + "\n")
+                    raise
 
             # Save checkpoint after each epoch
             self._save_checkpoint_epoch(epoch)

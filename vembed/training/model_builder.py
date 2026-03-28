@@ -111,6 +111,8 @@ def apply_lora(
 ) -> None:
     """Apply LoRA to model parameters.
 
+    Handles both unified models (single backbone) and composed models (separate text + image towers).
+
     Args:
         model: Model to apply LoRA to.
         config: Configuration dict with LoRA parameters.
@@ -125,31 +127,73 @@ def apply_lora(
         accelerator.print("Error: 'peft' library not found. Install with: pip install peft")
         sys.exit(1)
 
-    accelerator.print("Applying LoRA")
+    lora_r = int(config.get("lora_r", 16))
+    lora_alpha = int(config.get("lora_alpha", 32))
+    lora_target_modules = config.get("lora_target_modules") or [
+        "q_proj",
+        "v_proj",
+        "query",
+        "value",
+        "key",
+        "dense",
+    ]
+    lora_dropout = float(config.get("lora_dropout", 0.05))
 
     lora_cfg = LoraConfig(
-        r=config.get("lora_r", 16),
-        lora_alpha=config.get("lora_alpha", 32),
-        target_modules=config.get("lora_target_modules")
-        or ["q_proj", "v_proj", "query", "value", "key", "dense"],
-        lora_dropout=config.get("lora_dropout", 0.05),
+        r=lora_r,
+        lora_alpha=lora_alpha,
+        target_modules=lora_target_modules,
+        lora_dropout=lora_dropout,
         bias="none",
         modules_to_save=["classifier", "pooler", "projector"],
     )
 
     try:
-        target = model.backend
+        # Check if ComposedEmbeddingModel (has text_encoder and image_encoder)
+        if hasattr(model, "text_encoder") and hasattr(model, "image_encoder"):
+            accelerator.print(
+                f"Applying LoRA (r={lora_r}, alpha={lora_alpha}) to composed model (text + image)"
+            )
 
-        if config.get("gradient_checkpointing", False):
-            _enable_gradient_checkpointing(target, accelerator)
+            # Apply LoRA to text encoder
+            if hasattr(model.text_encoder, "model"):
+                model.text_encoder.model = get_peft_model(model.text_encoder.model, lora_cfg)
+                if hasattr(model.text_encoder.model, "print_trainable_parameters"):
+                    model.text_encoder.model.print_trainable_parameters()
 
-        if hasattr(target, "backbone"):
-            target.backbone = get_peft_model(target.backbone, lora_cfg)
-            target.backbone.print_trainable_parameters()
+            # Apply LoRA to image encoder
+            if hasattr(model.image_encoder, "model"):
+                model.image_encoder.model = get_peft_model(model.image_encoder.model, lora_cfg)
+                if hasattr(model.image_encoder.model, "print_trainable_parameters"):
+                    model.image_encoder.model.print_trainable_parameters()
+
+            accelerator.print("LoRA injected to both text and image towers")
         else:
-            model.backend = get_peft_model(target, lora_cfg)
-            model.backend.print_trainable_parameters()
-        accelerator.print("LoRA injected")
+            # Unified model (single backend)
+            accelerator.print(f"Applying LoRA (r={lora_r}, alpha={lora_alpha}) to unified model")
+
+            target = model.backend
+
+            if config.get("gradient_checkpointing", False):
+                _enable_gradient_checkpointing(target, accelerator)
+
+            if hasattr(target, "backbone"):
+                target.backbone = get_peft_model(target.backbone, lora_cfg)
+                if hasattr(target.backbone, "print_trainable_parameters"):
+                    target.backbone.print_trainable_parameters()
+            else:
+                model.backend = get_peft_model(target, lora_cfg)
+                if hasattr(model.backend, "print_trainable_parameters"):
+                    model.backend.print_trainable_parameters()
+
+            accelerator.print("LoRA injected")
+
+        # Enable gradient checkpointing if configured
+        if config.get("gradient_checkpointing", False):
+            if hasattr(model, "_enable_gradient_checkpointing"):
+                model._enable_gradient_checkpointing()
+                accelerator.print("✓ Gradient checkpointing enabled")
+
     except Exception as exc:
         accelerator.print(f"Error applying LoRA: {exc}")
         sys.exit(1)

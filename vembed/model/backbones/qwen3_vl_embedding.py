@@ -43,18 +43,7 @@ class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
         if self.use_mrl:
             self.mrl_dims = sorted(self.mrl_dims, reverse=True)
 
-        # Automatically load LoRA adapter if present in the model directory
-        adapter_config_path = os.path.join(self.model_name, "adapter_config.json")
-        if os.path.exists(adapter_config_path):
-            try:
-                from peft import PeftModel
-
-                logger.info(f"Loading LoRA adapter from {self.model_name}")
-                self.backbone = PeftModel.from_pretrained(self.backbone, self.model_name)
-                # Merge for efficiency during inference/embedding generation
-                self.backbone = self.backbone.merge_and_unload()
-            except ImportError as e:
-                logger.warning("peft not installed, skipping LoRA adapter loading: %s", e)
+        self.backbone = self._load_lora_adapter(self.backbone, self.model_name, merge=True)
 
     @staticmethod
     def _probe_hidden_size(model_name: str) -> int:
