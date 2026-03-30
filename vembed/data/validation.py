@@ -36,7 +36,7 @@ def validate_dataset(
         - required_fields_present: Boolean for each required field
     """
     # Load data - handle both file paths and pre-loaded lists
-    data = load_data(data_source) if isinstance(data_source, (str, Path)) else data_source
+    data = load_data(data_source) if isinstance(data_source, str | Path) else data_source
 
     total = len(data)
 
