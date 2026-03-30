@@ -259,7 +259,7 @@ class TestModelIntegration:
 
         model = VisualRetrievalModel(
             model_name_or_path="Qwen/Qwen3-VL-Embedding-2B",
-            encoder_mode="qwen-vl",
+            encoder_mode="qwen3_vl",
         )
 
         # Verify backend is set correctly

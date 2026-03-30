@@ -66,11 +66,7 @@ def _split_vlm_inputs(model_input, chunk_size: int) -> list:
 
     if batch_size is None:
         for k, v in model_input.items():
-            if (
-                isinstance(v, Tensor)
-                and v.ndim > 0
-                and not any(ind in k for ind in PATCH_INDICATORS)
-            ):
+            if isinstance(v, Tensor) and v.ndim > 0:
                 batch_size = v.shape[0]
                 batch_aligned_keys.append(k)
                 break

@@ -40,7 +40,8 @@ def test_gradient_cache_step():
         "attention_mask": torch.ones(4, 10),
         "pos_input_ids": torch.randn(4, 10),
         "pos_attention_mask": torch.ones(4, 10),
-        "neg_pixel_values": torch.randn(4, 10),
+        "neg_input_ids": torch.randn(4, 10),
+        "neg_attention_mask": torch.ones(4, 10),
     }
 
     # Run step

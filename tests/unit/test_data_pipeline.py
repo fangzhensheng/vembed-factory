@@ -98,7 +98,7 @@ class TestCollatorRegistry:
 
     def test_default_collator_exists(self):
         """Test that default collator is registered."""
-        collator = CollatorRegistry.get("default")
+        collator = CollatorRegistry.get("qwen")
 
         assert collator is not None
 
@@ -106,7 +106,7 @@ class TestCollatorRegistry:
         """Test creating default collator."""
         processor = load_processor("openai/clip-vit-base-patch32")
 
-        collator_cls = CollatorRegistry.get("default")
+        collator_cls = CollatorRegistry.get("qwen")
         collator = collator_cls(processor=processor, mode="train")
 
         assert collator is not None
@@ -134,7 +134,7 @@ class TestDataLoader:
             mode="train",
         )
 
-        collator_cls = CollatorRegistry.get("default")
+        collator_cls = CollatorRegistry.get("qwen")
         collator = collator_cls(processor=processor, mode="train")
 
         dataloader = DataLoader(
@@ -158,7 +158,7 @@ class TestDataLoader:
             mode="train",
         )
 
-        collator_cls = CollatorRegistry.get("default")
+        collator_cls = CollatorRegistry.get("qwen")
         collator = collator_cls(processor=processor, mode="train")
 
         dataloader = DataLoader(
@@ -186,7 +186,7 @@ class TestDataLoader:
             mode="train",
         )
 
-        collator_cls = CollatorRegistry.get("default")
+        collator_cls = CollatorRegistry.get("qwen")
         collator = collator_cls(processor=processor, mode="train")
 
         dataloader = DataLoader(
@@ -197,8 +197,8 @@ class TestDataLoader:
 
         batch = next(iter(dataloader))
 
-        # Check batch size
-        batch_size = next(iter(batch.values())).shape[0]
+        # Check batch size (skip None values)
+        batch_size = next(iter(v.shape[0] for v in batch.values() if v is not None))
         assert batch_size <= 2
 
 
@@ -241,7 +241,7 @@ class TestCollatorTypes:
 
         assert isinstance(collators, list)
         assert len(collators) > 0
-        assert "default" in collators
+        assert "qwen" in collators
 
 
 if __name__ == "__main__":
