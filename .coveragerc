@@ -1,0 +1,38 @@
+[run]
+source = vembed
+omit =
+    vembed/__pycache__/*
+    vembed/*/test*
+    tests/*
+    setup.py
+    */site-packages/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    def __str__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+    @overload
+    class .*\(Protocol\):
+    \.\.\.
+    pass
+exclude_patterns =
+    ^\\s*\\.\\.\\.$
+    ^\\s*pass$
+    ^\\s*\\.\\.\\.$
+precision = 2
+skip_covered = False
+sort = Cover
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml
