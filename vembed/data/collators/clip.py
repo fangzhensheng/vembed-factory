@@ -8,7 +8,12 @@ from .base import BaseRetrievalCollator
 @CollatorRegistry.register("clip")
 @CollatorRegistry.register("siglip")
 class CLIPFamilyCollator(BaseRetrievalCollator):
-    """Collator for CLIP-family models."""
+    """Collator for CLIP-family models.
+
+    Registered as "default" collator because CLIP provides a general-purpose
+    architecture for paired text-image retrieval that works across diverse domains.
+    Aliases: "default", "clip", "siglip"
+    """
 
     def __call__(self, batch):
         fields = self._detect_fields(batch)
