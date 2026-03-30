@@ -147,7 +147,6 @@ def main():
         results = {**recalls, "mrr": mrr_score}
     else:
         # Text-only metrics (use BEIR-style evaluation)
-        from benchmark.metrics import recall_at_k as recall_k
 
         # For text-to-text, we assume diagonal or use provided relevance
         # Simplified: compute R@1, R@5, R@10 assuming first query matches first doc, etc.

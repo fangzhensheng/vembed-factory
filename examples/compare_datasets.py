@@ -9,7 +9,6 @@ Shows:
 import json
 import os
 from collections import defaultdict
-from pathlib import Path
 
 
 def analyze_jsonl(filepath: str, name: str, max_samples: int = 3) -> dict:

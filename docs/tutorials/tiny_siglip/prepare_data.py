@@ -10,9 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from io import BytesIO
 
 import requests
-from datasets import Features
-from datasets import Image as HFImage
-from datasets import Value, load_dataset
+from datasets import load_dataset
 from PIL import Image
 from tqdm import tqdm
 
@@ -38,7 +36,7 @@ def prepare_cc3m_subset(output_dir, num_samples=20000, num_workers=16):
     images_dir = os.path.join(output_dir, "images")
     os.makedirs(images_dir, exist_ok=True)
 
-    print(f"Loading image-text dataset from HuggingFace (streaming mode)...")
+    print("Loading image-text dataset from HuggingFace (streaming mode)...")
 
     # Try LAION-COCO first (faster, more reliable URLs)
     # Falls back to conceptual_captions if unavailable
@@ -122,7 +120,7 @@ def prepare_validation_data(output_dir):
     if not os.path.exists(train_jsonl):
         return
 
-    with open(train_jsonl, "r") as f:
+    with open(train_jsonl) as f:
         lines = f.readlines()
 
     random_lines = lines[:1000]
