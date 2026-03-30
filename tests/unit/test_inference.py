@@ -65,7 +65,9 @@ class TestVEmbedModelInit:
 
     @patch("vembed.inference.VisualRetrievalModel")
     @patch("vembed.inference.ProcessorRegistry")
-    def test_init_with_unified_processor(self, mock_registry, mock_model_cls, mock_model, mock_processor):
+    def test_init_with_unified_processor(
+        self, mock_registry, mock_model_cls, mock_model, mock_processor
+    ):
         """Test initialization with unified processor (non-composed mode)."""
         mock_model_cls.return_value = mock_model
         mock_registry.resolve.return_value = mock_processor
@@ -106,7 +108,9 @@ class TestVEmbedModelInit:
 
     @patch("vembed.inference.VisualRetrievalModel")
     @patch("vembed.inference.ProcessorRegistry")
-    def test_init_with_vembed_config(self, mock_registry, mock_model_cls, mock_model, temp_model_path):
+    def test_init_with_vembed_config(
+        self, mock_registry, mock_model_cls, mock_model, temp_model_path
+    ):
         """Test loading vembed_config.json from checkpoint."""
         mock_model_cls.return_value = mock_model
         mock_registry.resolve.return_value = MagicMock()
@@ -165,7 +169,9 @@ class TestVEmbedModelEncodeText:
 
     @patch("vembed.inference.VisualRetrievalModel")
     @patch("vembed.inference.ProcessorRegistry")
-    def test_encode_text_without_normalization(self, mock_registry, mock_model_cls, mock_model, mock_processor):
+    def test_encode_text_without_normalization(
+        self, mock_registry, mock_model_cls, mock_model, mock_processor
+    ):
         """Test encoding text without L2 normalization."""
         mock_model_cls.return_value = mock_model
         mock_registry.resolve.return_value = mock_processor
@@ -179,7 +185,9 @@ class TestVEmbedModelEncodeText:
 
     @patch("vembed.inference.VisualRetrievalModel")
     @patch("vembed.inference.ProcessorRegistry")
-    def test_encode_text_empty_string(self, mock_registry, mock_model_cls, mock_model, mock_processor):
+    def test_encode_text_empty_string(
+        self, mock_registry, mock_model_cls, mock_model, mock_processor
+    ):
         """Test encoding empty string."""
         mock_model_cls.return_value = mock_model
         mock_registry.resolve.return_value = mock_processor
@@ -203,7 +211,9 @@ class TestVEmbedModelEncodeImage:
 
     @patch("vembed.inference.VisualRetrievalModel")
     @patch("vembed.inference.ProcessorRegistry")
-    def test_encode_single_pil_image(self, mock_registry, mock_model_cls, mock_model, mock_processor, mock_image):
+    def test_encode_single_pil_image(
+        self, mock_registry, mock_model_cls, mock_model, mock_processor, mock_image
+    ):
         """Test encoding a single PIL Image."""
         mock_model_cls.return_value = mock_model
         mock_registry.resolve.return_value = mock_processor
@@ -234,7 +244,9 @@ class TestVEmbedModelEncodeImage:
 
     @patch("vembed.inference.VisualRetrievalModel")
     @patch("vembed.inference.ProcessorRegistry")
-    def test_encode_image_from_file(self, mock_registry, mock_model_cls, mock_model, mock_processor):
+    def test_encode_image_from_file(
+        self, mock_registry, mock_model_cls, mock_model, mock_processor
+    ):
         """Test encoding image from file path."""
         mock_model_cls.return_value = mock_model
         mock_registry.resolve.return_value = mock_processor
@@ -287,9 +299,7 @@ class TestVEmbedModelGenericEncode:
 
     @patch("vembed.inference.VisualRetrievalModel")
     @patch("vembed.inference.ProcessorRegistry")
-    def test_encode_image_mode(
-        self, mock_registry, mock_model_cls, mock_model, mock_processor
-    ):
+    def test_encode_image_mode(self, mock_registry, mock_model_cls, mock_model, mock_processor):
         """Test generic encode for image (is_image=True)."""
         mock_model_cls.return_value = mock_model
         mock_registry.resolve.return_value = mock_processor
@@ -308,7 +318,9 @@ class TestVEmbedModelGenericEncode:
 
     @patch("vembed.inference.VisualRetrievalModel")
     @patch("vembed.inference.ProcessorRegistry")
-    def test_encode_default_text_mode(self, mock_registry, mock_model_cls, mock_model, mock_processor):
+    def test_encode_default_text_mode(
+        self, mock_registry, mock_model_cls, mock_model, mock_processor
+    ):
         """Test generic encode defaults to text mode."""
         mock_model_cls.return_value = mock_model
         mock_registry.resolve.return_value = mock_processor
@@ -326,7 +338,9 @@ class TestVEmbedModelMRLFeature:
 
     @patch("vembed.inference.VisualRetrievalModel")
     @patch("vembed.inference.ProcessorRegistry")
-    def test_truncate_embeddings_with_mrl(self, mock_registry, mock_model_cls, mock_model, mock_processor):
+    def test_truncate_embeddings_with_mrl(
+        self, mock_registry, mock_model_cls, mock_model, mock_processor
+    ):
         """Test embedding truncation with MRL dimension."""
         mock_model_cls.return_value = mock_model
         mock_registry.resolve.return_value = mock_processor
@@ -340,7 +354,9 @@ class TestVEmbedModelMRLFeature:
 
     @patch("vembed.inference.VisualRetrievalModel")
     @patch("vembed.inference.ProcessorRegistry")
-    def test_no_truncation_without_mrl(self, mock_registry, mock_model_cls, mock_model, mock_processor):
+    def test_no_truncation_without_mrl(
+        self, mock_registry, mock_model_cls, mock_model, mock_processor
+    ):
         """Test embeddings not truncated when MRL dimension is None."""
         mock_model_cls.return_value = mock_model
         mock_registry.resolve.return_value = mock_processor

@@ -71,7 +71,9 @@ class TestValidateDataCommand:
     @patch("vembed.entrypoints.validate_data.load_data")
     @patch("vembed.entrypoints.validate_data.validate_dataset")
     @patch("vembed.entrypoints.validate_data.print_data_validation_report")
-    def test_validate_data_success(self, mock_print, mock_validate, mock_load, mock_args_validate, temp_data_dir):
+    def test_validate_data_success(
+        self, mock_print, mock_validate, mock_load, mock_args_validate, temp_data_dir
+    ):
         """Test successful data validation."""
         mock_load.return_value = [{"query": "test", "positive": "test.jpg"}]
         mock_validate.return_value = {
@@ -105,7 +107,13 @@ class TestValidateDataCommand:
     @patch("vembed.entrypoints.validate_data.print_data_validation_report")
     @patch("vembed.entrypoints.validate_data.print_validation_report")
     def test_validate_data_with_column_mapping(
-        self, mock_col_print, mock_print, mock_col_validate, mock_validate, mock_load, mock_args_validate
+        self,
+        mock_col_print,
+        mock_print,
+        mock_col_validate,
+        mock_validate,
+        mock_load,
+        mock_args_validate,
     ):
         """Test validation with column mapping."""
         mock_load.return_value = [{"query": "test", "positive": "test.jpg"}]
