@@ -4,7 +4,7 @@ import os
 from PIL import Image
 from transformers import AutoProcessor
 
-from vembed.data.collators.vlm import VisualRetrievalCollator
+from vembed.data.collators.vlm import VLMRetrievalCollator
 from vembed.data.dataset import VisualRetrievalDataset
 
 
@@ -24,7 +24,7 @@ def test_jsonl_dataset_tmp(tmp_path):
     ds = VisualRetrievalDataset(
         str(jsonl_path), processor=processor, image_root=str(tmp_path), mode="train"
     )
-    coll = VisualRetrievalCollator(processor, mode="train")
+    coll = VLMRetrievalCollator(processor, mode="train")
 
     sample = ds[0]
     assert "query_text" in sample and "pos_image" in sample

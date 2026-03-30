@@ -2,7 +2,7 @@
 import torch
 from PIL import Image
 
-from vembed.data.collators.vlm import VisualRetrievalCollator
+from vembed.data.collators.vlm import VLMRetrievalCollator
 
 
 class MockProcessor:
@@ -22,7 +22,7 @@ class MockProcessor:
 def test_collator_dual_processors():
     text_proc = MockProcessor()
     image_proc = MockProcessor()
-    coll = VisualRetrievalCollator(
+    coll = VLMRetrievalCollator(
         processor=None,
         mode="train",
         text_processor=text_proc,
