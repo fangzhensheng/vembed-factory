@@ -3,6 +3,16 @@
 from typing import Any
 
 import torch
+from accelerate.logging import get_logger
+
+from vembed.core.constants import (
+    ALL_SEQ_KEYS,
+    GRID_INDICATOR,
+    PATCH_INDICATORS,
+    SEQ_KEYS,
+)
+
+logger = get_logger(__name__)
 
 
 def maybe_first(embs: Any) -> torch.Tensor:
@@ -167,58 +177,64 @@ def concat_batches(
 
     concatenated = {}
 
-    # Process input_ids and attention_mask (requires padding to max length)
-    if "input_ids" in all_keys:
+    for seq_key in ALL_SEQ_KEYS:
+        if seq_key not in all_keys:
+            continue
+
         max_len = 0
         for b in batches:
-            if "input_ids" in b and b["input_ids"] is not None:
-                max_len = max(max_len, b["input_ids"].size(1))
+            if seq_key in b and b[seq_key] is not None:
+                max_len = max(max_len, b[seq_key].size(1))
 
-        padded_ids = []
-        padded_masks = []
-
+        padded_seqs = []
         for b in batches:
-            if "input_ids" in b and b["input_ids"] is not None:
-                curr_ids = b["input_ids"]
-                curr_mask = b["attention_mask"]
-                B, L = curr_ids.shape
-                diff = max_len - L
-                if diff > 0:
+            if seq_key in b and b[seq_key] is not None:
+                curr_seq = b[seq_key]
+                B, L = curr_seq.shape
+                if max_len > L:
+                    pad_value = pad_token_id if seq_key == "input_ids" else 0
                     pad_tensor = torch.full(
-                        (B, diff), pad_token_id, dtype=curr_ids.dtype, device=curr_ids.device
+                        (B, max_len - L), pad_value, dtype=curr_seq.dtype, device=curr_seq.device
                     )
-                    curr_ids = torch.cat([curr_ids, pad_tensor], dim=1)
+                    curr_seq = torch.cat([curr_seq, pad_tensor], dim=1)
+                padded_seqs.append(curr_seq)
 
-                    mask_pad = torch.zeros(
-                        (B, diff), dtype=curr_mask.dtype, device=curr_mask.device
-                    )
-                    curr_mask = torch.cat([curr_mask, mask_pad], dim=1)
+        if padded_seqs:
+            concatenated[seq_key] = torch.cat(padded_seqs, dim=0)
 
-                padded_ids.append(curr_ids)
-                padded_masks.append(curr_mask)
-
-        if padded_ids:
-            concatenated["input_ids"] = torch.cat(padded_ids, dim=0)
-            concatenated["attention_mask"] = torch.cat(padded_masks, dim=0)
-
-    # Process pixel_values (simple concatenation, no padding needed)
-    if "pixel_values" in all_keys:
-        pvs = []
+    patch_keys = {k for k in all_keys if any(ind in k for ind in PATCH_INDICATORS)}
+    for patch_key in patch_keys:
+        values = []
         for b in batches:
-            pv = b.get("pixel_values")
-            if pv is not None:
-                pvs.append(pv)
-        if pvs:
-            concatenated["pixel_values"] = torch.cat(pvs, dim=0)
+            v = b.get(patch_key)
+            if v is not None:
+                values.append(v)
+        if values:
+            concatenated[patch_key] = torch.cat(values, dim=0)
 
-    # Process image_grid_thw for VLM models (simple concatenation)
-    if "image_grid_thw" in all_keys:
+    grid_keys = {k for k in all_keys if GRID_INDICATOR in k}
+    for grid_key in grid_keys:
         grids = []
         for b in batches:
-            g = b.get("image_grid_thw")
+            g = b.get(grid_key)
             if g is not None:
                 grids.append(g)
         if grids:
-            concatenated["image_grid_thw"] = torch.cat(grids, dim=0)
+            concatenated[grid_key] = torch.cat(grids, dim=0)
+
+    for key in all_keys:
+        if key in concatenated:
+            continue
+        if key in SEQ_KEYS or key in patch_keys or GRID_INDICATOR in key:
+            continue
+        tensors = [b[key] for b in batches if key in b and b[key] is not None and isinstance(b[key], torch.Tensor)]
+        if tensors:
+            try:
+                concatenated[key] = torch.cat(tensors, dim=0)
+            except RuntimeError as e:
+                logger.warning(
+                    f"Failed to concatenate field '{key}': {e}. Shapes: "
+                    f"{[t.shape for t in tensors]}"
+                )
 
     return concatenated, batch_sizes

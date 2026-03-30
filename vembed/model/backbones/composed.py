@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..base import BaseEmbeddingModel, pool
+from ..base import BaseEmbeddingModel, pool, safe_load_state_dict
 from ..encoders_factory import SimpleImageEncoder, SimpleTextEncoder
 from ..registry import ModelRegistry
 
@@ -110,11 +110,13 @@ class ComposedEmbeddingModel(BaseEmbeddingModel):
         image_proj_path = os.path.join(model_path, "image_projection.pt")
 
         if os.path.isfile(text_proj_path):
-            self.text_projection.load_state_dict(torch.load(text_proj_path, map_location="cpu"))
+            state_dict = safe_load_state_dict(text_proj_path)
+            self.text_projection.load_state_dict(state_dict)
             logger.info(f"Loaded text projection from {text_proj_path}")
 
         if os.path.isfile(image_proj_path):
-            self.image_projection.load_state_dict(torch.load(image_proj_path, map_location="cpu"))
+            state_dict = safe_load_state_dict(image_proj_path)
+            self.image_projection.load_state_dict(state_dict)
             logger.info(f"Loaded image projection from {image_proj_path}")
 
     def save_pretrained(self, save_directory: str):

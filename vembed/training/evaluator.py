@@ -43,15 +43,20 @@ class Evaluator:
         self,
         val_dataloader: Any,
         global_step: int = 0,
-    ) -> float:
+    ) -> dict[str, float]:
         """Run validation loop and compute metrics.
+
+        Returns global aggregated loss and metrics dict across all ranks.
+        CRITICAL: In multi-GPU setup, returns all_reduce'd loss, not per-rank loss.
 
         Args:
             val_dataloader: Validation dataloader.
             global_step: Current training step for logging.
 
         Returns:
-            Average validation loss.
+            Dictionary containing:
+            - "loss": Global average validation loss (all_reduce'd)
+            - "recall@1", "recall@5", etc: Recall metrics if labels available
         """
         self.model.eval()
 
@@ -99,16 +104,19 @@ class Evaluator:
                     del labels
                     torch.cuda.empty_cache()
 
-        avg_loss = total_loss / max(num_batches, 1)
+        # Aggregate loss across all ranks (critical for correctness in multi-GPU)
+        avg_loss = torch.tensor(total_loss / max(num_batches, 1), device=self.accelerator.device)
+        avg_loss = self.accelerator.reduce(avg_loss).item()
+
         self.accelerator.print(f"Validation loss: {avg_loss:.4f}")
 
         # Compute recall metrics if labels are available
-        _ = self._compute_and_log_metrics(
+        metrics = self._compute_and_log_metrics(
             all_q_embs, all_p_embs, all_q_labels, all_p_labels, global_step
         )
 
         self.model.train()
-        return avg_loss
+        return {"loss": avg_loss, **metrics}
 
     def _compute_and_log_metrics(
         self,

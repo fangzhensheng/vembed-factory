@@ -19,6 +19,9 @@ def save_checkpoint(
 ) -> None:
     """Save training checkpoint with model, processor, and vembed config.
 
+    Only the global main process (rank 0) saves to prevent multi-node file conflicts.
+    All ranks synchronize after save completes.
+
     Args:
         path: Directory path to save checkpoint.
         model: The model to save.
@@ -27,9 +30,13 @@ def save_checkpoint(
         config: Optional configuration dict for vembed-specific config.
 
     Note:
-        Only the main process saves the checkpoint to avoid conflicts.
+        CRITICAL for multi-node safety: Uses is_main_process (not is_local_main_process)
+        to ensure only rank 0 globally saves. Without this, multiple nodes' rank-0
+        processes could write simultaneously to shared storage, causing corruption.
     """
-    if not accelerator.is_local_main_process:
+    if not accelerator.is_main_process:
+        # Wait for main rank (rank 0) to finish saving before continuing
+        accelerator.wait_for_everyone()
         return
 
     accelerator.save_state(path)
@@ -40,6 +47,11 @@ def save_checkpoint(
     # Persist vembed-specific config (topk_tokens, pooling, etc.)
     if config:
         _save_vembed_config(path, config)
+
+    # CRITICAL: Synchronize all ranks after checkpoint save completes.
+    # Prevents non-main processes from resuming training while main process
+    # is still writing to disk.
+    accelerator.wait_for_everyone()
 
 
 def _save_vembed_config(path: str, config: dict[str, Any]) -> None:

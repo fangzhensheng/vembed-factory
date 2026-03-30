@@ -125,9 +125,11 @@ class VEmbedTrainer:
             overrides.append(config_override)
 
         if overrides:
+            import shlex
+
             cli_args.append("--config_override")
             for override in overrides:
-                cli_args.extend(override.split())
+                cli_args.extend(shlex.split(override))
 
         logger.info(f"Starting training for {self.model_name}...")
         logger.info(f"   Mode: {self.mode}, Retrieval: {retrieval_mode}")

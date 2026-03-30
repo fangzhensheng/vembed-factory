@@ -227,16 +227,9 @@ class VLMRetrievalCollator(BaseRetrievalCollator):
 
         if any(t or i for t, i in zip(q_texts, q_images, strict=True)):
             q_out = self._process_batch_chunk(q_texts, q_images, q_paths)
-
-            batch_output["query_input_ids"] = q_out.get("input_ids")
-            batch_output["query_attention_mask"] = q_out.get("attention_mask")
-            if "pixel_values" in q_out:
-                batch_output["query_pixel_values"] = q_out["pixel_values"]
-            if "image_grid_thw" in q_out:
-                batch_output["query_image_grid_thw"] = q_out["image_grid_thw"]
-
-            batch_output["input_ids"] = batch_output["query_input_ids"]
-            batch_output["attention_mask"] = batch_output["query_attention_mask"]
+            self._merge_processor_output(q_out, batch_output, "query_")
+            batch_output["input_ids"] = batch_output.get("query_input_ids")
+            batch_output["attention_mask"] = batch_output.get("query_attention_mask")
 
         p_texts_raw = [item.get("pos_text") for item in batch]
         p_images = [item.get("pos_image") for item in batch]
@@ -244,19 +237,12 @@ class VLMRetrievalCollator(BaseRetrievalCollator):
 
         p_texts = []
         for t, img in zip(p_texts_raw, p_images, strict=True):
-            # If there's an image, use prompt as fallback; otherwise use pos_text
             p_texts.append(self.prompt if img is not None else t)
 
         if any(t or i for t, i in zip(p_texts, p_images, strict=True)):
             p_out = self._process_batch_chunk(p_texts, p_images, p_paths)
-
-            batch_output["pos_input_ids"] = p_out.get("input_ids")
-            batch_output["pos_attention_mask"] = p_out.get("attention_mask")
-            if "pixel_values" in p_out:
-                batch_output["pos_pixel_values"] = p_out["pixel_values"]
-                batch_output["pixel_values"] = p_out["pixel_values"]
-            if "image_grid_thw" in p_out:
-                batch_output["pos_image_grid_thw"] = p_out["image_grid_thw"]
+            self._merge_processor_output(p_out, batch_output, "pos_")
+            batch_output["pixel_values"] = p_out.get("pixel_values")
 
         if self.mode == "train":
             neg_images = []
@@ -266,7 +252,6 @@ class VLMRetrievalCollator(BaseRetrievalCollator):
             for item in batch:
                 n_imgs = item.get("neg_images", [])
                 n_paths = item.get("neg_image_paths", [])
-                # Always track counts to maintain batch size alignment
                 neg_counts.append(len(n_imgs))
                 if n_imgs:
                     neg_images.extend(n_imgs)
@@ -275,14 +260,26 @@ class VLMRetrievalCollator(BaseRetrievalCollator):
             if neg_images:
                 n_texts = [None] * len(neg_images)
                 n_out = self._process_batch_chunk(n_texts, neg_images, neg_paths)
-
-                batch_output["neg_pixel_values"] = n_out.get("pixel_values")
-                if "image_grid_thw" in n_out:
-                    batch_output["neg_image_grid_thw"] = n_out["image_grid_thw"]
-                if "input_ids" in n_out:
-                    batch_output["neg_input_ids"] = n_out["input_ids"]
-                    batch_output["neg_attention_mask"] = n_out["attention_mask"]
+                self._merge_processor_output(n_out, batch_output, "neg_")
 
             batch_output["neg_counts"] = torch.tensor(neg_counts)
 
         return batch_output
+
+    def _merge_processor_output(self, processor_out: dict, batch_output: dict, prefix: str):
+        """Transparently forward all processor output fields with prefix.
+
+        Replaces hardcoded field whitelisting to support any VLM processor:
+        - token_type_ids, pixel_mask (BERT-style)
+        - image_sizes, image_grid_thw (grid metadata)
+        - video_grid_thw (future video models)
+        - Any other fields the processor returns
+
+        Args:
+            processor_out: Output dict from processor
+            batch_output: Target dict to merge into (modified in-place)
+            prefix: Field name prefix (e.g., "query_", "pos_", "neg_")
+        """
+        for key, value in processor_out.items():
+            prefixed_key = f"{prefix}{key}"
+            batch_output[prefixed_key] = value

@@ -62,6 +62,8 @@ Semantic text retrieval.
 
 ## Input File Formats
 
+vembed-factory features a high-performance **Zero-Copy Arrow Memory Mapping** backend. This means even if you have a dataset with 10 million rows, it will load instantly and consume less than 500MB of RAM.
+
 ### JSONL (Recommended)
 
 ```jsonl
@@ -69,7 +71,7 @@ Semantic text retrieval.
 {"query": "...", "positive": "...", "negatives": ["..."]}
 ```
 
-The `GenericRetrievalDataset` in `vembed/data/dataset.py` automatically parses each line.
+The `GenericRetrievalDataset` in `vembed/data/dataset.py` automatically memory-maps JSONL files.
 
 ### CSV/TSV
 
@@ -88,16 +90,29 @@ trainer.train(
 )
 ```
 
-### Parquet
+### Data Validation & Cleaning (CLI Tool)
 
-```python
-import pandas as pd
+Before launching a massive distributed training run, you should validate your dataset to prevent mid-training crashes (e.g., missing images or wrong column names).
 
-data = [
-    {"query": "red cat", "positive": "cat_red.jpg", "negatives": ["dog.jpg"]},
-]
-df = pd.DataFrame(data)
-df.to_parquet("train.parquet")
+We provide a built-in CLI tool to perform a sanity check:
+
+```bash
+vembed validate-data --data-path data/train.jsonl --image-root /path/to/images/
+```
+
+This will automatically:
+1. Verify column mappings
+2. Check for missing or corrupted images
+3. Output a detailed report and suggest fixes if `missing_ratio` is too high.
+
+### Automated Data Cleaning
+If your dataset is dirty, the framework will automatically filter out invalid records during initialization to prevent silent gradient corruption. You can configure this behavior in your YAML:
+
+```yaml
+data_cleaning:
+  remove_empty_fields: true
+  remove_missing_images: true
+```
 ```
 
 ### HuggingFace Datasets

@@ -19,6 +19,14 @@ _TORCH_DTYPE_MAP = {
 }
 
 
+def safe_load_state_dict(path: str, map_location: str = "cpu") -> dict:
+    """Load state dict with weights_only=True, falling back for older PyTorch versions."""
+    try:
+        return torch.load(path, map_location=map_location, weights_only=True)
+    except TypeError:
+        return torch.load(path, map_location=map_location)
+
+
 def resolve_pretrained_kwargs(config: dict[str, Any]) -> dict[str, Any]:
     """Build kwargs for AutoModel.from_pretrained() from the unified config.
 

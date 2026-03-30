@@ -65,6 +65,7 @@ learning_rate: 2.0e-5
 
 # Memory Optimization
 use_fsdp: true              # Enable FSDP
+use_gradient_cache: true    # Enable Gradient Cache for huge effective batch sizes
 gradient_checkpointing: true
 use_lora: true              # LoRA reduces trainable params
 
@@ -75,17 +76,28 @@ mrl_dims: [1024]           # Reduce from default for memory
 
 ## Memory Optimization Tips
 
-### 1. Reduce Batch Size
+### 1. Enable Gradient Cache (Recommended)
 
-If you get CUDA OOM errors:
+When using FSDP, you can now safely enable Gradient Cache to simulate massive batch sizes without running out of memory.
 
 ```yaml
-batch_size: 8   # Start small, increase if no OOM
+use_fsdp: true
+use_gradient_cache: true
+batch_size: 1  # Keep this tiny
+gradient_accumulation_steps: 128  # Scale this up
 ```
 
-Each GPU will get its own batch shard, so total BS = local_batch_size * num_gpus.
+### 2. Reduce Batch Size
 
-### 2. Enable Gradient Checkpointing
+If you get CUDA OOM errors despite using Gradient Cache:
+
+```yaml
+batch_size: 1   # Start small, increase if no OOM
+```
+
+Each GPU will get its own batch shard, so total BS = local_batch_size * num_gpus * gradient_accumulation_steps.
+
+### 3. Enable Gradient Checkpointing
 
 ```yaml
 gradient_checkpointing: true

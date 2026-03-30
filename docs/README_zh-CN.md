@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  <a href="README_zh-CN.md">中文文档</a> | <a href="../README.md">English</a>
+</p>
+
+<p align="center">
   <em>微调 CLIP, SigLIP, Qwen-VL 等模型 — 赋能视觉 RAG 与多模态搜索。</em>
 </p>
 
@@ -30,7 +34,7 @@
 | **组合编码器 (BERT + DINOv2)** | ✅ | ❌ | ❌ |
 | **知识蒸馏** | ✅ | ✅ | ✅ |
 | **LoRA 微调** | ✅ | ❌ | ❌ |
-| **W&B / TensorBoard 日志** | ✅ | ✅ | ❌ |
+| **WandB / SwanLab / TensorBoard 日志** | ✅ | ✅ | ❌ |
 | **专注于训练 (无部署绑定)** | ✅ | ❌ | ❌ |
 
 **核心理念**: *"Do one thing and do it well."* 我们专注于 **训练** 和 **评测**，并输出标准的 HuggingFace 权重，您可以将其部署到任何地方 — LangChain, Milvus, Vespa 或任何向量数据库。
@@ -49,7 +53,7 @@
   - **LR 调度**: 余弦退火, 线性, 常数 (带预热)
   - **LoRA**: 参数高效微调
 - **通用数据引擎**: 支持 JSONL, CSV, Parquet, HuggingFace Datasets，支持灵活的列映射
-- **实验追踪**: 内置 W&B 和 TensorBoard 集成
+- **实验追踪**: 内置 WandB、SwanLab 和 TensorBoard 集成
 
 ## 支持模型
 
@@ -128,12 +132,12 @@ image_emb = predictor.encode_image("cat.jpg")
 
 ```bash
 # 使用 YAML 配置训练 (推荐)
-python run.py examples/qwen3_2b_train.yaml
-
-# 使用 MRL 训练 CLIP
 python run.py examples/clip_train.yaml
 
-# 训练 ColPali (延迟交互)
+# 训练 Qwen3-VL 2B (多模态)
+python run.py examples/qwen3_vl_embedding_2b_train.yaml
+
+# 训练 ColBERT (延迟交互)
 python run.py examples/qwen_colbert.yaml
 ```
 
@@ -170,7 +174,10 @@ python run.py examples/clip_train.yaml --config_override batch_size=64 learning_
 | `warmup_ratio` | `0.1` | 预热步数比例 |
 | `weight_decay` | `0.01` | AdamW 权重衰减 |
 | `max_grad_norm` | `1.0` | 梯度裁剪 (0 表示禁用) |
-| `report_to` | `none` | 实验追踪: `wandb`, `tensorboard`, `all`, `none` |
+| `report_to` | `none` | 实验追踪: `wandb`, `swanlab`, `tensorboard`, `none` |
+| `run_name` | `None` | 实验名称 (在 WandB/SwanLab 仪表板中显示) |
+| `run_tags` | `None` | 实验标签 (用于在 WandB/SwanLab 中组织实验) |
+| `run_notes` | `None` | 实验备注/描述 (在 WandB/SwanLab 中可见) |
 | `logging_steps` | `10` | 每 N 步记录一次指标 |
 | `use_gradient_cache` | `true` | 内存高效的大批次训练 |
 | `use_mrl` | `false` | Matryoshka 表征学习 |
@@ -182,19 +189,22 @@ python run.py examples/clip_train.yaml --config_override batch_size=64 learning_
 
 ### 分步指南
 
-- **[DINOv2 图像检索](docs/guides/dinov2_finetune.md)** - 在 SOP 数据集上微调 DINOv2 实现高精度图像搜索
-- **[Jupyter Notebooks](notebooks/)** - 交互式教程覆盖各种使用场景
-- **[API 文档](docs/api/)** - 所有模块的详细 API 参考
+- **[DINOv2 图像检索](guides/dinov2_finetune.md)** - 在 SOP 数据集上微调 DINOv2 实现高精度图像搜索
+- **[双塔模型双向损失](guides/bidirectional_loss.md)** - 用双向训练优化文到图和图到文两个方向
+- **[双向损失决策表](guides/BIDIRECTIONAL_DECISION_TABLE.md)** - 快速参考：应该使用双向损失吗？
+- **[VLM 与双向损失分析](guides/VLM_BIDIRECTIONAL_QUICKREF.md)** - 双向损失在 VLM 模型中何时有效？
+- **[Jupyter Notebooks](../notebooks/)** - 交互式教程覆盖各种使用场景
+- **[API 文档](api/)** - 所有模块的详细 API 参考
 
 ## 开发与贡献
 
-有兴趣贡献？请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解开发环境设置和指南。
+有兴趣贡献？请查看 [CONTRIBUTING.md](../CONTRIBUTING.md) 了解开发环境设置和指南。
 
 ## 评测结果
 
 ### Stanford Online Products (SOP) - 图搜图 (I2I)
 
-我们使用 `vembed-factory` 在 SOP 数据集 (电商商品) 上微调了 **DINOv2-base** 和 **MAE-base** 模型。
+我们使用 `vembed-factory` 在 SOP 数据集 (电商商品) 上微调了 **DINOv3-ViT-B/16** 和 **MAE-base** 模型。
 
 **定性结果 (Top-5 检索):**
 ![SOP I2I Demo](docs/assets/sop_i2i_demo.png)

@@ -165,7 +165,7 @@ class TrainingArguments:
     )
     run_notes: str | None = field(
         default=None,
-        metadata={"help": "Notes/description for the experiment (visible in WandB/SwanLab)"},
+        metadata={"help": "Notes/description for the experiment (visible in WandB/SwanLab). See docs/guides/monitoring.md for setup instructions."},
     )
     gradient_checkpointing: bool = field(
         default=False,

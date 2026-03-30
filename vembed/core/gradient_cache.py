@@ -1,11 +1,15 @@
 """Gradient Cache integration with vembed-factory pipeline."""
-
 from collections import UserDict
 
 from torch import Tensor
 
 from vembed.grad_cache import GradCache as LibGradCache
-
+from vembed.core.constants import (
+    BATCH_SIZE_PRIORITY_KEYS,
+    GRID_INDICATOR,
+    GRID_TO_PATCH_MAP,
+    PATCH_INDICATORS,
+)
 
 def _extract_rep(output: object) -> Tensor:
     """Extract plain tensor from model output."""
@@ -24,10 +28,15 @@ def _extract_rep(output: object) -> Tensor:
 
 
 def _split_vlm_inputs(model_input, chunk_size: int) -> list:
-    """Custom split for VLM inputs (e.g. Qwen3-VL).
+    """Custom split for VLM inputs with automatic field routing.
 
-    Handles pixel_values (flat patches) and image_grid_thw (per-image metadata).
-    Splits pixel_values based on patch counts derived from grid_thw.
+    Supports both legacy flat-patch models (pixel_values + image_grid_thw)
+    and future hierarchical models (video_grid_thw, etc).
+
+    Uses shape heuristics to route fields:
+    - Batch-aligned tensors (shape[0] == batch_size): split on dim 0
+    - Per-image metadata (contains grid info): split based on grid counts
+    - Scalar/non-tensor fields: replicate across chunks
     """
     if isinstance(model_input, Tensor):
         return list(model_input.split(chunk_size, dim=0))
@@ -35,56 +44,95 @@ def _split_vlm_inputs(model_input, chunk_size: int) -> list:
     if not isinstance(model_input, dict | UserDict):
         raise NotImplementedError(f"_split_vlm_inputs not implemented for type {type(model_input)}")
 
-    has_pixel_values = "pixel_values" in model_input and model_input["pixel_values"] is not None
-    has_grid = "image_grid_thw" in model_input and model_input["image_grid_thw"] is not None
+    batch_size = None
+    batch_aligned_keys = []
 
-    if not (has_pixel_values and has_grid):
-        # Standard split
-        tensor_keys = [k for k, v in model_input.items() if isinstance(v, Tensor)]
-        if not tensor_keys:
-            return [model_input] if model_input else []
-        first = model_input[tensor_keys[0]]
-        n_chunks = (first.shape[0] + chunk_size - 1) // chunk_size
-        result = [{} for _ in range(n_chunks)]
-        for k in tensor_keys:
-            for i, chunk in enumerate(model_input[k].split(chunk_size, dim=0)):
-                result[i][k] = chunk
-        return result
+    for priority_key in BATCH_SIZE_PRIORITY_KEYS:
+        if priority_key in model_input:
+            v = model_input[priority_key]
+            if isinstance(v, Tensor) and v.ndim > 0:
+                batch_size = v.shape[0]
+                batch_aligned_keys.append(priority_key)
+                break
 
-    grid_thw = model_input["image_grid_thw"]  # [num_images, 3]
-    pixel_values = model_input["pixel_values"]  # [total_patches, ...]
+    if batch_size is None:
+        for k, v in model_input.items():
+            if GRID_INDICATOR in k and isinstance(v, Tensor) and v.ndim > 0:
+                batch_size = v.shape[0]
+                batch_aligned_keys.append(k)
+                break
 
-    # Batch size from input_ids or attention_mask (preferred)
-    if "input_ids" in model_input:
-        batch_size = model_input["input_ids"].shape[0]
-    elif "attention_mask" in model_input:
-        batch_size = model_input["attention_mask"].shape[0]
-    else:
-        batch_size = grid_thw.shape[0]
+    if batch_size is None:
+        for k, v in model_input.items():
+            if (
+                isinstance(v, Tensor)
+                and v.ndim > 0
+                and not any(ind in k for ind in PATCH_INDICATORS)
+            ):
+                batch_size = v.shape[0]
+                batch_aligned_keys.append(k)
+                break
 
-    patches_per_image = (grid_thw[:, 0] * grid_thw[:, 1] * grid_thw[:, 2]).tolist()
+    if batch_size is None:
+        return [model_input] if model_input else []
+
+    for k, v in model_input.items():
+        if k not in batch_aligned_keys and isinstance(v, Tensor) and v.ndim > 0:
+            if v.shape[0] == batch_size:
+                batch_aligned_keys.append(k)
+
+    grid_key = None
+    flat_patch_key = None
+    for k in model_input:
+        if GRID_INDICATOR in k and isinstance(model_input[k], Tensor):
+            grid_key = k
+            expected_patch_key = GRID_TO_PATCH_MAP.get(k)
+            if expected_patch_key and expected_patch_key in model_input:
+                flat_patch_key = expected_patch_key
+            else:
+                # Fallback: search for any patch tensor if mapping not found
+                # (supports new VLM models with different grid-patch naming)
+                for pk in model_input:
+                    if any(ind in pk for ind in PATCH_INDICATORS) and isinstance(model_input[pk], Tensor):
+                        flat_patch_key = pk
+                        break
+            break
 
     n_chunks = (batch_size + chunk_size - 1) // chunk_size
-    result = []
-    px_offset = 0
+    result = [{} for _ in range(n_chunks)]
 
-    for ci in range(n_chunks):
-        start = ci * chunk_size
-        end = min(start + chunk_size, batch_size)
+    if grid_key and flat_patch_key:
+        grid_thw = model_input[grid_key]
+        flat_patches = model_input[flat_patch_key]
+        patches_per_item = (grid_thw[:, 0] * grid_thw[:, 1] * grid_thw[:, 2]).tolist()
 
-        chunk_dict = {}
+        px_offset = 0
+        for ci in range(n_chunks):
+            start = ci * chunk_size
+            end = min(start + chunk_size, batch_size)
 
-        for k in ("input_ids", "attention_mask"):
-            if k in model_input and model_input[k] is not None:
-                chunk_dict[k] = model_input[k][start:end]
+            for k in batch_aligned_keys:
+                result[ci][k] = model_input[k][start:end]
 
-        chunk_dict["image_grid_thw"] = grid_thw[start:end]
+            result[ci][grid_key] = grid_thw[start:end]
+            chunk_n_patches = sum(patches_per_item[start:end])
+            result[ci][flat_patch_key] = flat_patches[px_offset : px_offset + chunk_n_patches]
+            px_offset += chunk_n_patches
 
-        chunk_n_patches = sum(patches_per_image[start:end])
-        chunk_dict["pixel_values"] = pixel_values[px_offset : px_offset + chunk_n_patches]
-        px_offset += chunk_n_patches
+            for k, v in model_input.items():
+                if k not in batch_aligned_keys and k != grid_key and k != flat_patch_key:
+                    result[ci][k] = v
 
-        result.append(chunk_dict)
+        return result
+
+    for k in batch_aligned_keys:
+        for i, chunk in enumerate(model_input[k].split(chunk_size, dim=0)):
+            result[i][k] = chunk
+
+    for k, v in model_input.items():
+        if k not in batch_aligned_keys:
+            for i in range(n_chunks):
+                result[i][k] = v
 
     return result
 

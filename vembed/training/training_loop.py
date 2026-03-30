@@ -131,9 +131,10 @@ class Trainer:
 
                         # Mid-epoch validation
                         if self.eval_steps > 0 and global_step % self.eval_steps == 0 and self.val_dataloader:
-                            val_metric = self.evaluator.evaluate(self.val_dataloader, global_step)
+                            metrics_dict = self.evaluator.evaluate(self.val_dataloader, global_step)
                             if self.accelerator.log_with is not None:
-                                self.accelerator.log({"val/loss": val_metric}, step=global_step)
+                                self.accelerator.log({"val/" + k: v for k, v in metrics_dict.items()}, step=global_step)
+                            val_metric = self._extract_eval_metric(metrics_dict)
                             if self._check_early_stopping(val_metric):
                                 self.accelerator.print(f"Early stopping triggered at step {global_step}")
                                 return
@@ -147,11 +148,11 @@ class Trainer:
                             batch_size = batch["pixel_values"].shape[0]
 
                         self.accelerator.print("\n" + "=" * 70)
-                        self.accelerator.print("❌ OUT OF MEMORY ERROR")
+                        self.accelerator.print("OUT OF MEMORY ERROR")
                         self.accelerator.print("=" * 70)
                         self.accelerator.print(f"Step {global_step}, Epoch {epoch + 1}/{self.num_epochs}")
                         self.accelerator.print(f"Batch size: {batch_size}")
-                        self.accelerator.print("\n💡 Recommended Solutions:")
+                        self.accelerator.print("\nRecommended Solutions:")
                         self.accelerator.print(f"  1. Reduce batch_size (current: {batch_size})")
                         self.accelerator.print("  2. Enable gradient_accumulation_steps")
                         self.accelerator.print("  3. Enable gradient_checkpointing: true")
@@ -165,10 +166,11 @@ class Trainer:
 
             # Epoch-end validation
             if self.val_dataloader and self.eval_steps == 0:
-                avg_loss = self.evaluator.evaluate(self.val_dataloader, global_step)
+                metrics_dict = self.evaluator.evaluate(self.val_dataloader, global_step)
                 if self.accelerator.log_with is not None:
-                    self.accelerator.log({"val/loss": avg_loss}, step=global_step)
-                if self._check_early_stopping(avg_loss):
+                    self.accelerator.log({"val/" + k: v for k, v in metrics_dict.items()}, step=global_step)
+                val_metric = self._extract_eval_metric(metrics_dict)
+                if self._check_early_stopping(val_metric):
                     self.accelerator.print(f"Early stopping triggered at epoch {epoch + 1}")
                     return
 
@@ -360,11 +362,43 @@ class Trainer:
         )
         return loss
 
-    def _check_early_stopping(self, metric_value: float) -> bool:
-        """Check if early stopping should be triggered.
+    def _extract_eval_metric(self, metrics_dict: dict[str, float]) -> float:
+        """Extract the configured eval_metric from full metrics dictionary.
+
+        Supports custom metrics specified in eval_metric config:
+        - "loss": uses metrics_dict["loss"]
+        - "recall@1": uses metrics_dict["recall@1"]
+        - "recall@5": uses metrics_dict["recall@5"]
+        - etc.
 
         Args:
-            metric_value: The metric value to evaluate.
+            metrics_dict: Full metrics dictionary from evaluator (e.g., {"loss": 0.5, "recall@1": 0.7})
+
+        Returns:
+            The specific metric value for early stopping.
+
+        Raises:
+            KeyError: If configured eval_metric not found in metrics_dict.
+        """
+        metric_name = self.eval_metric.replace("val/", "")
+        if metric_name not in metrics_dict:
+            available = list(metrics_dict.keys())
+            self.accelerator.print(
+                f"WARNING: eval_metric '{metric_name}' not found in validation metrics. "
+                f"Available: {available}. Using 'loss' as fallback."
+            )
+            return metrics_dict.get("loss", float("inf"))
+        return metrics_dict[metric_name]
+
+    def _check_early_stopping(self, metric_value: float) -> bool:
+        """Check if early stopping should be triggered based on configured metric.
+
+        CRITICAL: Uses eval_metric_better config to determine improvement direction.
+        - "min": Lower is better (default, for loss)
+        - "max": Higher is better (for recall@k, accuracy, etc.)
+
+        Args:
+            metric_value: The metric value to evaluate (from _extract_eval_metric).
 
         Returns:
             True if early stopping should be triggered, False otherwise.

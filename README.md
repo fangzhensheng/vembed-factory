@@ -47,6 +47,7 @@ There are excellent embedding libraries out there. Here's where **vembed-factory
 | **Knowledge Distillation** | ✅ | ✅ | ✅ |
 | **LoRA fine-tuning** | ✅ | ❌ | ❌ |
 | **WandB / SwanLab / TensorBoard** | ✅ | ✅ | ❌ |
+| **Training-focused (no deployment coupling)** | ✅ | ❌ | ❌ |
 
 **Core philosophy**: *"Do one thing and do it well."* We focus solely on **Training** and **Evaluation**, and output standard HuggingFace weights that you can deploy anywhere — LangChain, Milvus, Vespa, or any vector database.
 

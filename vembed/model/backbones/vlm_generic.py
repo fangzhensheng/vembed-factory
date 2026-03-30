@@ -11,6 +11,7 @@ from ..base import (
     _extract_hidden_state,
     disable_kv_cache,
     resolve_pretrained_kwargs,
+    safe_load_state_dict,
 )
 from ..registry import ModelRegistry
 
@@ -54,7 +55,8 @@ class GenericVLMEmbeddingModel(BaseEmbeddingModel):
             # Try loading existing projection head
             proj_path = os.path.join(self.model_name, "projection_head.pt")
             if os.path.isfile(proj_path):
-                self.projection_head.load_state_dict(torch.load(proj_path, map_location="cpu"))
+                state_dict = safe_load_state_dict(proj_path)
+                self.projection_head.load_state_dict(state_dict)
 
     @staticmethod
     def _probe_hidden_size(model_name: str) -> int:

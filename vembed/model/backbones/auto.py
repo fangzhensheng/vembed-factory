@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModel
 
-from ..base import BaseEmbeddingModel, disable_kv_cache, pool, resolve_pretrained_kwargs
+from ..base import BaseEmbeddingModel, disable_kv_cache, pool, resolve_pretrained_kwargs, safe_load_state_dict
 from ..registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
@@ -126,7 +126,8 @@ class AutoEmbeddingModel(BaseEmbeddingModel):
             proj_path = os.path.join(self.model_name, "projection_head.pt")
             if os.path.isfile(proj_path):
                 logger.info(f"Loading projection head from {proj_path}")
-                self.projection_head.load_state_dict(torch.load(proj_path, map_location="cpu"))
+                state_dict = safe_load_state_dict(proj_path)
+                self.projection_head.load_state_dict(state_dict)
 
     def save_pretrained(self, save_directory: str):
         """Save the model weights (and projection head) to a directory."""
