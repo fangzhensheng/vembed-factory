@@ -130,13 +130,22 @@ class Trainer:
                             self._save_checkpoint(global_step)
 
                         # Mid-epoch validation
-                        if self.eval_steps > 0 and global_step % self.eval_steps == 0 and self.val_dataloader:
+                        if (
+                            self.eval_steps > 0
+                            and global_step % self.eval_steps == 0
+                            and self.val_dataloader
+                        ):
                             metrics_dict = self.evaluator.evaluate(self.val_dataloader, global_step)
                             if self.accelerator.log_with is not None:
-                                self.accelerator.log({"val/" + k: v for k, v in metrics_dict.items()}, step=global_step)
+                                self.accelerator.log(
+                                    {"val/" + k: v for k, v in metrics_dict.items()},
+                                    step=global_step,
+                                )
                             val_metric = self._extract_eval_metric(metrics_dict)
                             if self._check_early_stopping(val_metric):
-                                self.accelerator.print(f"Early stopping triggered at step {global_step}")
+                                self.accelerator.print(
+                                    f"Early stopping triggered at step {global_step}"
+                                )
                                 return
                 except RuntimeError as e:
                     error_msg = str(e)
@@ -150,7 +159,9 @@ class Trainer:
                         self.accelerator.print("\n" + "=" * 70)
                         self.accelerator.print("OUT OF MEMORY ERROR")
                         self.accelerator.print("=" * 70)
-                        self.accelerator.print(f"Step {global_step}, Epoch {epoch + 1}/{self.num_epochs}")
+                        self.accelerator.print(
+                            f"Step {global_step}, Epoch {epoch + 1}/{self.num_epochs}"
+                        )
                         self.accelerator.print(f"Batch size: {batch_size}")
                         self.accelerator.print("\nRecommended Solutions:")
                         self.accelerator.print(f"  1. Reduce batch_size (current: {batch_size})")
@@ -168,7 +179,9 @@ class Trainer:
             if self.val_dataloader and self.eval_steps == 0:
                 metrics_dict = self.evaluator.evaluate(self.val_dataloader, global_step)
                 if self.accelerator.log_with is not None:
-                    self.accelerator.log({"val/" + k: v for k, v in metrics_dict.items()}, step=global_step)
+                    self.accelerator.log(
+                        {"val/" + k: v for k, v in metrics_dict.items()}, step=global_step
+                    )
                 val_metric = self._extract_eval_metric(metrics_dict)
                 if self._check_early_stopping(val_metric):
                     self.accelerator.print(f"Early stopping triggered at epoch {epoch + 1}")
@@ -424,10 +437,7 @@ class Trainer:
         self.accelerator.print(
             f"Metric did not improve. Patience: {self.patience_counter}/{self.early_stopping_patience}"
         )
-        if self.patience_counter >= self.early_stopping_patience:
-            return True
-
-        return False
+        return self.patience_counter >= self.early_stopping_patience
 
     def _log_step(
         self,

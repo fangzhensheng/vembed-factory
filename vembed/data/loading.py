@@ -3,7 +3,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 from datasets import Dataset
 from datasets import load_dataset as hf_load_dataset
 from tqdm import tqdm

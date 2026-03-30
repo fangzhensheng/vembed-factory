@@ -14,7 +14,6 @@ warnings.filterwarnings(
     "ignore", category=FutureWarning, module="torch.distributed.algorithms.ddp_comm_hooks"
 )
 
-import torch  # noqa: E402
 from accelerate import Accelerator, DistributedDataParallelKwargs  # noqa: E402
 from accelerate.logging import get_logger  # noqa: E402
 from torch.utils.data import DataLoader  # noqa: E402
@@ -94,13 +93,13 @@ def main():
             init_kwargs=init_kwargs,
         )
 
-    accelerator.print("\n" + "="*70)
+    accelerator.print("\n" + "=" * 70)
     accelerator.print("Training Configuration")
-    accelerator.print("="*70)
+    accelerator.print("=" * 70)
     accelerator.print(f"Model: {config['model_name']}")
     accelerator.print(f"Data: {config['data_path']}")
     accelerator.print(f"Output: {config['output_dir']}")
-    accelerator.print("="*70 + "\n")
+    accelerator.print("=" * 70 + "\n")
 
     # Build model and processor
     processor = load_processor(config["model_name"])
@@ -262,19 +261,27 @@ def main():
     grad_accum_steps = config.get("gradient_accumulation_steps", 1)
     effective_batch_size = config["batch_size"] * grad_accum_steps
 
-    accelerator.print("\n" + "-"*70)
+    accelerator.print("\n" + "-" * 70)
     accelerator.print("Training Setup")
-    accelerator.print("-"*70)
-    accelerator.print(f"Epochs: {num_epochs} | Steps/Epoch: {steps_per_epoch} | Total Steps: {max_train_steps}")
-    accelerator.print(f"Batch Size: {config['batch_size']} | Gradient Accumulation: {grad_accum_steps}x | Effective: {effective_batch_size}")
-    accelerator.print(f"Learning Rate: {config.get('learning_rate', 'auto')} | Scheduler: {config.get('scheduler_type', 'cosine')}")
+    accelerator.print("-" * 70)
+    accelerator.print(
+        f"Epochs: {num_epochs} | Steps/Epoch: {steps_per_epoch} | Total Steps: {max_train_steps}"
+    )
+    accelerator.print(
+        f"Batch Size: {config['batch_size']} | Gradient Accumulation: {grad_accum_steps}x | Effective: {effective_batch_size}"
+    )
+    accelerator.print(
+        f"Learning Rate: {config.get('learning_rate', 'auto')} | Scheduler: {config.get('scheduler_type', 'cosine')}"
+    )
     accelerator.print(f"Warmup Steps: {warmup_steps}")
 
     if config.get("eval_steps", 0) > 0:
         accelerator.print(f"Evaluation: every {config['eval_steps']} steps")
     if config.get("early_stopping_patience", -1) > 0:
-        accelerator.print(f"Early Stopping: patience={config['early_stopping_patience']}, metric={config.get('eval_metric', 'val/loss')}")
-    accelerator.print("-"*70 + "\n")
+        accelerator.print(
+            f"Early Stopping: patience={config['early_stopping_patience']}, metric={config.get('eval_metric', 'val/loss')}"
+        )
+    accelerator.print("-" * 70 + "\n")
 
     # Unify dtype before FSDP wrapping to avoid "mixed dtype" errors during all_gather
     unify_model_dtype_for_fsdp(model, config, accelerator)
@@ -291,9 +298,9 @@ def main():
         val_dataloader = accelerator.prepare(val_dataloader)
 
     # Log distributed training setup
-    accelerator.print("\n" + "-"*70)
+    accelerator.print("\n" + "-" * 70)
     accelerator.print("Distributed Training")
-    accelerator.print("-"*70)
+    accelerator.print("-" * 70)
     if config.get("use_fsdp"):
         accelerator.print("✓ FSDP (Fully Sharded Data Parallel) enabled")
     if config.get("use_gradient_cache"):
@@ -304,8 +311,10 @@ def main():
         accelerator.print("  ⚠ Note: no_sync optimization disabled for FSDP safety")
     if config.get("use_lora"):
         accelerator.print(f"✓ LoRA enabled (r={config.get('lora_r', 'auto')})")
-    accelerator.print(f"Processes: {accelerator.num_processes} | Gradient Sync: every {grad_accum_steps} steps")
-    accelerator.print("-"*70 + "\n")
+    accelerator.print(
+        f"Processes: {accelerator.num_processes} | Gradient Sync: every {grad_accum_steps} steps"
+    )
+    accelerator.print("-" * 70 + "\n")
 
     # Enable static graph for DDP optimization
     enable_static_graph(model, config, accelerator)

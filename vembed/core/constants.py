@@ -19,8 +19,8 @@ GRID_INDICATOR = "grid_thw"
 # Mapping of grid metadata keys to their corresponding flat-patch tensor keys
 # Used when splitting VLM inputs with grid-based patch organization
 GRID_TO_PATCH_MAP = {
-    "image_grid_thw": "pixel_values",      # Legacy: flat image patches indexed by grid_thw
-    "video_grid_thw": "video_patches",     # Future: flat video patches indexed by grid_thw
+    "image_grid_thw": "pixel_values",  # Legacy: flat image patches indexed by grid_thw
+    "video_grid_thw": "video_patches",  # Future: flat video patches indexed by grid_thw
 }
 
 # Priority order for batch size detection in VLM inputs

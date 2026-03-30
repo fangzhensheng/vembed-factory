@@ -1,15 +1,17 @@
 """Gradient Cache integration with vembed-factory pipeline."""
+
 from collections import UserDict
 
 from torch import Tensor
 
-from vembed.grad_cache import GradCache as LibGradCache
 from vembed.core.constants import (
     BATCH_SIZE_PRIORITY_KEYS,
     GRID_INDICATOR,
     GRID_TO_PATCH_MAP,
     PATCH_INDICATORS,
 )
+from vembed.grad_cache import GradCache as LibGradCache
+
 
 def _extract_rep(output: object) -> Tensor:
     """Extract plain tensor from model output."""
@@ -77,9 +79,13 @@ def _split_vlm_inputs(model_input, chunk_size: int) -> list:
         return [model_input] if model_input else []
 
     for k, v in model_input.items():
-        if k not in batch_aligned_keys and isinstance(v, Tensor) and v.ndim > 0:
-            if v.shape[0] == batch_size:
-                batch_aligned_keys.append(k)
+        if (
+            k not in batch_aligned_keys
+            and isinstance(v, Tensor)
+            and v.ndim > 0
+            and v.shape[0] == batch_size
+        ):
+            batch_aligned_keys.append(k)
 
     grid_key = None
     flat_patch_key = None
@@ -93,7 +99,9 @@ def _split_vlm_inputs(model_input, chunk_size: int) -> list:
                 # Fallback: search for any patch tensor if mapping not found
                 # (supports new VLM models with different grid-patch naming)
                 for pk in model_input:
-                    if any(ind in pk for ind in PATCH_INDICATORS) and isinstance(model_input[pk], Tensor):
+                    if any(ind in pk for ind in PATCH_INDICATORS) and isinstance(
+                        model_input[pk], Tensor
+                    ):
                         flat_patch_key = pk
                         break
             break
@@ -227,6 +235,7 @@ class GradientCache:
         use_no_sync = False
         if self.accelerator and self.accelerator.num_processes > 1:
             from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
             is_fsdp = isinstance(model, FSDP) or (
                 hasattr(model, "module") and isinstance(model.module, FSDP)
             )

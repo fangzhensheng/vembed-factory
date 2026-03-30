@@ -49,12 +49,16 @@ def build_optimizer(
     if criterion is not None:
         criterion_params = [p for p in criterion.parameters() if p.requires_grad]
         if criterion_params:
-            logger.info(f"Adding {len(criterion_params)} learnable parameters from criterion to optimizer")
-            param_groups.append({
-                "params": criterion_params,
-                "weight_decay": 0.0,
-                "lr": float(config.get("lr", 1e-4)),
-            })
+            logger.info(
+                f"Adding {len(criterion_params)} learnable parameters from criterion to optimizer"
+            )
+            param_groups.append(
+                {
+                    "params": criterion_params,
+                    "weight_decay": 0.0,
+                    "lr": float(config.get("lr", 1e-4)),
+                }
+            )
 
     if "lr" not in config and "learning_rate" in config:
         config["lr"] = config["learning_rate"]
@@ -150,8 +154,7 @@ def resolve_tracker(
             import wandb  # noqa: F401
         except ImportError:
             logger.warning(
-                "wandb requested but wandb package not found. "
-                "Install with: pip install wandb"
+                "wandb requested but wandb package not found. " "Install with: pip install wandb"
             )
             return None, {}
 

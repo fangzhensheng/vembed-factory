@@ -2,10 +2,9 @@
 
 import argparse
 import logging
-from pathlib import Path
 
 from vembed.data.column_validator import print_validation_report, validate_column_mapping
-from vembed.data.data_cleaner import print_cleaning_report, validate_and_clean_data
+from vembed.data.data_cleaner import print_cleaning_report
 from vembed.data.loading import load_data
 from vembed.data.validation import print_validation_report as print_data_validation_report
 from vembed.data.validation import validate_dataset
@@ -64,13 +63,17 @@ def validate_data_command(args):
             missing_ratio = clean_report["issues"].get("missing_image", 0) / clean_report["total"]
             if missing_ratio > 0.9:
                 print("\n⚠️  WARNING: Large number of missing images detected")
-                print(f"   Missing: {clean_report['issues'].get('missing_image', 0)}/{clean_report['total']} records")
+                print(
+                    f"   Missing: {clean_report['issues'].get('missing_image', 0)}/{clean_report['total']} records"
+                )
                 print("\n   Possible causes:")
                 print("   1. --image-root parameter not provided or incorrect")
                 print("   2. Relative paths in data do not match actual file structure")
                 print("   3. Image files not yet downloaded or in wrong location")
                 print("\n   Suggested fix:")
-                print("   vembed validate-data data.jsonl --check-images --image-root /path/to/images/\n")
+                print(
+                    "   vembed validate-data data.jsonl --check-images --image-root /path/to/images/\n"
+                )
 
     print("=" * 70 + "\n")
     return 0

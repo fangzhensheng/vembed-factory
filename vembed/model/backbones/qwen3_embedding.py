@@ -1,7 +1,6 @@
 """Qwen3-Embedding model for text-only embedding training."""
 
 import logging
-import os
 from typing import Any
 
 import torch

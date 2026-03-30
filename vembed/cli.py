@@ -33,8 +33,9 @@ def main(args_list=None):
 
     # Handle validate-data subcommand
     if args_list and args_list[0] == "validate-data":
-        from vembed.entrypoints.validate_data import validate_data_command
         import argparse as ap
+
+        from vembed.entrypoints.validate_data import validate_data_command
 
         parser = ap.ArgumentParser(prog="vembed validate-data")
         parser.add_argument("data_path", help="Path to data file")

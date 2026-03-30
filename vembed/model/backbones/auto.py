@@ -8,7 +8,13 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModel
 
-from ..base import BaseEmbeddingModel, disable_kv_cache, pool, resolve_pretrained_kwargs, safe_load_state_dict
+from ..base import (
+    BaseEmbeddingModel,
+    disable_kv_cache,
+    pool,
+    resolve_pretrained_kwargs,
+    safe_load_state_dict,
+)
 from ..registry import ModelRegistry
 
 logger = logging.getLogger(__name__)

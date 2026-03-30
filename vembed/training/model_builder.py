@@ -189,10 +189,11 @@ def apply_lora(
             accelerator.print("LoRA injected")
 
         # Enable gradient checkpointing if configured
-        if config.get("gradient_checkpointing", False):
-            if hasattr(model, "_enable_gradient_checkpointing"):
-                model._enable_gradient_checkpointing()
-                accelerator.print("✓ Gradient checkpointing enabled")
+        if config.get("gradient_checkpointing", False) and hasattr(
+            model, "_enable_gradient_checkpointing"
+        ):
+            model._enable_gradient_checkpointing()
+            accelerator.print("✓ Gradient checkpointing enabled")
 
     except Exception as exc:
         accelerator.print(f"Error applying LoRA: {exc}")

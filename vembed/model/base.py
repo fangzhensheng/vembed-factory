@@ -122,7 +122,9 @@ class BaseEmbeddingModel(nn.Module, ABC):
         self.config = config
 
     @staticmethod
-    def _load_lora_adapter(backbone: torch.nn.Module, model_path: str, merge: bool = True) -> torch.nn.Module:
+    def _load_lora_adapter(
+        backbone: torch.nn.Module, model_path: str, merge: bool = True
+    ) -> torch.nn.Module:
         """Load LoRA adapter from model directory if present.
 
         Args:

@@ -8,8 +8,8 @@ from typing import Any, cast
 import torch
 from torch import Tensor, nn
 from torch.cuda.amp import GradScaler, autocast
-from torch.utils.checkpoint import get_device_states, set_device_states
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.utils.checkpoint import get_device_states, set_device_states
 
 
 class RandContext:
@@ -229,9 +229,7 @@ class GradCache:
             if isinstance(model_args, list) and isinstance(model_kwargs, dict):
                 return model(*model_args, **model_kwargs)
 
-        raise NotImplementedError(
-            f"Model call not implemented for input type {type(model_input)}"
-        )
+        raise NotImplementedError(f"Model call not implemented for input type {type(model_input)}")
 
     def get_reps(self, model_out: Any) -> Tensor:
         """Extract representation tensor from model output."""
@@ -427,7 +425,9 @@ class GradCache:
         """
         if no_sync_except_last:
             if isinstance(model, nn.parallel.DistributedDataParallel):
-                sync_contexts = [model.no_sync for _ in range(len(model_inputs) - 1)] + [nullcontext]
+                sync_contexts = [model.no_sync for _ in range(len(model_inputs) - 1)] + [
+                    nullcontext
+                ]
             elif isinstance(model, FSDP):
                 logger.warning(
                     "no_sync_except_last disabled for FSDP model to avoid parameter sharding state errors. "

@@ -126,10 +126,7 @@ def early_validate_dataset(
         ValueError: If raise_on_error=True and validation fails
     """
     # Load data if it's a path
-    if isinstance(data_source, str):
-        data = load_data(data_source)
-    else:
-        data = data_source
+    data = load_data(data_source) if isinstance(data_source, str) else data_source
 
     # Validate
     report = validate_column_mapping(data, column_mapping, sample_size=min(1000, len(data)))

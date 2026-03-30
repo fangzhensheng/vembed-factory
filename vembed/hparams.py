@@ -157,15 +157,21 @@ class TrainingArguments:
     )
     run_name: str | None = field(
         default=None,
-        metadata={"help": "Experiment name to show in WandB/SwanLab dashboard (e.g., 'clip-baseline-v1')"},
+        metadata={
+            "help": "Experiment name to show in WandB/SwanLab dashboard (e.g., 'clip-baseline-v1')"
+        },
     )
     run_tags: list[str] | None = field(
         default=None,
-        metadata={"help": "Tags for organizing experiments in WandB/SwanLab (e.g., ['baseline', 'clip', 'v1'])"},
+        metadata={
+            "help": "Tags for organizing experiments in WandB/SwanLab (e.g., ['baseline', 'clip', 'v1'])"
+        },
     )
     run_notes: str | None = field(
         default=None,
-        metadata={"help": "Notes/description for the experiment (visible in WandB/SwanLab). See docs/guides/monitoring.md for setup instructions."},
+        metadata={
+            "help": "Notes/description for the experiment (visible in WandB/SwanLab). See docs/guides/monitoring.md for setup instructions."
+        },
     )
     gradient_checkpointing: bool = field(
         default=False,
@@ -229,7 +235,9 @@ class TrainingArguments:
     )
     gradient_accumulation_steps: int = field(
         default=1,
-        metadata={"help": "Number of updates steps to accumulate before performing backward/update pass."},
+        metadata={
+            "help": "Number of updates steps to accumulate before performing backward/update pass."
+        },
     )
     eval_steps: int = field(
         default=0,
@@ -237,7 +245,9 @@ class TrainingArguments:
     )
     early_stopping_patience: int = field(
         default=-1,
-        metadata={"help": "Early stopping patience. Stops training if metric doesn't improve for N evaluations. -1 disables."},
+        metadata={
+            "help": "Early stopping patience. Stops training if metric doesn't improve for N evaluations. -1 disables."
+        },
     )
     eval_metric: str = field(
         default="val/loss",
@@ -245,5 +255,7 @@ class TrainingArguments:
     )
     eval_metric_better: str = field(
         default="min",
-        metadata={"help": "Direction for optimization: 'min' for loss-like metrics, 'max' for recall-like metrics."},
+        metadata={
+            "help": "Direction for optimization: 'min' for loss-like metrics, 'max' for recall-like metrics."
+        },
     )

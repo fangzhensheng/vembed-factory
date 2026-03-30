@@ -3,7 +3,6 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from datasets import Dataset
 
@@ -29,7 +28,16 @@ class DataCleaningConfig:
     max_text_length: int = 100000
     """Maximum allowed text length (sanity check for corrupted data)."""
 
-    valid_image_extensions: tuple = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tif", ".tiff")
+    valid_image_extensions: tuple = (
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
+        ".bmp",
+        ".gif",
+        ".tif",
+        ".tiff",
+    )
     """Valid image file extensions."""
 
     use_multiprocessing: bool = False
@@ -64,7 +72,7 @@ def validate_and_clean_data(
     if isinstance(data, list):
         # Convert list to Dataset for consistent handling
         if data:
-            data = Dataset.from_dict({k: [d.get(k) for d in data] for k in data[0].keys()})
+            data = Dataset.from_dict({k: [d.get(k) for d in data] for k in data[0]})
         else:
             data = Dataset.from_dict({})
 
@@ -103,9 +111,7 @@ def validate_and_clean_data(
         return True
 
     dataset_size = len(data)
-    should_use_multiprocessing = (
-        config.use_multiprocessing and dataset_size > 5_000_000
-    )
+    should_use_multiprocessing = config.use_multiprocessing and dataset_size > 5_000_000
 
     if should_use_multiprocessing:
         # Use multiprocessing for million-scale datasets to avoid Arrow deserialization overhead
@@ -149,10 +155,7 @@ def validate_and_clean_data(
             else:
                 report["invalid"] += 1
 
-        if valid_indices:
-            cleaned = data.select(valid_indices)
-        else:
-            cleaned = data.select([])
+        cleaned = data.select(valid_indices) if valid_indices else data.select([])
 
         report["valid"] = len(valid_indices)
 
@@ -165,16 +168,18 @@ def print_cleaning_report(report: dict) -> None:
     print("🧹 DATA CLEANING REPORT")
     print("=" * 70)
 
-    print(f"\n📊 Record Statistics:")
+    print("\n📊 Record Statistics:")
     print(f"  Total records: {report['total']}")
     print(f"  Valid records: {report['valid']} ({report['valid']*100/max(report['total'],1):.1f}%)")
-    print(f"  Invalid records: {report['invalid']} ({report['invalid']*100/max(report['total'],1):.1f}%)")
+    print(
+        f"  Invalid records: {report['invalid']} ({report['invalid']*100/max(report['total'],1):.1f}%)"
+    )
 
     if report["issues"]:
-        print(f"\n⚠️  Issues Found:")
+        print("\n⚠️  Issues Found:")
         for issue_type, count in sorted(report["issues"].items(), key=lambda x: -x[1]):
             print(f"  • {issue_type}: {count}")
     else:
-        print(f"\n✓ No issues found")
+        print("\n✓ No issues found")
 
     print("\n" + "=" * 70 + "\n")

@@ -5,12 +5,7 @@ from typing import Any
 import torch
 from accelerate.logging import get_logger
 
-from vembed.core.constants import (
-    ALL_SEQ_KEYS,
-    GRID_INDICATOR,
-    PATCH_INDICATORS,
-    SEQ_KEYS,
-)
+from vembed.core.constants import ALL_SEQ_KEYS, GRID_INDICATOR, PATCH_INDICATORS, SEQ_KEYS
 
 logger = get_logger(__name__)
 
@@ -227,7 +222,11 @@ def concat_batches(
             continue
         if key in SEQ_KEYS or key in patch_keys or GRID_INDICATOR in key:
             continue
-        tensors = [b[key] for b in batches if key in b and b[key] is not None and isinstance(b[key], torch.Tensor)]
+        tensors = [
+            b[key]
+            for b in batches
+            if key in b and b[key] is not None and isinstance(b[key], torch.Tensor)
+        ]
         if tensors:
             try:
                 concatenated[key] = torch.cat(tensors, dim=0)
