@@ -117,6 +117,11 @@ class QwenVLMStrategy(VLMStrategy):
 class GenericVLMStrategy(VLMStrategy):
     """Strategy for generic VLMs (LLaVA, etc.) using standard HF APIs."""
 
+    def __init__(self, processor, prompt="", text_processor=None, image_processor=None):
+        super().__init__(processor, prompt)
+        self.text_processor = text_processor
+        self.image_processor = image_processor
+
     def format_conversation(
         self,
         text: str | None,
@@ -140,24 +145,58 @@ class GenericVLMStrategy(VLMStrategy):
 
         return conversation
 
+    def _extract_texts_from_conversations(
+        self, conversations: list[list[dict[str, Any]]]
+    ) -> list[str]:
+        """Extract text content from conversation structures."""
+        texts = []
+        for conv in conversations:
+            text = None
+            for msg in conv:
+                if msg.get("role") != "user":
+                    continue
+                for item in msg.get("content", []):
+                    if item.get("type") == "text":
+                        text = item.get("text", "")
+                        break
+                if text is not None:
+                    break
+            texts.append(text or "")
+        return texts
+
     def process_batch(
         self, conversations: list[list[dict[str, Any]]], images: list[Any]
     ) -> dict[str, Any]:
-        text_inputs = self.processor.apply_chat_template(
-            conversations, tokenize=False, add_generation_prompt=True
-        )
+        result = {}
 
-        # Filter out None images to ensure compatibility with standard HF processors
-        # which expect a list of valid image objects corresponding to <image> tokens
+        # When processor exists, use apply_chat_template for proper formatting
+        if self.processor:
+            text_inputs = self.processor.apply_chat_template(
+                conversations, tokenize=False, add_generation_prompt=True
+            )
+            valid_images = [img for img in images if img is not None]
+            return self.processor(
+                text=text_inputs,
+                images=valid_images if valid_images else None,
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+            )
+
+        # Fallback when processor=None: use separate text/image processors
+        texts = self._extract_texts_from_conversations(conversations)
+        if texts and self.text_processor:
+            text_inputs = self.text_processor(
+                text=texts, return_tensors="pt", padding=True, truncation=True
+            )
+            result.update(text_inputs)
+
         valid_images = [img for img in images if img is not None]
+        if valid_images and self.image_processor:
+            image_inputs = self.image_processor(images=valid_images, return_tensors="pt")
+            result.update(image_inputs)
 
-        return self.processor(
-            text=text_inputs,
-            images=valid_images if valid_images else None,
-            padding=True,
-            truncation=True,
-            return_tensors="pt",
-        )
+        return result
 
 
 @CollatorRegistry.register("qwen-vl")
@@ -180,7 +219,7 @@ class VLMRetrievalCollator(BaseRetrievalCollator):
     def _get_strategy(self, processor, prompt) -> VLMStrategy:
         """Select strategy based on processor type."""
         if processor is None:
-            return GenericVLMStrategy(processor, prompt)
+            return GenericVLMStrategy(processor, prompt, self.text_processor, self.image_processor)
 
         class_name = processor.__class__.__name__.lower()
         model_name = getattr(processor, "name", "").lower()
@@ -188,7 +227,7 @@ class VLMRetrievalCollator(BaseRetrievalCollator):
         if "qwen" in class_name or "qwen" in model_name:
             return QwenVLMStrategy(processor, prompt)
 
-        return GenericVLMStrategy(processor, prompt)
+        return GenericVLMStrategy(processor, prompt, self.text_processor, self.image_processor)
 
     def _process_batch_chunk(
         self,

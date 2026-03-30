@@ -4,6 +4,7 @@ from ..registry import CollatorRegistry
 from .base import BaseRetrievalCollator
 
 
+@CollatorRegistry.register("default")
 @CollatorRegistry.register("clip")
 @CollatorRegistry.register("siglip")
 class CLIPFamilyCollator(BaseRetrievalCollator):
