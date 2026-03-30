@@ -35,16 +35,12 @@ def validate_dataset(
         - missing_fields: Dict of field -> count of missing records
         - required_fields_present: Boolean for each required field
     """
-    # Load data - handle both file paths and pre-loaded lists
     data = load_data(data_source) if isinstance(data_source, str | Path) else data_source
-
     total = len(data)
 
-    # Sample data for analysis
     sample_size = min(sample_size, total)
     sample = data[:sample_size]
 
-    # Resolve column names
     col_mapping = column_mapping or {}
     query_col = col_mapping.get("query", "query")
     positive_col = col_mapping.get("positive", "positive")
@@ -66,7 +62,6 @@ def validate_dataset(
                 return alias
         return None
 
-    # Collect statistics
     query_lengths = []
     image_count = 0
     negative_count = 0
@@ -80,34 +75,30 @@ def validate_dataset(
         actual_positive_col = find_column(record, positive_col, common_fallbacks["positive"])
         actual_negatives_col = find_column(record, negatives_col, common_fallbacks["negatives"])
 
-        # Count missing required fields
-        if not actual_query_col or not str(record.get(actual_query_col, "")).strip():
+        query_val = str(record.get(actual_query_col, "")).strip() if actual_query_col else ""
+        if not query_val:
             missing_required["query"] += 1
         else:
-            query_lengths.append(len(str(record.get(actual_query_col, ""))))
+            query_lengths.append(len(query_val))
 
-        if not actual_positive_col or not str(record.get(actual_positive_col, "")).strip():
+        pos_val = str(record.get(actual_positive_col, "")).strip() if actual_positive_col else ""
+        if not pos_val:
             missing_required["positive"] += 1
-
-        # Count images
-        if actual_positive_col:
-            pos_val = str(record.get(actual_positive_col, "")).lower()
+        else:
+            pos_val_lower = pos_val.lower()
             if (
-                any(pos_val.endswith(ext) for ext in image_extensions)
-                or "/" in pos_val
-                or "\\" in pos_val
+                any(pos_val_lower.endswith(ext) for ext in image_extensions)
+                or "/" in pos_val_lower
+                or "\\" in pos_val_lower
             ):
                 image_count += 1
 
-        # Count negatives
         if actual_negatives_col and record.get(actual_negatives_col):
             negative_count += 1
 
-        # Check for query_image field
         if "query_image" in record or "source_image" in record:
             has_query_image = True
 
-    # Calculate statistics
     stats = {
         "total_records": total,
         "sample_size": sample_size,
@@ -140,10 +131,10 @@ def validate_dataset(
 def print_validation_report(stats: dict[str, Any]) -> None:
     """Print a formatted validation report."""
     print("\n" + "=" * 60)
-    print("📊 DATASET VALIDATION REPORT")
+    print("DATASET VALIDATION REPORT")
     print("=" * 60)
 
-    print("\n📈 Record Statistics:")
+    print("\nRecord Statistics:")
     print(f"  Total records: {stats['total_records']}")
     print(f"  Analyzed sample: {stats['sample_size']}")
 
@@ -151,25 +142,25 @@ def print_validation_report(stats: dict[str, Any]) -> None:
         print(f"  Valid records: {stats['valid_records']}")
         print(f"  Invalid records: {stats['invalid_records']}")
 
-    print("\n📝 Text Statistics:")
+    print("\nText Statistics:")
     text_stats = stats.get("text_stats", {})
     print(f"  Min length: {text_stats.get('min_length', 0)}")
     print(f"  Max length: {text_stats.get('max_length', 0)}")
     print(f"  Avg length: {text_stats.get('avg_length', 0):.1f}")
     print(f"  Missing: {text_stats.get('missing', 0)}/{stats['sample_size']}")
 
-    print("\n🖼️  Image Statistics:")
+    print("\nImage Statistics:")
     print(
         f"  Image samples: {stats['image_count']}/{stats['sample_size']} ({stats['image_ratio']*100:.1f}%)"
     )
     print(f"  Has query images: {stats.get('has_query_image', False)}")
 
-    print("\n❌ Negative Statistics:")
+    print("\nNegative Statistics:")
     print(
         f"  Negative samples: {stats['negative_count']}/{stats['sample_size']} ({stats['negative_ratio']*100:.1f}%)"
     )
 
-    print("\n✅ Required Fields:")
+    print("\nRequired Fields:")
     for field, present in stats.get("required_fields", {}).items():
         status = "✓" if present else "✗"
         print(f"  {status} {field}")
@@ -178,7 +169,6 @@ def print_validation_report(stats: dict[str, Any]) -> None:
 
 
 if __name__ == "__main__":
-    # Example usage
     import sys
 
     if len(sys.argv) < 2:
