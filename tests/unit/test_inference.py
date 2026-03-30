@@ -1,7 +1,6 @@
 """Unit tests for vembed inference engine (VEmbedModel)."""
 
 import json
-import os
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
