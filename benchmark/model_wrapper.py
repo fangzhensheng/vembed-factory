@@ -109,6 +109,7 @@ class VEmbedWrapper(ModelWrapper):
         if encoder_mode:
             # Try to get specific processor loader
             from vembed.model.processors.registry import ProcessorRegistry
+
             loader_cls = ProcessorRegistry.get(encoder_mode)
             if loader_cls:
                 return loader_cls.load(model_path, trust_remote_code=True)
@@ -124,6 +125,7 @@ class VEmbedWrapper(ModelWrapper):
             backend = self.model.backend
             # Check forward signature for pixel_values
             import inspect
+
             sig = inspect.signature(backend.forward)
             return "pixel_values" in sig.parameters
         # Default to True for multimodal models

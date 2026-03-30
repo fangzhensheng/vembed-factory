@@ -65,12 +65,20 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--model_path", type=str, required=True)
-    parser.add_argument("--encoder_mode", type=str, default=None,
-                       help="Encoder mode (auto-detect if not specified). "
-                            "Options: auto, qwen3_vl, qwen3_embedding, siglip, composed, etc.")
+    parser.add_argument(
+        "--encoder_mode",
+        type=str,
+        default=None,
+        help="Encoder mode (auto-detect if not specified). "
+        "Options: auto, qwen3_vl, qwen3_embedding, siglip, composed, etc.",
+    )
     parser.add_argument("--data_path", type=str, required=True)
-    parser.add_argument("--image_root", type=str, default=None,
-                       help="Image root directory (omit for text-only models)")
+    parser.add_argument(
+        "--image_root",
+        type=str,
+        default=None,
+        help="Image root directory (omit for text-only models)",
+    )
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--output_dir", type=str, default="benchmark_results")
     args = parser.parse_args()
@@ -108,13 +116,16 @@ def main():
     else:
         # Text-only mode - load simple JSONL dataset
         from benchmark.dataset import JsonlDataset
+
         dataset = JsonlDataset(args.data_path)
         print(f"Queries: {len(dataset.queries)}, Documents: {len(dataset.documents)}")
 
     # Encode
     if has_images:
         img_embs = _encode_images(wrapper, dataset.unique_image_paths, device, args.batch_size)
-    txt_embs = _encode_texts(wrapper, dataset.captions() if has_images else dataset.queries, device, args.batch_size)
+    txt_embs = _encode_texts(
+        wrapper, dataset.captions() if has_images else dataset.queries, device, args.batch_size
+    )
 
     # Score
     is_late_interaction = txt_embs.dim() == 3 or (has_images and img_embs.dim() == 3)
@@ -137,6 +148,7 @@ def main():
     else:
         # Text-only metrics (use BEIR-style evaluation)
         from benchmark.metrics import recall_at_k as recall_k
+
         # For text-to-text, we assume diagonal or use provided relevance
         # Simplified: compute R@1, R@5, R@10 assuming first query matches first doc, etc.
         # In practice, you'd want proper relevance judgments

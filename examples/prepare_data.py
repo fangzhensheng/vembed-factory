@@ -20,6 +20,7 @@ except ImportError:
     def tqdm(iterable, desc=None, **kwargs):
         return iterable
 
+
 # Karpathy Splits URLs
 KARPATHY_URLS = {
     "train": "https://github.com/mehdidc/retrieval_annotations/releases/download/1.0.0/flickr30k_train_karpathy.txt",
@@ -592,14 +593,10 @@ def prepare_coco_official(
         # Build paths
         if year == 2014:
             images_dir = os.path.join(dataset_root, f"{split}2014")
-            anno_file = os.path.join(
-                dataset_root, "annotations", f"captions_{split}2014.json"
-            )
+            anno_file = os.path.join(dataset_root, "annotations", f"captions_{split}2014.json")
         else:  # 2017
             images_dir = os.path.join(dataset_root, f"{split}2017")
-            anno_file = os.path.join(
-                dataset_root, "annotations", f"captions_{split}2017.json"
-            )
+            anno_file = os.path.join(dataset_root, "annotations", f"captions_{split}2017.json")
 
         if not os.path.exists(anno_file):
             print(f"Skip {split}: annotation file not found at {anno_file}")
@@ -625,7 +622,9 @@ def prepare_coco_official(
         records = []
         missing_images = 0
 
-        for image_id, captions in tqdm(image_captions.items(), desc=f"Generating pairs for {split}"):
+        for image_id, captions in tqdm(
+            image_captions.items(), desc=f"Generating pairs for {split}"
+        ):
             # Find image file (search for common extensions)
             image_path = None
             for ext in [".jpg", ".png"]:
@@ -675,8 +674,12 @@ if __name__ == "__main__":
         print("  python prepare_data.py sop_i2i")
         print("  python prepare_data.py msmarco_t2t")
         print("  python prepare_data.py coco dummy")
-        print("  python prepare_data.py coco hf [--split train,val] [--year 2017] [--output data/coco]")
-        print("  python prepare_data.py coco official /path/to/coco [--year 2017] [--output data/coco]")
+        print(
+            "  python prepare_data.py coco hf [--split train,val] [--year 2017] [--output data/coco]"
+        )
+        print(
+            "  python prepare_data.py coco official /path/to/coco [--year 2017] [--output data/coco]"
+        )
         sys.exit(1)
 
     dataset = sys.argv[1]
@@ -696,8 +699,12 @@ if __name__ == "__main__":
     if dataset == "coco":
         if len(sys.argv) < 3:
             print("COCO usage:")
-            print("  python prepare_data.py coco hf [--split train,val] [--year 2017] [--output data/coco]")
-            print("  python prepare_data.py coco official /path/to/coco [--year 2017] [--output data/coco]")
+            print(
+                "  python prepare_data.py coco hf [--split train,val] [--year 2017] [--output data/coco]"
+            )
+            print(
+                "  python prepare_data.py coco official /path/to/coco [--year 2017] [--output data/coco]"
+            )
             sys.exit(1)
 
         mode = sys.argv[2]
@@ -727,7 +734,9 @@ if __name__ == "__main__":
         elif mode == "official":
             if len(sys.argv) < 4:
                 print("Error: official mode requires dataset root path")
-                print("Usage: python prepare_data.py coco official /path/to/coco [--year 2017] [--output data/coco]")
+                print(
+                    "Usage: python prepare_data.py coco official /path/to/coco [--year 2017] [--output data/coco]"
+                )
                 sys.exit(1)
 
             dataset_root = sys.argv[3]

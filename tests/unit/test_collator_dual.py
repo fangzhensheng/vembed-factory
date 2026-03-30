@@ -2,7 +2,7 @@
 import torch
 from PIL import Image
 
-from vembed.data.collators.default import VisualRetrievalCollator
+from vembed.data.collators.vlm import VisualRetrievalCollator
 
 
 class MockProcessor:

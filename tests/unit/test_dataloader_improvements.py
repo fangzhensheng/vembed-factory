@@ -65,8 +65,8 @@ def check_train_py_changes() -> bool:
         ('config.get("num_workers"' in content, "Using config num_workers"),
         ('config.get("pin_memory"' in content, "Using config pin_memory"),
         ('config.get("prefetch_factor"' in content, "Using config prefetch_factor"),
-        ('persistent_workers' in content, "Using persistent_workers"),
-        ('dataloader_kwargs' in content, "Using dataloader_kwargs dict"),
+        ("persistent_workers" in content, "Using persistent_workers"),
+        ("dataloader_kwargs" in content, "Using dataloader_kwargs dict"),
         ('"shuffle": False' in content, "Validation set has shuffle=False"),
     ]
 
@@ -156,7 +156,11 @@ def test_validation_on_sample() -> bool:
         from vembed.data.validation import validate_dataset
 
         sample_data = [
-            {"query": "What is AI?", "positive": "artificial_intelligence.txt", "negatives": ["wrong.txt"]},
+            {
+                "query": "What is AI?",
+                "positive": "artificial_intelligence.txt",
+                "negatives": ["wrong.txt"],
+            },
             {"caption": "A cat", "image": "cat.jpg"},
             {"text": "Machine learning", "answer": "ml.txt"},
         ]
@@ -165,7 +169,9 @@ def test_validation_on_sample() -> bool:
 
         print("  ✓ Validation module executed successfully")
         print(f"  ✓ Processed {stats['total_records']} records")
-        print(f"  ✓ Text stats: min={stats['text_stats']['min_length']}, max={stats['text_stats']['max_length']}")
+        print(
+            f"  ✓ Text stats: min={stats['text_stats']['min_length']}, max={stats['text_stats']['max_length']}"
+        )
         print(f"  ✓ Image ratio: {stats['image_ratio']*100:.1f}%")
         print(f"  ✓ Negative ratio: {stats['negative_ratio']*100:.1f}%")
 

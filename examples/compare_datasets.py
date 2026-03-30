@@ -8,8 +8,8 @@ Shows:
 
 import json
 import os
-from pathlib import Path
 from collections import defaultdict
+from pathlib import Path
 
 
 def analyze_jsonl(filepath: str, name: str, max_samples: int = 3) -> dict:
@@ -94,9 +94,7 @@ def print_comparison():
                 if stats["query_length"]
                 else 0
             )
-            captions_per_image = (
-                num_pairs / num_images if num_images > 0 else 0
-            )
+            captions_per_image = num_pairs / num_images if num_images > 0 else 0
 
             print(f"  ✓ Total pairs: {num_pairs:,}")
             print(f"  ✓ Unique images: {num_images:,}")
@@ -113,21 +111,15 @@ def print_comparison():
     print("SUMMARY TABLE")
     print("=" * 80)
 
-    print(
-        f"\n{'Dataset':<20} {'Pairs':>12} {'Images':>12} {'Caption/Img':>14} {'Avg Query':>12}"
-    )
+    print(f"\n{'Dataset':<20} {'Pairs':>12} {'Images':>12} {'Caption/Img':>14} {'Avg Query':>12}")
     print("-" * 70)
 
     for key, stats in results.items():
         num_pairs = stats["total_pairs"]
         num_images = len(stats["unique_images"])
-        captions_per_image = (
-            num_pairs / num_images if num_images > 0 else 0
-        )
+        captions_per_image = num_pairs / num_images if num_images > 0 else 0
         avg_query_len = (
-            sum(stats["query_length"]) / len(stats["query_length"])
-            if stats["query_length"]
-            else 0
+            sum(stats["query_length"]) / len(stats["query_length"]) if stats["query_length"] else 0
         )
         print(
             f"{key:<20} {num_pairs:>12,} {num_images:>12,} {captions_per_image:>14.2f} {avg_query_len:>12.0f}"
@@ -172,7 +164,8 @@ def print_comparison():
     print("KEY DIFFERENCES")
     print("=" * 80)
 
-    print("""
+    print(
+        """
 1. SIZE & SCALE:
    • Flickr30k: ~30K images (~150K image-text pairs)
    • COCO 2017: ~118K images (~590K image-text pairs) - 4× larger!
@@ -196,7 +189,8 @@ def print_comparison():
 6. DIVERSITY:
    • Flickr30k: Smaller but high-quality datasets
    • COCO 2017: Larger, more diverse, better for pretraining
-    """)
+    """
+    )
 
     print("=" * 80)
     print("\nFor detailed guide, see: examples/COCO_GUIDE.md")

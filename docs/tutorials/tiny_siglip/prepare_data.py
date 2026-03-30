@@ -2,15 +2,20 @@
 Script to prepare REAL training data from Conceptual Captions 3M (CC3M) for Tiny SigLIP.
 Downloads a small subset of CC3M (e.g., 10k-50k samples) and validation data from COCO/Flickr30k.
 """
+
 import argparse
 import json
 import os
-import requests
-from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor
-from tqdm import tqdm
+from io import BytesIO
+
+import requests
+from datasets import Features
+from datasets import Image as HFImage
+from datasets import Value, load_dataset
 from PIL import Image
-from datasets import load_dataset, Features, Value, Image as HFImage
+from tqdm import tqdm
+
 
 def download_image(url, save_path, timeout=3, retries=2):
     for attempt in range(retries):
@@ -26,6 +31,7 @@ def download_image(url, save_path, timeout=3, retries=2):
                 return False
             continue
     return False
+
 
 def prepare_cc3m_subset(output_dir, num_samples=20000, num_workers=16):
     os.makedirs(output_dir, exist_ok=True)
@@ -43,9 +49,9 @@ def prepare_cc3m_subset(output_dir, num_samples=20000, num_workers=16):
         print(f"LAION-COCO not available: {e}")
         print("Falling back to official 'conceptual_captions'...")
         dataset = load_dataset("conceptual_captions", split="train", streaming=True)
-    
+
     data_list = []
-    
+
     def process_item(item):
         try:
             caption = item.get("caption", "")
@@ -56,11 +62,12 @@ def prepare_cc3m_subset(output_dir, num_samples=20000, num_workers=16):
 
             # Generate filename
             import hashlib
+
             img_filename = hashlib.md5(url.encode("utf-8")).hexdigest() + ".jpg"
             img_path = os.path.join(images_dir, img_filename)
 
             if os.path.exists(img_path):
-                 return {"image": img_filename, "text": caption}
+                return {"image": img_filename, "text": caption}
 
             # Download image
             if download_image(url, img_path):
@@ -106,31 +113,37 @@ def prepare_cc3m_subset(output_dir, num_samples=20000, num_workers=16):
         for item in data_list:
             f.write(json.dumps(item) + "\n")
 
+
 def prepare_validation_data(output_dir):
     print("Creating validation set...")
     train_jsonl = os.path.join(output_dir, "train.jsonl")
     val_jsonl = os.path.join(output_dir, "val.jsonl")
-    
+
     if not os.path.exists(train_jsonl):
         return
 
     with open(train_jsonl, "r") as f:
         lines = f.readlines()
-    
-    random_lines = lines[:1000] 
-    
+
+    random_lines = lines[:1000]
+
     with open(val_jsonl, "w") as f:
         for line in random_lines:
             f.write(line)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Prepare real CC3M subset for Tiny SigLIP")
-    parser.add_argument("--output_dir", type=str, default="data/tiny_siglip_real", help="Output directory")
-    parser.add_argument("--num_samples", type=int, default=10000, help="Number of images to download")
+    parser.add_argument(
+        "--output_dir", type=str, default="data/tiny_siglip_real", help="Output directory"
+    )
+    parser.add_argument(
+        "--num_samples", type=int, default=10000, help="Number of images to download"
+    )
     parser.add_argument("--workers", type=int, default=16, help="Number of download threads")
-    
+
     args = parser.parse_args()
-    
+
     prepare_cc3m_subset(args.output_dir, args.num_samples, args.workers)
     prepare_validation_data(args.output_dir)
     print(f"\nData preparation complete! Real data is in {args.output_dir}")

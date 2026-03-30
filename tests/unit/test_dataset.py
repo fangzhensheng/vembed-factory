@@ -4,7 +4,7 @@ import os
 from PIL import Image
 from transformers import AutoProcessor
 
-from vembed.data.collators.default import VisualRetrievalCollator
+from vembed.data.collators.vlm import VisualRetrievalCollator
 from vembed.data.dataset import VisualRetrievalDataset
 
 
