@@ -1,0 +1,67 @@
+{
+  "clip_t2i": {
+    "description": "CLIP ViT-B/32 — Text-to-Image with InfoNCE + LoRA",
+    "model": "openai/clip-vit-base-patch32",
+    "dataset": "flickr30k_t2i",
+    "retrieval_mode": "t2i",
+    "loss_type": "infonce",
+    "use_lora": true,
+    "batch_size": 64,
+    "learning_rate": 5e-5,
+    "mrl": [512, 256, 128]
+  },
+  "qwen_m2i": {
+    "description": "Qwen2-VL — Multimodal-to-Image retrieval (m2i)",
+    "model": "Qwen/Qwen2-VL-2B-Instruct",
+    "dataset": "flickr30k_t2i",
+    "retrieval_mode": "m2i",
+    "loss_type": "infonce",
+    "use_lora": true
+  },
+  "dinov2_colbert_i2i": {
+    "description": "DINOv2 ColBERT — Image-to-Image retrieval on SOP dataset",
+    "model": "facebook/dinov2-base",
+    "dataset": "stanford_online_products_i2i",
+    "retrieval_mode": "i2i",
+    "loss_type": "colbert",
+    "pooling_method": "none"
+  },
+  "clip_distillation": {
+    "description": "Knowledge Distillation: CLIP-Large (teacher) -> CLIP-Base (student)",
+    "teacher_model": "openai/clip-vit-large-patch14",
+    "student_model": "openai/clip-vit-base-patch32",
+    "dataset": "flickr30k_t2i",
+    "retrieval_mode": "t2i",
+    "loss_type": "infonce",
+    "use_lora": true,
+    "mrl": [256, 128],
+    "distillation": true,
+    "distillation_alpha": 0.5
+  },
+  "bert_t2t": {
+    "description": "BGE-Base (BERT-based) — Text-to-Text retrieval",
+    "model": "BAAI/bge-base-en-v1.5",
+    "dataset": "msmarco_t2t",
+    "retrieval_mode": "t2t",
+    "loss_type": "infonce",
+    "use_lora": true
+  },
+  "qwen3_vl_8b_i2i": {
+    "description": "Qwen3-VL-32B — Vision Language Model for Image-to-Image",
+    "model": "Qwen/Qwen3-VL-32B",
+    "dataset": "stanford_online_products_i2i",
+    "retrieval_mode": "i2i",
+    "loss_type": "infonce",
+    "use_fsdp": true,
+    "num_gpus": 4
+  },
+  "coco_clip": {
+    "description": "CLIP on COCO dataset with hard negative mining",
+    "model": "openai/clip-vit-base-patch32",
+    "dataset": "coco_t2i",
+    "retrieval_mode": "t2i",
+    "loss_type": "infonce",
+    "hard_negative_mining": true,
+    "batch_size": 128
+  }
+}

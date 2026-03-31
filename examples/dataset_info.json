@@ -1,0 +1,30 @@
+{
+  "msmarco_t2t": {
+    "hf_hub_url": "not available",
+    "script_url": "https://drive.google.com",
+    "file_name": "msmarco_t2t.zip",
+    "file_sha1": "to-be-filled",
+    "keywords": ["t2t", "text", "msmarco", "retrieval"]
+  },
+  "flickr30k_t2i": {
+    "hf_hub_url": "not available",
+    "script_url": "https://github.com",
+    "file_name": "flickr30k_t2i.zip",
+    "file_sha1": "to-be-filled",
+    "keywords": ["t2i", "image-text", "flickr", "retrieval"]
+  },
+  "stanford_online_products_i2i": {
+    "hf_hub_url": "not available",
+    "script_url": "https://cvgl.stanford.edu/projects/lifted_struct/",
+    "file_name": "stanford_online_products_i2i.zip",
+    "file_sha1": "to-be-filled",
+    "keywords": ["i2i", "image", "sop", "product", "retrieval"]
+  },
+  "coco_t2i": {
+    "hf_hub_url": "not available",
+    "script_url": "https://cocodataset.org/",
+    "file_name": "coco_t2i.zip",
+    "file_sha1": "to-be-filled",
+    "keywords": ["t2i", "image-text", "coco", "detection"]
+  }
+}

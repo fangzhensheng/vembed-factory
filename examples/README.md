@@ -7,6 +7,13 @@ Complete guide for choosing and using vembed-factory configurations.
 ### New Users? Start Here
 👉 **[Quick Start Guide](quickstart/README.md)** - 3-step setup in 5 minutes
 
+### Configuration Management (NEW)
+- **`dataset_info.json`** - Dataset registry (replaces hardcoded paths in shell scripts)
+- **`training_info.json`** - Training configuration templates
+- **`config_manager.py`** - Python utility to manage configurations
+
+**Use**: `python config_manager.py` to list available datasets and training configs
+
 ### Decision Tree: Which Configuration to Use?
 
 ```
