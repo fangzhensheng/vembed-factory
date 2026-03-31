@@ -20,23 +20,23 @@ def validate_data_command(args):
     check_images = args.check_images
 
     print("\n" + "=" * 70)
-    print("📊 VEMBED DATA VALIDATION")
+    print("VEMBED DATA VALIDATION")
     print("=" * 70)
 
-    print(f"\n📂 Loading data from: {data_path}")
+    print(f"\nLoading data from: {data_path}")
     try:
         data = load_data(data_path)
-        print(f"✓ Loaded {len(data)} records")
+        print(f"SUCCESS: Loaded {len(data)} records")
     except Exception as e:
-        print(f"✗ Failed to load data: {e}")
+        print(f"ERROR: Failed to load data: {e}")
         return 1
 
-    print(f"\n✓ Running dataset validation (sample: {sample_size})...")
+    print(f"\nSUCCESS: Running dataset validation (sample: {sample_size})...")
     stats = validate_dataset(data_path, sample_size=sample_size)
     print_data_validation_report(stats)
 
     if args.column_mapping:
-        print("\n📋 Validating column mapping...")
+        print("\nValidating column mapping...")
         column_mapping = {}
         for mapping in args.column_mapping:
             key, val = mapping.split("=")
@@ -49,7 +49,7 @@ def validate_data_command(args):
             return 1
 
     if check_images:
-        print("\n🖼️  Checking image loading...")
+        print("\nChecking image loading...")
         from vembed.data.data_cleaner import DataCleaningConfig, validate_and_clean_data
 
         config = DataCleaningConfig(skip_missing_images=True, skip_invalid_paths=True)
@@ -62,7 +62,7 @@ def validate_data_command(args):
         if clean_report["total"] > 0:
             missing_ratio = clean_report["issues"].get("missing_image", 0) / clean_report["total"]
             if missing_ratio > 0.9:
-                print("\n⚠️  WARNING: Large number of missing images detected")
+                print("\nWARNING: Large number of missing images detected")
                 print(
                     f"   Missing: {clean_report['issues'].get('missing_image', 0)}/{clean_report['total']} records"
                 )

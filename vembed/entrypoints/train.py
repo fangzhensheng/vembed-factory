@@ -302,15 +302,15 @@ def main():
     accelerator.print("Distributed Training")
     accelerator.print("-" * 70)
     if config.get("use_fsdp"):
-        accelerator.print("✓ FSDP (Fully Sharded Data Parallel) enabled")
+        accelerator.print("SUCCESS: FSDP (Fully Sharded Data Parallel) enabled")
     if config.get("use_gradient_cache"):
         chunk_size = config.get("gradient_cache_chunk_size", config["batch_size"])
-        accelerator.print(f"✓ Gradient Cache enabled (chunk_size={chunk_size})")
+        accelerator.print(f"SUCCESS: Gradient Cache enabled (chunk_size={chunk_size})")
     if config.get("use_fsdp") and config.get("use_gradient_cache"):
-        accelerator.print("✓ FSDP + Gradient Cache: memory-efficient large model training")
-        accelerator.print("  ⚠ Note: no_sync optimization disabled for FSDP safety")
+        accelerator.print("SUCCESS: FSDP + Gradient Cache: memory-efficient large model training")
+        accelerator.print("  WARNING: Note: no_sync optimization disabled for FSDP safety")
     if config.get("use_lora"):
-        accelerator.print(f"✓ LoRA enabled (r={config.get('lora_r', 'auto')})")
+        accelerator.print(f"SUCCESS: LoRA enabled (r={config.get('lora_r', 'auto')})")
     accelerator.print(
         f"Processes: {accelerator.num_processes} | Gradient Sync: every {grad_accum_steps} steps"
     )

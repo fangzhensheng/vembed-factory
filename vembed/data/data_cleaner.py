@@ -165,10 +165,10 @@ def validate_and_clean_data(
 def print_cleaning_report(report: dict) -> None:
     """Print a formatted cleaning report."""
     print("\n" + "=" * 70)
-    print("🧹 DATA CLEANING REPORT")
+    print("DATA CLEANING REPORT")
     print("=" * 70)
 
-    print("\n📊 Record Statistics:")
+    print("\nRecord Statistics:")
     print(f"  Total records: {report['total']}")
     print(f"  Valid records: {report['valid']} ({report['valid']*100/max(report['total'],1):.1f}%)")
     print(
@@ -176,10 +176,10 @@ def print_cleaning_report(report: dict) -> None:
     )
 
     if report["issues"]:
-        print("\n⚠️  Issues Found:")
+        print("\nWARNING: Issues Found:")
         for issue_type, count in sorted(report["issues"].items(), key=lambda x: -x[1]):
             print(f"  • {issue_type}: {count}")
     else:
-        print("\n✓ No issues found")
+        print("\nSUCCESS: No issues found")
 
     print("\n" + "=" * 70 + "\n")

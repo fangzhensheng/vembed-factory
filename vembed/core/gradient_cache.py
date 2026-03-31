@@ -29,23 +29,8 @@ def _extract_rep(output: object) -> Tensor:
     )
 
 
-def _split_vlm_inputs(model_input, chunk_size: int) -> list:
-    """Custom split for VLM inputs with automatic field routing.
-
-    Supports both legacy flat-patch models (pixel_values + image_grid_thw)
-    and future hierarchical models (video_grid_thw, etc).
-
-    Uses shape heuristics to route fields:
-    - Batch-aligned tensors (shape[0] == batch_size): split on dim 0
-    - Per-image metadata (contains grid info): split based on grid counts
-    - Scalar/non-tensor fields: replicate across chunks
-    """
-    if isinstance(model_input, Tensor):
-        return list(model_input.split(chunk_size, dim=0))
-
-    if not isinstance(model_input, dict | UserDict):
-        raise NotImplementedError(f"_split_vlm_inputs not implemented for type {type(model_input)}")
-
+def _find_batch_size_and_keys(model_input: dict) -> tuple[int | None, list[str]]:
+    """Determine the batch size and identify batch-aligned keys."""
     batch_size = None
     batch_aligned_keys = []
 
@@ -71,36 +56,56 @@ def _split_vlm_inputs(model_input, chunk_size: int) -> list:
                 batch_aligned_keys.append(k)
                 break
 
+    if batch_size is not None:
+        for k, v in model_input.items():
+            if (
+                k not in batch_aligned_keys
+                and isinstance(v, Tensor)
+                and v.ndim > 0
+                and v.shape[0] == batch_size
+            ):
+                batch_aligned_keys.append(k)
+
+    return batch_size, batch_aligned_keys
+
+def _find_grid_and_patch_keys(model_input: dict) -> tuple[str | None, str | None]:
+    """Find the keys corresponding to grid metadata and flat patch tensors."""
+    for k in model_input:
+        if GRID_INDICATOR in k and isinstance(model_input[k], Tensor):
+            expected_patch_key = GRID_TO_PATCH_MAP.get(k)
+            if expected_patch_key and expected_patch_key in model_input:
+                return k, expected_patch_key
+
+            for pk in model_input:
+                if any(ind in pk for ind in PATCH_INDICATORS) and isinstance(
+                    model_input[pk], Tensor
+                ):
+                    return k, pk
+            return k, None
+    return None, None
+
+def _split_vlm_inputs(model_input, chunk_size: int) -> list:
+    """Custom split for VLM inputs with automatic field routing.
+
+    Supports both legacy flat-patch models (pixel_values + image_grid_thw)
+    and future hierarchical models (video_grid_thw, etc).
+
+    Uses shape heuristics to route fields:
+    - Batch-aligned tensors (shape[0] == batch_size): split on dim 0
+    - Per-image metadata (contains grid info): split based on grid counts
+    - Scalar/non-tensor fields: replicate across chunks
+    """
+    if isinstance(model_input, Tensor):
+        return list(model_input.split(chunk_size, dim=0))
+
+    if not isinstance(model_input, dict | UserDict):
+        raise NotImplementedError(f"_split_vlm_inputs not implemented for type {type(model_input)}")
+
+    batch_size, batch_aligned_keys = _find_batch_size_and_keys(model_input)
     if batch_size is None:
         return [model_input] if model_input else []
 
-    for k, v in model_input.items():
-        if (
-            k not in batch_aligned_keys
-            and isinstance(v, Tensor)
-            and v.ndim > 0
-            and v.shape[0] == batch_size
-        ):
-            batch_aligned_keys.append(k)
-
-    grid_key = None
-    flat_patch_key = None
-    for k in model_input:
-        if GRID_INDICATOR in k and isinstance(model_input[k], Tensor):
-            grid_key = k
-            expected_patch_key = GRID_TO_PATCH_MAP.get(k)
-            if expected_patch_key and expected_patch_key in model_input:
-                flat_patch_key = expected_patch_key
-            else:
-                # Fallback: search for any patch tensor if mapping not found
-                # (supports new VLM models with different grid-patch naming)
-                for pk in model_input:
-                    if any(ind in pk for ind in PATCH_INDICATORS) and isinstance(
-                        model_input[pk], Tensor
-                    ):
-                        flat_patch_key = pk
-                        break
-            break
+    grid_key, flat_patch_key = _find_grid_and_patch_keys(model_input)
 
     n_chunks = (batch_size + chunk_size - 1) // chunk_size
     result = [{} for _ in range(n_chunks)]

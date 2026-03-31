@@ -135,43 +135,26 @@ def unpack_negative_batch(batch: dict[str, Any]) -> dict[str, Any] | None:
     return n_inputs
 
 
-def concat_batches(
-    batches: list[dict[str, Any]], pad_token_id: int = 0
-) -> tuple[dict[str, Any], list[int]]:
-    """Concatenate multiple input batches into a single batch.
-
-    Used for unified models (e.g., Qwen-VL) that tokenize both text and images.
-
-    Args:
-        batches: List of batch dictionaries to concatenate.
-        pad_token_id: Token ID to use for padding sequences.
-
-    Returns:
-        Tuple of:
-        - concatenated_batch: Dictionary with concatenated tensors.
-        - batch_sizes: List of original batch sizes (to split outputs later).
-
-    Raises:
-        ValueError: If batch size cannot be determined from inputs.
-    """
-    batch_sizes = []
+def _get_batch_sizes(batches: list[dict[str, Any]]) -> list[int]:
+    """Determine the batch size for each batch in the list."""
+    sizes = []
     for b in batches:
         if "input_ids" in b and b["input_ids"] is not None:
-            batch_sizes.append(b["input_ids"].size(0))
+            sizes.append(b["input_ids"].size(0))
         elif "pixel_values" in b and b["pixel_values"] is not None:
-            batch_sizes.append(b["pixel_values"].size(0))
+            sizes.append(b["pixel_values"].size(0))
         else:
             raise ValueError(
                 f"Cannot determine batch size: batch keys={list(b.keys())}, "
                 f"input_ids is {b.get('input_ids')}, pixel_values is {b.get('pixel_values')}"
             )
+    return sizes
 
-    all_keys = set()
-    for b in batches:
-        all_keys.update(b.keys())
-
+def _concat_sequences(
+    batches: list[dict[str, Any]], all_keys: set[str], pad_token_id: int
+) -> dict[str, torch.Tensor]:
+    """Pad and concatenate sequence tensors."""
     concatenated = {}
-
     for seq_key in ALL_SEQ_KEYS:
         if seq_key not in all_keys:
             continue
@@ -196,32 +179,56 @@ def concat_batches(
 
         if padded_seqs:
             concatenated[seq_key] = torch.cat(padded_seqs, dim=0)
+    return concatenated
+
+def _concat_grouped_keys(
+    batches: list[dict[str, Any]], keys: set[str]
+) -> dict[str, torch.Tensor]:
+    """Concatenate tensors for a specific group of keys (like patch or grid keys)."""
+    concatenated = {}
+    for key in keys:
+        values = [b[key] for b in batches if b.get(key) is not None]
+        if values:
+            concatenated[key] = torch.cat(values, dim=0)
+    return concatenated
+
+def concat_batches(
+    batches: list[dict[str, Any]], pad_token_id: int = 0
+) -> tuple[dict[str, Any], list[int]]:
+    """Concatenate multiple input batches into a single batch.
+
+    Used for unified models (e.g., Qwen-VL) that tokenize both text and images.
+
+    Args:
+        batches: List of batch dictionaries to concatenate.
+        pad_token_id: Token ID to use for padding sequences.
+
+    Returns:
+        Tuple of:
+        - concatenated_batch: Dictionary with concatenated tensors.
+        - batch_sizes: List of original batch sizes (to split outputs later).
+
+    Raises:
+        ValueError: If batch size cannot be determined from inputs.
+    """
+    batch_sizes = _get_batch_sizes(batches)
+
+    all_keys = set()
+    for b in batches:
+        all_keys.update(b.keys())
+
+    concatenated = _concat_sequences(batches, all_keys, pad_token_id)
 
     patch_keys = {k for k in all_keys if any(ind in k for ind in PATCH_INDICATORS)}
-    for patch_key in patch_keys:
-        values = []
-        for b in batches:
-            v = b.get(patch_key)
-            if v is not None:
-                values.append(v)
-        if values:
-            concatenated[patch_key] = torch.cat(values, dim=0)
+    concatenated.update(_concat_grouped_keys(batches, patch_keys))
 
     grid_keys = {k for k in all_keys if GRID_INDICATOR in k}
-    for grid_key in grid_keys:
-        grids = []
-        for b in batches:
-            g = b.get(grid_key)
-            if g is not None:
-                grids.append(g)
-        if grids:
-            concatenated[grid_key] = torch.cat(grids, dim=0)
+    concatenated.update(_concat_grouped_keys(batches, grid_keys))
 
     for key in all_keys:
-        if key in concatenated:
+        if key in concatenated or key in SEQ_KEYS or key in patch_keys or GRID_INDICATOR in key:
             continue
-        if key in SEQ_KEYS or key in patch_keys or GRID_INDICATOR in key:
-            continue
+
         tensors = [
             b[key]
             for b in batches

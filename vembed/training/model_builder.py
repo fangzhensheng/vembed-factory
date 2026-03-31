@@ -193,7 +193,7 @@ def apply_lora(
             model, "_enable_gradient_checkpointing"
         ):
             model._enable_gradient_checkpointing()
-            accelerator.print("✓ Gradient checkpointing enabled")
+            accelerator.print("SUCCESS: Gradient checkpointing enabled")
 
     except Exception as exc:
         accelerator.print(f"Error applying LoRA: {exc}")
@@ -270,18 +270,18 @@ def unify_model_dtype_for_fsdp(
             dtype_str = str(param.dtype)
             dtype_counts[dtype_str] = dtype_counts.get(dtype_str, 0) + param.numel()
 
-        accelerator.print(f"⚠️  FSDP dtype mismatch detected: {dtype_counts}")
+        accelerator.print(f"WARNING: FSDP dtype mismatch detected: {dtype_counts}")
         accelerator.print(f"   Converting all parameters to {target_dtype}...")
 
         for param in model.parameters():
             if param.dtype != target_dtype:
                 param.data = param.data.to(target_dtype)
 
-        accelerator.print(f"✓ All parameters converted to {target_dtype}")
+        accelerator.print(f"SUCCESS: All parameters converted to {target_dtype}")
     elif len(dtypes_found) == 1:
-        accelerator.print(f"✓ FSDP dtype check: all parameters already in {list(dtypes_found)[0]}")
+        accelerator.print(f"SUCCESS: FSDP dtype check: all parameters already in {list(dtypes_found)[0]}")
     else:
-        accelerator.print("✓ FSDP dtype check: no parameters found in model")
+        accelerator.print("SUCCESS: FSDP dtype check: no parameters found in model")
 
 
 def _log_fsdp_param_summary(model: torch.nn.Module, accelerator: Accelerator) -> None:

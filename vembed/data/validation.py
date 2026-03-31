@@ -162,7 +162,7 @@ def print_validation_report(stats: dict[str, Any]) -> None:
 
     print("\nRequired Fields:")
     for field, present in stats.get("required_fields", {}).items():
-        status = "✓" if present else "✗"
+        status = "SUCCESS" if present else "ERROR"
         print(f"  {status} {field}")
 
     print("\n" + "=" * 60 + "\n")

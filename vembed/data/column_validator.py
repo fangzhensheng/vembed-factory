@@ -132,7 +132,7 @@ def early_validate_dataset(
     report = validate_column_mapping(data, column_mapping, sample_size=min(1000, len(data)))
 
     if report["valid"]:
-        logger.info("✓ Dataset validation passed")
+        logger.info("SUCCESS: Dataset validation passed")
         for col, presence in report["column_presence"].items():
             logger.info(
                 f"  • {col}: {presence*100:.1f}% present, "
@@ -141,7 +141,7 @@ def early_validate_dataset(
         return True
 
     # Handle invalid case
-    error_msg = "❌ Dataset validation failed:\n"
+    error_msg = "ERROR: Dataset validation failed:\n"
     for issue in report["issues"]:
         error_msg += f"  • {issue}\n"
 
@@ -162,17 +162,17 @@ def early_validate_dataset(
 def print_validation_report(report: dict) -> None:
     """Print a formatted validation report."""
     print("\n" + "=" * 70)
-    status = "✓ COLUMN VALIDATION REPORT" if report["valid"] else "❌ COLUMN VALIDATION REPORT"
+    status = "SUCCESS: COLUMN VALIDATION REPORT" if report["valid"] else "ERROR: COLUMN VALIDATION REPORT"
     print(status)
     print("=" * 70)
 
     if not report["valid"]:
-        print("\n❌ Validation issues detected:\n")
+        print("\nERROR: Validation issues detected:\n")
         for issue in report["issues"]:
             print(f"  • {issue}")
         print()
     else:
-        print("\n✓ All columns validated successfully\n")
+        print("\nSUCCESS: All columns validated successfully\n")
 
     print("Column Statistics:")
     for col, stats in report["column_stats"].items():
