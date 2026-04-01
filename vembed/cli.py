@@ -21,6 +21,7 @@ from vembed.config import (
     parse_override_args,
 )
 from vembed.hparams import DataArguments, ModelArguments, TrainingArguments
+from vembed.validators import validate_config
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +165,11 @@ def main(args_list=None):
     train_config.update(dataclasses.asdict(data_args))
     train_config.update(dataclasses.asdict(training_args))
 
-    # ── 6. Post-processing & validation ───────────────────────────────
+    # ── 6. Validate configuration ────────────────────────────────────
+    if not validate_config(train_config):
+        sys.exit(1)
+
+    # ── 7. Post-processing ───────────────────────────────────────────
     # Alias: lr → learning_rate
     if train_config.get("lr") is not None:
         train_config["learning_rate"] = train_config["lr"]
@@ -192,13 +197,6 @@ def main(args_list=None):
         elif pooling_method is None:
             train_config["pooling_method"] = "cls"
 
-    # Composed mode validation
-    if train_config.get("encoder_mode") == "composed" and not (
-        train_config.get("text_model_name") and train_config.get("image_model_name")
-    ):
-        logger.error("Composed mode requires --text_model_name and --image_model_name")
-        sys.exit(1)
-
     # model_name_or_path → model_name fallback
     if train_config.get("model_name_or_path") and not train_config.get("model_name"):
         train_config["model_name"] = train_config["model_name_or_path"]
@@ -211,7 +209,7 @@ def main(args_list=None):
             "Ensure all GPUs have consistent FSDP wrapping."
         )
 
-    # ── 7. Save config & launch training ──────────────────────────────
+    # ── 8. Save config & launch training ──────────────────────────────
     os.makedirs(train_config["output_dir"], exist_ok=True)
     config_path = os.path.join(train_config["output_dir"], ".train_config.yaml")
     with open(config_path, "w") as f:
