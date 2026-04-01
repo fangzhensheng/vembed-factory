@@ -56,6 +56,53 @@ class BaseRetrievalCollator:
 
         raise ValueError("No image processor available")
 
+    def _process_images_batch(self, image_groups):
+        """Optimization: Process multiple image groups in one pipeline call.
+
+        Args:
+            image_groups: List[List[PIL.Image]] - Multiple groups of images
+
+        Returns:
+            List[Dict] - Processed results for each group
+        """
+        if not image_groups or not any(image_groups):
+            return [{"pixel_values": None} for _ in image_groups]
+
+        # Flatten and track group boundaries
+        all_images = []
+        group_sizes = []
+        for group in image_groups:
+            if group:
+                all_images.extend(group)
+                group_sizes.append(len(group))
+            else:
+                group_sizes.append(0)
+
+        if not all_images:
+            return [{"pixel_values": None} for _ in image_groups]
+
+        # Single processor call for all images
+        combined_inputs = self._process_images(all_images)
+
+        # Split results by group
+        results = []
+        start_idx = 0
+        for group_size in group_sizes:
+            if group_size == 0:
+                results.append({"pixel_values": None})
+            else:
+                end_idx = start_idx + group_size
+                result = {}
+                for key, value in combined_inputs.items():
+                    if value is not None and hasattr(value, "__getitem__"):
+                        result[key] = value[start_idx:end_idx]
+                    else:
+                        result[key] = value
+                results.append(result)
+                start_idx = end_idx
+
+        return results
+
     @staticmethod
     def _get_pixels(inputs):
         """Extract pixel_values from processed inputs."""

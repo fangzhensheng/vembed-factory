@@ -58,24 +58,38 @@ class CLIPFamilyCollator(BaseRetrievalCollator):
             batch_output["pos_input_ids"] = None
             batch_output["pos_attention_mask"] = None
 
-        # Process positive image
-        if fields["has_pos_image"]:
-            pos_images = [item["pos_image"] for item in batch]
-            pos_image_inputs = self._process_images(pos_images)
-            pos_pixels = self._get_pixels(pos_image_inputs)
+        # Optimization: Batch process all images in one call
+        if fields["has_pos_image"] or fields["has_query_image"]:
+            image_groups = []
+            group_keys = []
 
-            batch_output["pixel_values"] = pos_pixels
-            batch_output["pos_pixel_values"] = pos_pixels
+            # Collect all image groups
+            if fields["has_pos_image"]:
+                pos_images = [item["pos_image"] for item in batch]
+                image_groups.append(pos_images)
+                group_keys.append("pos_image")
+
+            if fields["has_query_image"]:
+                query_images = [item.get("query_image") for item in batch]
+                filled = self._fill_query_images(query_images)
+                image_groups.append(filled)
+                group_keys.append("query_image")
+
+            # Process all groups in one call
+            if image_groups:
+                results = self._process_images_batch(image_groups)
+
+                # Extract results
+                for key, result in zip(group_keys, results):
+                    pixels = self._get_pixels(result)
+                    if key == "pos_image":
+                        batch_output["pixel_values"] = pixels
+                        batch_output["pos_pixel_values"] = pixels
+                    elif key == "query_image":
+                        batch_output["query_pixel_values"] = pixels
         else:
             batch_output["pixel_values"] = None
             batch_output["pos_pixel_values"] = None
-
-        # Process query image (i2i mode)
-        if fields["has_query_image"]:
-            query_images = [item.get("query_image") for item in batch]
-            filled = self._fill_query_images(query_images)
-            query_image_inputs = self._process_images(filled)
-            batch_output["query_pixel_values"] = self._get_pixels(query_image_inputs)
 
         if labels is not None:
             batch_output["labels"] = labels
@@ -83,6 +97,7 @@ class CLIPFamilyCollator(BaseRetrievalCollator):
         # Process hard negatives
         neg_images, neg_counts = self._process_negatives(batch, "neg_images")
         if neg_images is not None:
+            # Negatives are all images, process as single group
             neg_image_inputs = self._process_images(neg_images)
             batch_output["neg_pixel_values"] = self._get_pixels(neg_image_inputs)
             batch_output["neg_counts"] = neg_counts

@@ -1,8 +1,10 @@
 import contextlib
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset
 
@@ -117,26 +119,80 @@ class GenericRetrievalDataset(Dataset):
         return img_path
 
     def _load_image(self, img_input: str | Image.Image) -> tuple[Image.Image, bool]:
-        """Load an image from a path. Returns (image, success_flag)."""
+        """Load an image from a path. Returns (image, success_flag).
+
+        Optimization: Cache images as numpy arrays to avoid PIL copy overhead.
+        """
         if isinstance(img_input, Image.Image):
             return img_input.convert("RGB"), True
 
         if not img_input:
             return Image.new("RGB", (224, 224), (0, 0, 0)), False
 
+        # Check cache (stored as numpy array)
         if self.enable_image_cache and str(img_input) in self._image_cache:
-            return self._image_cache[str(img_input)].copy(), True
+            # Convert numpy array back to PIL Image (no copy needed)
+            cached_array = self._image_cache[str(img_input)]
+            return Image.fromarray(cached_array, mode="RGB"), True
 
         full_path = self._resolve_path(img_input)
 
         try:
             img = Image.open(full_path).convert("RGB")
+            # Store as numpy array instead of PIL Image to avoid copy overhead
             if self.enable_image_cache:
-                self._image_cache[str(img_input)] = img
+                self._image_cache[str(img_input)] = np.array(img)
             return img, True
         except (OSError, ValueError) as exc:
             logger.error("Error loading image %s: %s", full_path, exc)
             return Image.new("RGB", (224, 224), (0, 0, 0)), False
+
+    def _load_negatives_parallel(self, negative_inputs: list[str]):
+        """Optimization: Load negative images in parallel using ThreadPoolExecutor.
+
+        Args:
+            negative_inputs: List of image paths
+
+        Returns:
+            Tuple of (negative_images, neg_paths)
+        """
+        if not negative_inputs or len(negative_inputs) <= 1:
+            # Single or no negatives - sequential loading
+            neg_results = [self._load_image(p) for p in negative_inputs]
+            negative_images = [res[0] for res in neg_results]
+            neg_paths = [str(self._resolve_path(p)) if success else None
+                        for p, (_, success) in zip(negative_inputs, neg_results)]
+            return negative_images, neg_paths
+
+        # Multiple negatives - use thread pool for parallel I/O
+        max_workers = min(4, len(negative_inputs))
+        neg_images_map = {}
+        neg_paths_map = {}
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_idx = {
+                executor.submit(self._load_image, path): idx
+                for idx, path in enumerate(negative_inputs)
+            }
+
+            # Collect results as they complete
+            for future in as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                try:
+                    img, success = future.result()
+                    neg_images_map[idx] = img
+                    neg_paths_map[idx] = str(self._resolve_path(negative_inputs[idx])) if success else None
+                except Exception as exc:
+                    logger.error("Error loading negative image %d: %s", idx, exc)
+                    neg_images_map[idx] = Image.new("RGB", (224, 224), (0, 0, 0))
+                    neg_paths_map[idx] = None
+
+        # Restore original order
+        negative_images = [neg_images_map[i] for i in range(len(negative_inputs))]
+        neg_paths = [neg_paths_map[i] for i in range(len(negative_inputs))]
+
+        return negative_images, neg_paths
 
     @staticmethod
     def _looks_like_image_path(content: str) -> bool:
@@ -221,16 +277,9 @@ class GenericRetrievalDataset(Dataset):
             if is_text_positive:
                 result["neg_texts"] = negative_inputs
             else:
-                neg_results = [self._load_image(p) for p in negative_inputs]
-                negative_images = [res[0] for res in neg_results]
+                # Optimization: Parallel load negatives for better I/O performance
+                negative_images, neg_paths = self._load_negatives_parallel(negative_inputs)
                 result["neg_images"] = negative_images
-
-                neg_paths = []
-                for p, (_, success) in zip(negative_inputs, neg_results, strict=True):
-                    if success:
-                        neg_paths.append(str(self._resolve_path(p)))
-                    else:
-                        neg_paths.append(None)
                 result["neg_image_paths"] = neg_paths
 
         return result

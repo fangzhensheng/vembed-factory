@@ -180,6 +180,17 @@ def main():
     prefetch_factor = config.get("prefetch_factor", 2)
     persistent_workers = num_workers > 0 and config.get("persistent_workers", True)
 
+    # Optimization: Auto-optimize prefetch_factor if using default value
+    if prefetch_factor == 2 and num_workers > 0:
+        batch_size = config["batch_size"]
+        # Adaptive formula: prefetch_factor = min(8, max(2, 512 // batch_size))
+        auto_prefetch = max(2, min(8, 512 // batch_size))
+        prefetch_factor = auto_prefetch
+        accelerator.print(
+            f"Auto-optimized prefetch_factor: {prefetch_factor} "
+            f"(based on batch_size={batch_size}, num_workers={num_workers})"
+        )
+
     dataloader_kwargs = {
         "batch_size": config["batch_size"],
         "shuffle": True,
@@ -222,7 +233,7 @@ def main():
                 image_root=config.get("image_root", ""),
                 mode="eval",
                 column_mapping=config.get("column_mapping"),
-                enable_image_cache=config.get("enable_image_cache", False),
+                enable_image_cache=False,  # Optimization: Disable cache for val (single pass)
                 auto_clean=False,
                 validate_columns=False,
             )
