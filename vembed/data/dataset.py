@@ -160,8 +160,10 @@ class GenericRetrievalDataset(Dataset):
             # Single or no negatives - sequential loading
             neg_results = [self._load_image(p) for p in negative_inputs]
             negative_images = [res[0] for res in neg_results]
-            neg_paths = [str(self._resolve_path(p)) if success else None
-                        for p, (_, success) in zip(negative_inputs, neg_results)]
+            neg_paths = [
+                str(self._resolve_path(p)) if success else None
+                for p, (_, success) in zip(negative_inputs, neg_results)
+            ]
             return negative_images, neg_paths
 
         # Multiple negatives - use thread pool for parallel I/O
@@ -182,7 +184,9 @@ class GenericRetrievalDataset(Dataset):
                 try:
                     img, success = future.result()
                     neg_images_map[idx] = img
-                    neg_paths_map[idx] = str(self._resolve_path(negative_inputs[idx])) if success else None
+                    neg_paths_map[idx] = (
+                        str(self._resolve_path(negative_inputs[idx])) if success else None
+                    )
                 except Exception as exc:
                     logger.error("Error loading negative image %d: %s", idx, exc)
                     neg_images_map[idx] = Image.new("RGB", (224, 224), (0, 0, 0))
