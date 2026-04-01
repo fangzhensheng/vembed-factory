@@ -25,11 +25,65 @@ from vembed.hparams import DataArguments, ModelArguments, TrainingArguments
 logger = logging.getLogger(__name__)
 
 
+def print_usage():
+    """Print CLI usage information."""
+    usage_text = """
+vembed-factory: Multi-modal Embedding Training Framework
+
+Usage:
+  vembed train <config.yaml> [options]      Train using a YAML configuration
+  vembed list-datasets                      List available datasets
+  vembed list-configs                       List available training configurations
+  vembed show-dataset <name>                Show details for a dataset
+  vembed validate-data <file>               Validate data file format
+
+Examples:
+  # Train with a built-in config
+  vembed train examples/models/clip/base.yaml
+
+  # Train with parameter overrides
+  vembed train examples/models/clip/base.yaml --batch-size 64 --learning-rate 5e-5
+
+  # List available configurations
+  vembed list-configs
+
+  # Check a dataset
+  vembed show-dataset flickr30k_t2i
+
+  # Dry run (generate config without training)
+  vembed train config.yaml --dry-run
+
+For more help, see: https://github.com/your-repo/vembed-factory
+    """
+    print(usage_text)
+
+
 def main(args_list=None):
     """CLI entrypoint for vembed-factory with subcommands."""
     # ── Check for subcommands first ───────────────────────────────────
     if args_list is None:
         args_list = sys.argv[1:]
+
+    # Handle help/info subcommands
+    if args_list and args_list[0] in ("--help", "-h", "help"):
+        print_usage()
+        return 0
+
+    if args_list and args_list[0] == "list-datasets":
+        from vembed.cli_commands import list_datasets_command
+        return list_datasets_command()
+
+    if args_list and args_list[0] == "list-configs":
+        from vembed.cli_commands import list_configs_command
+        return list_configs_command()
+
+    if args_list and args_list[0] == "show-dataset":
+        from vembed.cli_commands import show_dataset_command
+        dataset_name = args_list[1] if len(args_list) > 1 else None
+        if not dataset_name:
+            print("Usage: vembed show-dataset <dataset_name>")
+            return 1
+        return show_dataset_command(dataset_name)
 
     # Handle validate-data subcommand
     if args_list and args_list[0] == "validate-data":
