@@ -44,10 +44,10 @@ def list_configs_command():
     for yaml_file in sorted(examples_dir.rglob("*.yaml")):
         # Skip root level YAML files (old style)
         rel_path = yaml_file.relative_to(examples_dir)
-        if "/" not in str(rel_path):
+        if len(rel_path.parts) == 1:
             continue
 
-        parts = str(rel_path).split("/")
+        parts = rel_path.parts
         if len(parts) >= 2:
             category = parts[0]
             config_name = yaml_file.stem

@@ -102,6 +102,9 @@ def main(args_list=None):
         args = parser.parse_args(args_list[1:])
         return validate_data_command(args)
 
+    if args_list and args_list[0] == "train":
+        args_list = args_list[1:]
+
     # ── Default: training mode ──────────────────────────────────────────
     # ── 1. Pre-parse: config_file, config_override ──────────────────────
     pre_parser = argparse.ArgumentParser(add_help=False)
