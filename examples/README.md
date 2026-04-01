@@ -7,12 +7,13 @@ Complete guide for choosing and using vembed-factory configurations.
 ### New Users? Start Here
 👉 **[Quick Start Guide](quickstart/README.md)** - 3-step setup in 5 minutes
 
-### Configuration Management (NEW)
-- **`dataset_info.json`** - Dataset registry (replaces hardcoded paths in shell scripts)
-- **`training_info.json`** - Training configuration templates
-- **`config_manager.py`** - Python utility to manage configurations
+### Dataset Management (NEW)
+- **`dataset_info.json`** - Centralized dataset registry with paths and formats
+- **`config_manager.py`** - Python utility to discover and resolve dataset paths
 
-**Use**: `python config_manager.py` to list available datasets and training configs
+**Use**: `python config_manager.py` to list available datasets
+- Each dataset entry defines: file locations, retrieval mode, column mapping
+- YAML files define training configs (not duplicated elsewhere)
 
 ### Decision Tree: Which Configuration to Use?
 

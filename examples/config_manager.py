@@ -1,4 +1,8 @@
-"""Configuration manager for dataset_info.json and training_info.json."""
+"""Dataset configuration manager for vembed-factory.
+
+Manages dataset_info.json to provide centralized dataset registry and path resolution.
+Training configurations are managed directly via YAML files.
+"""
 
 import json
 import os
@@ -6,11 +10,11 @@ from pathlib import Path
 from typing import Any
 
 
-class ConfigManager:
-    """Manages dataset and training configurations from JSON files."""
+class DatasetManager:
+    """Manages dataset configurations from dataset_info.json."""
 
     def __init__(self, examples_dir: str | None = None):
-        """Initialize config manager.
+        """Initialize dataset manager.
 
         Args:
             examples_dir: Path to examples directory. If None, uses current directory.
@@ -19,43 +23,37 @@ class ConfigManager:
             examples_dir = os.path.dirname(__file__)
         self.examples_dir = Path(examples_dir)
         self._dataset_info: dict[str, Any] = {}
-        self._training_info: dict[str, Any] = {}
-        self._load_configs()
+        self._load_config()
 
-    def _load_configs(self) -> None:
-        """Load dataset_info.json and training_info.json."""
+    def _load_config(self) -> None:
+        """Load dataset_info.json."""
         dataset_file = self.examples_dir / "dataset_info.json"
-        training_file = self.examples_dir / "training_info.json"
-
         if dataset_file.exists():
             with open(dataset_file) as f:
                 self._dataset_info = json.load(f)
-
-        if training_file.exists():
-            with open(training_file) as f:
-                self._training_info = json.load(f)
 
     def get_dataset(self, dataset_name: str) -> dict[str, Any] | None:
         """Get dataset configuration by name."""
         return self._dataset_info.get(dataset_name)
 
-    def get_training_config(self, config_name: str) -> dict[str, Any] | None:
-        """Get training configuration by name."""
-        return self._training_info.get(config_name)
-
     def list_datasets(self) -> list[str]:
         """List all available datasets."""
         return list(self._dataset_info.keys())
 
-    def list_training_configs(self) -> list[str]:
-        """List all available training configurations."""
-        return list(self._training_info.keys())
+    def get_dataset_paths(self, dataset_name: str) -> dict[str, str]:
+        """Get dataset paths for command-line arguments.
 
-    def resolve_dataset_paths(self, dataset_name: str) -> dict[str, str]:
-        """Resolve actual file paths for a dataset.
+        Args:
+            dataset_name: Name of the dataset from dataset_info.json
 
         Returns:
-            Dict with 'data_path', 'image_root', 'val_data_path' keys.
+            Dict with 'data_path', 'val_data_path', 'image_root' keys.
+
+        Example:
+            >>> manager = DatasetManager()
+            >>> paths = manager.get_dataset_paths("flickr30k_t2i")
+            >>> # Use in vembed command:
+            >>> # vembed train config.yaml --data_path {data_path} --image_root {image_root}
         """
         dataset_info = self.get_dataset(dataset_name)
         if not dataset_info:
@@ -65,59 +63,45 @@ class ConfigManager:
         val_file_name = dataset_info.get("val_file_name", "")
         image_root = dataset_info.get("image_root", "")
 
-        # Resolve relative paths
-        data_path = str(Path(file_name))
-        val_data_path = str(Path(val_file_name)) if val_file_name else ""
-        image_root_path = str(Path(image_root)) if image_root else ""
-
         return {
-            "data_path": data_path,
-            "val_data_path": val_data_path,
-            "image_root": image_root_path,
+            "data_path": file_name,
+            "val_data_path": val_file_name,
+            "image_root": image_root,
         }
 
-    def get_training_command(self, config_name: str) -> dict[str, Any]:
-        """Get complete training command information.
+    def print_dataset_info(self, dataset_name: str) -> None:
+        """Print detailed info for a dataset."""
+        dataset_info = self.get_dataset(dataset_name)
+        if not dataset_info:
+            print(f"Dataset '{dataset_name}' not found")
+            return
 
-        Returns:
-            Dict with config_path, dataset_paths, and training arguments.
-        """
-        training_cfg = self.get_training_config(config_name)
-        if not training_cfg:
-            raise ValueError(f"Training config '{config_name}' not found")
-
-        dataset_name = training_cfg.get("dataset")
-        dataset_paths = self.resolve_dataset_paths(dataset_name) if dataset_name else {}
-
-        return {
-            "config_name": config_name,
-            "description": training_cfg.get("description", ""),
-            "dataset": dataset_name,
-            "dataset_paths": dataset_paths,
-            "training_config": training_cfg,
-        }
+        print(f"\nDataset: {dataset_name}")
+        print(f"  Retrieval mode: {dataset_info.get('retrieval_mode', 'N/A')}")
+        print(f"  Data file: {dataset_info.get('file_name', 'N/A')}")
+        print(f"  Val file: {dataset_info.get('val_file_name', 'N/A')}")
+        if dataset_info.get("image_root"):
+            print(f"  Image root: {dataset_info.get('image_root', 'N/A')}")
+        if dataset_info.get("columns"):
+            print(f"  Columns: {dataset_info['columns']}")
 
 
 if __name__ == "__main__":
     # Demo usage
-    manager = ConfigManager()
+    manager = DatasetManager()
 
     print("Available datasets:")
     for ds in manager.list_datasets():
-        print(f"  - {ds}")
+        info = manager.get_dataset(ds)
+        mode = info.get("retrieval_mode", "unknown")
+        print(f"  - {ds:<30} ({mode})")
 
-    print("\nAvailable training configs:")
-    for cfg in manager.list_training_configs():
-        info = manager.get_training_config(cfg)
-        print(f"  - {cfg}: {info.get('description', '')}")
-
-    # Try to resolve a training command
+    # Example: Get paths for a dataset
     try:
-        cmd_info = manager.get_training_command("clip_base")
-        print(f"\nTraining config for 'clip_base':")
-        print(f"  Model: {cmd_info['training_config'].get('model_name_or_path')}")
-        print(f"  Dataset: {cmd_info['dataset']}")
-        print(f"  Retrieval mode: {cmd_info['training_config'].get('retrieval_mode')}")
-        print(f"  Dataset paths: {cmd_info['dataset_paths']}")
+        print("\nExample: flickr30k_t2i dataset paths:")
+        paths = manager.get_dataset_paths("flickr30k_t2i")
+        for key, val in paths.items():
+            print(f"  {key}: {val}")
+        manager.print_dataset_info("flickr30k_t2i")
     except Exception as e:
-        print(f"\nError: {e}")
+        print(f"Error: {e}")
