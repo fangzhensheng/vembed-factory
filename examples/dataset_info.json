@@ -1,30 +1,44 @@
 {
   "msmarco_t2t": {
-    "hf_hub_url": "not available",
-    "script_url": "https://drive.google.com",
-    "file_name": "msmarco_t2t.zip",
-    "file_sha1": "to-be-filled",
-    "keywords": ["t2t", "text", "msmarco", "retrieval"]
+    "file_name": "data/msmarco/train.jsonl",
+    "val_file_name": "data/msmarco/val.jsonl",
+    "retrieval_mode": "t2t",
+    "columns": {
+      "query_text": "query",
+      "pos_text": "positive_passages"
+    }
   },
   "flickr30k_t2i": {
-    "hf_hub_url": "not available",
-    "script_url": "https://github.com",
-    "file_name": "flickr30k_t2i.zip",
-    "file_sha1": "to-be-filled",
-    "keywords": ["t2i", "image-text", "flickr", "retrieval"]
+    "file_name": "data/flickr30k/train.jsonl",
+    "val_file_name": "data/flickr30k/val.jsonl",
+    "retrieval_mode": "t2i",
+    "image_root": "data/flickr30k",
+    "columns": {
+      "query_text": "caption",
+      "pos_pixel_values": "image",
+      "image_id": "image_id"
+    }
   },
   "stanford_online_products_i2i": {
-    "hf_hub_url": "not available",
-    "script_url": "https://cvgl.stanford.edu/projects/lifted_struct/",
-    "file_name": "stanford_online_products_i2i.zip",
-    "file_sha1": "to-be-filled",
-    "keywords": ["i2i", "image", "sop", "product", "retrieval"]
+    "file_name": "data/stanford_online_products/train.jsonl",
+    "val_file_name": "data/stanford_online_products/val.jsonl",
+    "retrieval_mode": "i2i",
+    "image_root": "data/stanford_online_products",
+    "columns": {
+      "query_pixel_values": "image",
+      "pos_pixel_values": "image_positive",
+      "image_id": "product_id"
+    }
   },
   "coco_t2i": {
-    "hf_hub_url": "not available",
-    "script_url": "https://cocodataset.org/",
-    "file_name": "coco_t2i.zip",
-    "file_sha1": "to-be-filled",
-    "keywords": ["t2i", "image-text", "coco", "detection"]
+    "file_name": "data/coco/train.jsonl",
+    "val_file_name": "data/coco/val.jsonl",
+    "retrieval_mode": "t2i",
+    "image_root": "data/coco",
+    "columns": {
+      "query_text": "caption",
+      "pos_pixel_values": "image",
+      "image_id": "image_id"
+    }
   }
 }

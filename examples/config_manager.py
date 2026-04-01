@@ -61,38 +61,19 @@ class ConfigManager:
         if not dataset_info:
             raise ValueError(f"Dataset '{dataset_name}' not found")
 
-        # Map dataset_name to directory convention
-        dataset_dir_map = {
-            "msmarco_t2t": "msmarco",
-            "flickr30k_t2i": "flickr30k",
-            "stanford_online_products_i2i": "stanford_online_products",
-            "coco_t2i": "coco",
-        }
+        file_name = dataset_info.get("file_name", "")
+        val_file_name = dataset_info.get("val_file_name", "")
+        image_root = dataset_info.get("image_root", "")
 
-        dataset_dir = dataset_dir_map.get(dataset_name, dataset_name)
-
-        # Try multiple locations: data/, examples/data/
-        possible_roots = [
-            Path("data") / dataset_dir,
-            self.examples_dir / "data" / dataset_dir,
-            Path(dataset_name),
-        ]
-
-        data_root = None
-        for root in possible_roots:
-            if root.exists():
-                data_root = root
-                break
-
-        if not data_root:
-            raise FileNotFoundError(
-                f"Dataset '{dataset_name}' directory not found in {[str(r) for r in possible_roots]}"
-            )
+        # Resolve relative paths
+        data_path = str(Path(file_name))
+        val_data_path = str(Path(val_file_name)) if val_file_name else ""
+        image_root_path = str(Path(image_root)) if image_root else ""
 
         return {
-            "data_path": str(data_root / "train.jsonl"),
-            "val_data_path": str(data_root / "val.jsonl") if (data_root / "val.jsonl").exists() else "",
-            "image_root": str(data_root),
+            "data_path": data_path,
+            "val_data_path": val_data_path,
+            "image_root": image_root_path,
         }
 
     def get_training_command(self, config_name: str) -> dict[str, Any]:
@@ -132,10 +113,11 @@ if __name__ == "__main__":
 
     # Try to resolve a training command
     try:
-        cmd_info = manager.get_training_command("clip_t2i")
-        print(f"\nTraining command for 'clip_t2i':")
-        print(f"  Description: {cmd_info['description']}")
+        cmd_info = manager.get_training_command("clip_base")
+        print(f"\nTraining config for 'clip_base':")
+        print(f"  Model: {cmd_info['training_config'].get('model_name_or_path')}")
         print(f"  Dataset: {cmd_info['dataset']}")
+        print(f"  Retrieval mode: {cmd_info['training_config'].get('retrieval_mode')}")
         print(f"  Dataset paths: {cmd_info['dataset_paths']}")
     except Exception as e:
         print(f"\nError: {e}")
