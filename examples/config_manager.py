@@ -14,14 +14,8 @@ class DatasetManager:
     """Manages dataset configurations from dataset_info.json."""
 
     def __init__(self, examples_dir: str | None = None):
-        """Initialize dataset manager.
-
-        Args:
-            examples_dir: Path to examples directory. If None, uses current directory.
-        """
-        if examples_dir is None:
-            examples_dir = os.path.dirname(__file__)
-        self.examples_dir = Path(examples_dir)
+        """Initialize dataset manager."""
+        self.examples_dir = Path(examples_dir) if examples_dir else Path(__file__).parent
         self._dataset_info: dict[str, Any] = {}
         self._load_config()
 
@@ -41,32 +35,15 @@ class DatasetManager:
         return list(self._dataset_info.keys())
 
     def get_dataset_paths(self, dataset_name: str) -> dict[str, str]:
-        """Get dataset paths for command-line arguments.
-
-        Args:
-            dataset_name: Name of the dataset from dataset_info.json
-
-        Returns:
-            Dict with 'data_path', 'val_data_path', 'image_root' keys.
-
-        Example:
-            >>> manager = DatasetManager()
-            >>> paths = manager.get_dataset_paths("flickr30k_t2i")
-            >>> # Use in vembed command:
-            >>> # vembed train config.yaml --data_path {data_path} --image_root {image_root}
-        """
+        """Get dataset paths for command-line arguments."""
         dataset_info = self.get_dataset(dataset_name)
         if not dataset_info:
             raise ValueError(f"Dataset '{dataset_name}' not found")
 
-        file_name = dataset_info.get("file_name", "")
-        val_file_name = dataset_info.get("val_file_name", "")
-        image_root = dataset_info.get("image_root", "")
-
         return {
-            "data_path": file_name,
-            "val_data_path": val_file_name,
-            "image_root": image_root,
+            "data_path": dataset_info.get("file_name", ""),
+            "val_data_path": dataset_info.get("val_file_name", ""),
+            "image_root": dataset_info.get("image_root", ""),
         }
 
     def print_dataset_info(self, dataset_name: str) -> None:
