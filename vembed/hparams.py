@@ -62,6 +62,13 @@ class DataArguments:
     Arguments pertaining to what data we are going to input our model for training and eval.
     """
 
+    dataset_name: str | None = field(
+        default=None,
+        metadata={
+            "help": "Dataset name to load from dataset_info.json. "
+            "If specified, data_path/val_data_path/image_root will be auto-loaded."
+        },
+    )
     data_path: str | None = field(
         default=None, metadata={"help": "Path to the training data file (JSONL)."}
     )
@@ -261,9 +268,13 @@ class TrainingArguments:
     )
     resume_from_checkpoint: str | None = field(
         default=None,
-        metadata={"help": "Path to checkpoint to resume training from (e.g., 'output/checkpoint-epoch-2')"},
+        metadata={
+            "help": "Path to checkpoint to resume training from (e.g., 'output/checkpoint-epoch-2')"
+        },
     )
     resume_mode: str = field(
         default="full",
-        metadata={"help": "Resume mode: 'full' (optimizer+scheduler+metrics) or 'model_only' (just model weights)"},
+        metadata={
+            "help": "Resume mode: 'full' (optimizer+scheduler+metrics) or 'model_only' (just model weights)"
+        },
     )

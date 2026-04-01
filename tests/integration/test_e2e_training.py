@@ -619,5 +619,45 @@ class TestResumeTraining:
         assert saved_config["retrieval_mode"] == "t2i"
 
 
+class TestDatasetNameIntegration:
+    """Test dataset_name parameter and dataset_info.json integration."""
+
+    def test_dataset_name_loading(self):
+        """Test loading dataset info by name."""
+        from vembed.training.config import _load_dataset_info
+
+        # Test loading existing dataset
+        dataset_info = _load_dataset_info("flickr30k_t2i")
+        assert dataset_info is not None
+        assert dataset_info["retrieval_mode"] == "t2i"
+        assert dataset_info.get("file_name") is not None
+        assert dataset_info.get("val_file_name") is not None
+
+    def test_dataset_name_nonexistent(self):
+        """Test loading non-existent dataset returns None gracefully."""
+        from vembed.training.config import _load_dataset_info
+
+        dataset_info = _load_dataset_info("nonexistent_dataset")
+        assert dataset_info is None
+
+    def test_dataset_info_has_description(self):
+        """Test that dataset_info includes description metadata."""
+        from vembed.training.config import _load_dataset_info
+
+        dataset_info = _load_dataset_info("msmarco_t2t")
+        assert dataset_info is not None
+        assert dataset_info.get("description") is not None
+        assert dataset_info.get("retrieval_mode") == "t2t"
+
+    def test_dataset_info_column_mapping(self):
+        """Test that dataset_info includes column mapping."""
+        from vembed.training.config import _load_dataset_info
+
+        dataset_info = _load_dataset_info("coco_t2i")
+        assert dataset_info is not None
+        assert dataset_info.get("columns") is not None
+        assert "query" in dataset_info["columns"] or "caption" in dataset_info.get("columns", {})
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -4,12 +4,17 @@ Handles configuration loading, parsing, merging, and validation.
 """
 
 import argparse
+import json
+import logging
 import os
+from pathlib import Path
 from typing import Any
 
 import yaml
 
 from vembed.config import load_base_config, parse_override_args
+
+logger = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,6 +41,46 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _load_dataset_info(dataset_name: str) -> dict[str, Any] | None:
+    """Load dataset configuration from dataset_info.json.
+
+    Args:
+        dataset_name: Name of dataset to load.
+
+    Returns:
+        Dataset configuration dict or None if not found.
+    """
+    try:
+        # Search for dataset_info.json in multiple possible locations
+        # Priority: current dir, vembed package dir, repo root/examples
+        search_paths = [
+            Path.cwd() / "examples" / "dataset_info.json",  # Current working dir
+            Path(__file__).parent.parent.parent / "examples" / "dataset_info.json",  # Repo root
+            Path(__file__).parent / "dataset_info.json",  # Fallback in vembed dir
+        ]
+
+        dataset_file = None
+        for path in search_paths:
+            if path.exists():
+                dataset_file = path
+                break
+
+        if not dataset_file:
+            logger.warning(
+                "dataset_info.json not found in any of: %s",
+                ", ".join(str(p) for p in search_paths),
+            )
+            return None
+
+        with open(dataset_file) as f:
+            dataset_info = json.load(f)
+
+        return dataset_info.get(dataset_name)
+    except (OSError, ValueError, json.JSONDecodeError) as e:
+        logger.warning("Failed to load dataset_info for '%s': %s", dataset_name, e)
+        return None
+
+
 def load_and_parse_config() -> dict[str, Any]:
     """Load and parse configuration from args and files.
 
@@ -43,8 +88,9 @@ def load_and_parse_config() -> dict[str, Any]:
         Merged configuration dictionary with the following hierarchy:
         1. Base config (defaults)
         2. File config (if --config provided)
-        3. CLI overrides (if --config_override provided)
-        4. Gradient checkpointing flag (if --gradient_checkpointing)
+        3. Dataset info (if dataset_name specified in YAML)
+        4. CLI overrides (if --config_override provided)
+        5. Gradient checkpointing flag (if --gradient_checkpointing)
 
     Raises:
         SystemExit: If required config values are missing.
@@ -61,7 +107,31 @@ def load_and_parse_config() -> dict[str, Any]:
             if file_config:
                 config.update(file_config)
 
-    # Apply CLI overrides
+    # Load dataset_info if dataset_name is specified
+    if config.get("dataset_name"):
+        dataset_name = config["dataset_name"]
+        dataset_info = _load_dataset_info(dataset_name)
+        if dataset_info:
+            # Merge dataset_info values (don't override explicit YAML values)
+            if not config.get("data_path") or config.get("data_path") == "data/train.jsonl":
+                config["data_path"] = dataset_info.get("file_name")
+            if not config.get("val_data_path"):
+                config["val_data_path"] = dataset_info.get("val_file_name")
+            if not config.get("image_root") and dataset_info.get("image_root"):
+                config["image_root"] = dataset_info.get("image_root")
+            # Merge column_mapping if not explicitly set
+            if not config.get("column_mapping") and dataset_info.get("columns"):
+                config["column_mapping"] = dataset_info.get("columns")
+            logger.info(
+                "Loaded dataset '%s' from dataset_info.json: data_path=%s, val_data_path=%s",
+                dataset_name,
+                config.get("data_path"),
+                config.get("val_data_path"),
+            )
+        else:
+            logger.warning("Dataset '%s' not found in dataset_info.json", dataset_name)
+
+    # Apply CLI overrides (highest priority)
     if args.config_override:
         config.update(parse_override_args(args.config_override))
 
