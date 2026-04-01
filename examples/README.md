@@ -44,19 +44,37 @@ FSDP和多GPU配置
 
 ## 📖 使用方法
 
+**查看可用配置和数据集：**
+
+```bash
+# 列出所有训练配置
+vembed list-configs
+
+# 列出所有数据集
+vembed list-datasets
+
+# 查看某个数据集详情
+vembed show-dataset flickr30k_t2i
+```
+
+**训练模型：**
+
 ```bash
 # 基础用法
-python run.py examples/models/clip/base.yaml
+vembed train examples/models/clip/base.yaml
 
 # 命令行覆盖参数
-python run.py examples/models/clip/base.yaml \
-    --learning_rate=5e-5 \
-    --batch_size=64 \
-    --num_epochs=10
+vembed train examples/models/clip/base.yaml \
+    --learning-rate 5e-5 \
+    --batch-size 64 \
+    --epochs 10
 
 # 恢复中断的训练
-python run.py examples/models/clip/base.yaml \
-    --resume_from_checkpoint outputs/model/checkpoint-1000
+vembed train examples/models/clip/base.yaml \
+    --resume-from-checkpoint outputs/model/checkpoint-1000
+
+# 干运行（只生成配置，不训练）
+vembed train examples/models/clip/base.yaml --dry-run
 ```
 
 ## 📚 原始配置文件

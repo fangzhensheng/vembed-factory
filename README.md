@@ -141,15 +141,36 @@ image_emb = predictor.encode_image("cat.jpg")
 
 ### CLI
 
+**Discover Available Configurations:**
+
 ```bash
-# Train using a YAML config (Recommended)
-python run.py examples/clip_train.yaml
+# List all training configurations
+vembed list-configs
+
+# List available datasets
+vembed list-datasets
+
+# Show details for a dataset
+vembed show-dataset flickr30k_t2i
+```
+
+**Train Your Model:**
+
+```bash
+# Train using built-in configuration (Recommended)
+vembed train examples/models/clip/base.yaml
 
 # Train Qwen3-VL 2B (Multimodal)
-python run.py examples/qwen3_vl_embedding_2b_train.yaml
+vembed train examples/models/qwen3_vl/2b_base.yaml
 
 # Train ColBERT (Late Interaction)
-python run.py examples/qwen_colbert.yaml
+vembed train examples/strategies/late_interaction/dinov2_colbert.yaml
+
+# Override parameters from CLI
+vembed train examples/models/clip/base.yaml --batch-size 64 --learning-rate 5e-5
+
+# Dry run (generate config without training)
+vembed train examples/models/clip/base.yaml --dry-run
 ```
 
 ## Data Format
@@ -170,11 +191,14 @@ Training is configured primarily via YAML files. We follow a hierarchy:
 `Defaults` < `YAML Config` < `CLI Overrides`.
 
 ```bash
+# Discover available configurations
+vembed list-configs
+
 # Run with a specific config file
-python run.py examples/clip_train.yaml
+vembed train examples/models/clip/base.yaml
 
 # Override specific settings via CLI
-python run.py examples/clip_train.yaml --config_override batch_size=64 learning_rate=1e-5
+vembed train examples/models/clip/base.yaml --batch-size 64 --learning-rate 1e-5
 ```
 
 Key configuration options (can be set in YAML or CLI):
