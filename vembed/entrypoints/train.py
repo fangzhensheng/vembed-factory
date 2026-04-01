@@ -49,6 +49,7 @@ from vembed.training.optimizer_builder import (  # noqa: E402
     build_scheduler,
     resolve_tracker,
 )
+from vembed.training.checkpoint import load_checkpoint  # noqa: E402
 from vembed.training.training_loop import Trainer  # noqa: E402
 
 # Post-init accelerate logger — only use after Accelerator() is created
@@ -333,6 +334,27 @@ def main():
             log_with=log_with,
         )
 
+    # Load checkpoint and resume if specified
+    resume_state = None
+    if config.get("resume_from_checkpoint"):
+        resume_path = config["resume_from_checkpoint"]
+        logger.info(f"Resuming from checkpoint: {resume_path}")
+
+        try:
+            resume_state = load_checkpoint(
+                resume_path,
+                model,
+                accelerator,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                processor=processor,
+                mode=config.get("resume_mode", "full"),
+            )
+            logger.info(f"Checkpoint loaded successfully: {resume_state}")
+        except Exception as e:
+            logger.error(f"Failed to resume from checkpoint: {e}")
+            raise
+
     # Create and run trainer
     trainer = Trainer(
         model=model,
@@ -346,6 +368,7 @@ def main():
         distillation_loss_fn=distillation_loss_fn,
         evaluator=evaluator,
         val_dataloader=val_dataloader,
+        training_state=resume_state,
     )
 
     trainer.train()

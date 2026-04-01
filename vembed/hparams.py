@@ -259,3 +259,11 @@ class TrainingArguments:
             "help": "Direction for optimization: 'min' for loss-like metrics, 'max' for recall-like metrics."
         },
     )
+    resume_from_checkpoint: str | None = field(
+        default=None,
+        metadata={"help": "Path to checkpoint to resume training from (e.g., 'output/checkpoint-epoch-2')"},
+    )
+    resume_mode: str = field(
+        default="full",
+        metadata={"help": "Resume mode: 'full' (optimizer+scheduler+metrics) or 'model_only' (just model weights)"},
+    )

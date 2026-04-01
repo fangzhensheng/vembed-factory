@@ -399,5 +399,225 @@ class TestCheckpointing:
             accelerator.save_state.assert_called_with(str(output_dir))
 
 
+class TestResumeTraining:
+    """Test training resume from checkpoint functionality."""
+
+    def test_load_checkpoint_training_state(self, temp_config_dir):
+        """Test loading checkpoint with training state."""
+        from unittest.mock import MagicMock
+
+        from vembed.training.checkpoint import load_checkpoint, save_checkpoint
+        from vembed.training.model_builder import build_model
+
+        config = {"model_name": "openai/clip-vit-base-patch32"}
+        model = build_model(config)
+
+        checkpoint_dir = temp_config_dir / "checkpoint_resume"
+        checkpoint_dir.mkdir()
+
+        # Create mock accelerator
+        accelerator = MagicMock()
+        accelerator.is_main_process = True
+        accelerator.unwrap_model.return_value = model
+        accelerator.device = "cpu"
+
+        # Training state to save
+        training_state = {
+            "global_step": 100,
+            "epoch": 2,
+            "best_metric": 0.85,
+            "patience_counter": 1,
+        }
+
+        # Save checkpoint with training state
+        save_checkpoint(
+            str(checkpoint_dir),
+            model,
+            accelerator,
+            config=config,
+            training_state=training_state,
+        )
+
+        # Create new model and accelerator for loading
+        model_2 = build_model(config)
+        accelerator_2 = MagicMock()
+        accelerator_2.is_main_process = True
+        accelerator_2.unwrap_model.return_value = model_2
+        accelerator_2.device = "cpu"
+
+        # Load checkpoint
+        loaded_state = load_checkpoint(
+            str(checkpoint_dir),
+            model_2,
+            accelerator_2,
+            mode="model_only",
+        )
+
+        # Verify training state was restored
+        assert loaded_state["global_step"] == 100
+        assert loaded_state["epoch"] == 2
+        assert loaded_state["best_metric"] == 0.85
+        assert loaded_state["patience_counter"] == 1
+
+    def test_load_checkpoint_model_only_mode(self, temp_config_dir):
+        """Test loading checkpoint in model_only mode."""
+        from unittest.mock import MagicMock
+
+        from vembed.training.checkpoint import load_checkpoint, save_checkpoint
+        from vembed.training.model_builder import build_model
+
+        config = {"model_name": "openai/clip-vit-base-patch32"}
+        model = build_model(config)
+
+        checkpoint_dir = temp_config_dir / "checkpoint_model_only"
+        checkpoint_dir.mkdir()
+
+        accelerator = MagicMock()
+        accelerator.is_main_process = True
+        accelerator.unwrap_model.return_value = model
+        accelerator.device = "cpu"
+
+        # Save checkpoint
+        save_checkpoint(
+            str(checkpoint_dir),
+            model,
+            accelerator,
+            config=config,
+        )
+
+        # Load in model_only mode (should not try to load optimizer state)
+        model_2 = build_model(config)
+        accelerator_2 = MagicMock()
+        accelerator_2.is_main_process = True
+        accelerator_2.unwrap_model.return_value = model_2
+        accelerator_2.device = "cpu"
+
+        # Should not raise error even without optimizer/scheduler
+        loaded_state = load_checkpoint(
+            str(checkpoint_dir),
+            model_2,
+            accelerator_2,
+            mode="model_only",
+        )
+
+        assert isinstance(loaded_state, dict)
+
+    def test_load_checkpoint_full_mode(self, temp_config_dir):
+        """Test loading checkpoint in full mode."""
+        from unittest.mock import MagicMock
+
+        from vembed.training.checkpoint import load_checkpoint, save_checkpoint
+        from vembed.training.model_builder import build_model
+
+        config = {"model_name": "openai/clip-vit-base-patch32"}
+        model = build_model(config)
+
+        checkpoint_dir = temp_config_dir / "checkpoint_full"
+        checkpoint_dir.mkdir()
+
+        accelerator = MagicMock()
+        accelerator.is_main_process = True
+        accelerator.unwrap_model.return_value = model
+        accelerator.device = "cpu"
+
+        # Save checkpoint
+        save_checkpoint(
+            str(checkpoint_dir),
+            model,
+            accelerator,
+            config=config,
+        )
+
+        # Load in full mode
+        model_2 = build_model(config)
+        accelerator_2 = MagicMock()
+        accelerator_2.is_main_process = True
+        accelerator_2.unwrap_model.return_value = model_2
+        accelerator_2.device = "cpu"
+        accelerator_2.load_state = MagicMock()  # Mock load_state call
+
+        # Create mock optimizer and scheduler
+        optimizer = MagicMock()
+        scheduler = MagicMock()
+
+        # Should attempt to load optimizer/scheduler state
+        loaded_state = load_checkpoint(
+            str(checkpoint_dir),
+            model_2,
+            accelerator_2,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            mode="full",
+        )
+
+        assert isinstance(loaded_state, dict)
+
+    def test_checkpoint_not_found(self, temp_config_dir):
+        """Test error handling when checkpoint not found."""
+        from unittest.mock import MagicMock
+
+        from vembed.training.checkpoint import load_checkpoint
+        from vembed.training.model_builder import build_model
+
+        model = build_model({"model_name": "openai/clip-vit-base-patch32"})
+        accelerator = MagicMock()
+        accelerator.device = "cpu"
+
+        # Try to load non-existent checkpoint
+        with pytest.raises(FileNotFoundError):
+            load_checkpoint(
+                str(temp_config_dir / "nonexistent"),
+                model,
+                accelerator,
+            )
+
+    def test_vembed_config_persistence(self, temp_config_dir):
+        """Test vembed config is saved and can be loaded."""
+        from unittest.mock import MagicMock
+        import json
+
+        from vembed.training.checkpoint import save_checkpoint
+        from vembed.training.model_builder import build_model
+
+        config = {
+            "model_name": "openai/clip-vit-base-patch32",
+            "pooling_method": "mean",
+            "projection_dim": 512,
+            "topk_tokens": 64,
+            "retrieval_mode": "t2i",
+            "loss_type": "infonce",
+            "use_mrl": False,
+            "encoder_mode": "auto",
+        }
+
+        model = build_model(config)
+        checkpoint_dir = temp_config_dir / "checkpoint_config"
+        checkpoint_dir.mkdir()
+
+        accelerator = MagicMock()
+        accelerator.is_main_process = True
+        accelerator.unwrap_model.return_value = model
+
+        save_checkpoint(
+            str(checkpoint_dir),
+            model,
+            accelerator,
+            config=config,
+        )
+
+        # Verify vembed_config.json was created
+        config_file = checkpoint_dir / "vembed_config.json"
+        assert config_file.exists()
+
+        # Load and verify config
+        with open(config_file) as f:
+            saved_config = json.load(f)
+
+        assert saved_config["pooling_method"] == "mean"
+        assert saved_config["projection_dim"] == 512
+        assert saved_config["topk_tokens"] == 64
+        assert saved_config["retrieval_mode"] == "t2i"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

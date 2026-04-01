@@ -43,6 +43,7 @@ class Trainer:
         distillation_loss_fn: Any = None,
         evaluator: Any = None,
         val_dataloader: Any = None,
+        training_state: dict[str, Any] | None = None,
     ):
         """Initialize trainer.
 
@@ -58,6 +59,8 @@ class Trainer:
             distillation_loss_fn: Optional distillation loss function.
             evaluator: Optional evaluator for validation.
             val_dataloader: Optional validation dataloader.
+            training_state: Optional training state dict from resumed checkpoint
+                with keys: global_step, epoch, best_metric, patience_counter.
         """
         self.model = model
         self.optimizer = optimizer
@@ -106,13 +109,27 @@ class Trainer:
         self.best_metric = float("inf") if self.eval_metric_better == "min" else float("-inf")
         self.patience_counter = 0
 
+        # Resume training from checkpoint if provided
+        self.global_step = 0
+        self.current_epoch = 0
+        if training_state is not None:
+            self.global_step = training_state.get("global_step", 0)
+            self.current_epoch = training_state.get("epoch", 0)
+            self.best_metric = training_state.get("best_metric", self.best_metric)
+            self.patience_counter = training_state.get("patience_counter", 0)
+            logger.info(
+                f"Resumed from checkpoint: global_step={self.global_step}, "
+                f"epoch={self.current_epoch}, best_metric={self.best_metric}"
+            )
+
     def train(self) -> None:
         """Run the complete training loop."""
         self.model.train()
-        global_step = 0
+        global_step = self.global_step
         steps_per_epoch = len(self.dataloader)
 
-        for epoch in range(self.num_epochs):
+        for epoch in range(self.current_epoch, self.num_epochs):
+            self.current_epoch = epoch
             self.accelerator.print(f"Epoch {epoch + 1}/{self.num_epochs}")
 
             for step, batch in enumerate(
@@ -476,12 +493,21 @@ class Trainer:
             global_step: Current global step.
         """
         checkpoint_dir = os.path.join(self.config["output_dir"], f"checkpoint-step-{global_step}")
+
+        training_state = {
+            "global_step": global_step,
+            "epoch": self.current_epoch,
+            "best_metric": self.best_metric,
+            "patience_counter": self.patience_counter,
+        }
+
         save_checkpoint(
             checkpoint_dir,
             self.model,
             self.accelerator,
             processor=self.processor,
             config=self.config,
+            training_state=training_state,
         )
 
     def _save_checkpoint_epoch(self, epoch: int) -> None:
@@ -491,10 +517,19 @@ class Trainer:
             epoch: Current epoch (0-indexed).
         """
         checkpoint_dir = os.path.join(self.config["output_dir"], f"checkpoint-epoch-{epoch + 1}")
+
+        training_state = {
+            "global_step": self.global_step,
+            "epoch": epoch,
+            "best_metric": self.best_metric,
+            "patience_counter": self.patience_counter,
+        }
+
         save_checkpoint(
             checkpoint_dir,
             self.model,
             self.accelerator,
             processor=self.processor,
             config=self.config,
+            training_state=training_state,
         )
