@@ -1,0 +1,31 @@
+# COCO text-to-image retrieval with dataset_info.json integration
+
+# Auto-load data_path, val_data_path, image_root from dataset_info.json
+dataset_name: "coco_t2i"
+
+model_name_or_path: "openai/clip-vit-large-patch14"
+encoder_mode: clip
+retrieval_mode: "t2i"
+use_lora: true
+
+# Memory optimization
+use_gradient_cache: true
+gradient_cache_chunk_size: 64
+
+output_dir: experiments/output_coco
+epochs: 10
+batch_size: 512
+learning_rate: 1.0e-5
+
+# Data loading optimization
+num_workers: 8
+pin_memory: true
+prefetch_factor: 4
+persistent_workers: true
+enable_image_cache: true
+
+# Validation
+eval_steps: 1000
+early_stopping_patience: 5
+eval_metric: "val/recall@5"
+eval_metric_better: "max"

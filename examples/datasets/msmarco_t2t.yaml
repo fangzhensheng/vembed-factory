@@ -1,0 +1,27 @@
+# MS MARCO text-to-text retrieval with dataset_info.json integration
+
+# Auto-load data_path, val_data_path from dataset_info.json
+dataset_name: "msmarco_t2t"
+
+model_name_or_path: "sentence-transformers/all-MiniLM-L6-v2"
+encoder_mode: bert
+retrieval_mode: "t2t"
+use_lora: false
+
+output_dir: experiments/output_msmarco
+epochs: 3
+batch_size: 512
+learning_rate: 2.0e-5
+loss_type: infonce
+
+# Data loading optimization
+num_workers: 4
+pin_memory: true
+prefetch_factor: 2
+persistent_workers: true
+
+# Validation
+eval_steps: 500
+early_stopping_patience: 3
+eval_metric: "val/ndcg@10"
+eval_metric_better: "max"

@@ -1,0 +1,27 @@
+# Flickr30K text-to-image retrieval with dataset_info.json integration
+# This configuration demonstrates using dataset_name to auto-load data paths
+# Compared to examples/clip_train.yaml, this uses dataset_name for simpler config
+
+# Auto-load data_path, val_data_path, image_root from dataset_info.json
+dataset_name: "flickr30k_t2i"
+
+model_name_or_path: "openai/clip-vit-base-patch32"
+encoder_mode: clip
+retrieval_mode: "t2i"
+use_lora: true
+
+# Memory optimization: Gradient Cache for 24GB GPU
+use_gradient_cache: true
+gradient_cache_chunk_size: 128
+
+output_dir: experiments/output_flickr30k
+epochs: 5
+batch_size: 1024
+learning_rate: 2.0e-5
+
+# Data loading optimization
+num_workers: 4
+pin_memory: true
+prefetch_factor: 2
+persistent_workers: true
+enable_image_cache: false
