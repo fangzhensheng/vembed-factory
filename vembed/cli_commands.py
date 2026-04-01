@@ -20,13 +20,13 @@ def list_datasets_command():
 
         manager = config_module.DatasetManager(str(examples_dir))
 
-        print("\n📊 Available Datasets:")
+        print("\nAvailable Datasets:")
         print("-" * 60)
         for ds_name in manager.list_datasets():
             ds_info = manager.get_dataset(ds_name)
             mode = ds_info.get("retrieval_mode", "unknown")
             file_name = ds_info.get("file_name", "N/A")
-            print(f"  • {ds_name:<30} | mode: {mode:<4} | {file_name}")
+            print(f"  * {ds_name:<30} | mode: {mode:<4} | {file_name}")
         print("-" * 60)
         return 0
     except Exception as e:
@@ -56,14 +56,14 @@ def list_configs_command():
                 configs_by_category[category] = []
             configs_by_category[category].append(config_name)
 
-    print("\n📝 Available Training Configurations:")
+    print("\nAvailable Training Configurations:")
     print("-" * 60)
 
     for category in sorted(configs_by_category.keys()):
         configs = sorted(configs_by_category[category])
         print(f"\n  [{category}/]")
         for config in configs:
-            print(f"    • {config}.yaml")
+            print(f"    * {config}.yaml")
 
     print("\n" + "-" * 60)
     print(f"Total: {sum(len(v) for v in configs_by_category.values())} configurations")
