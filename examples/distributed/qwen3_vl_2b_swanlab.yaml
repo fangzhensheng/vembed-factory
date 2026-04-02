@@ -1,12 +1,11 @@
 # Qwen3-VL with SwanLab Tracking
 # This example shows how to integrate SwanLab (Chinese-friendly) for experiment tracking
 
-# Model and data
+dataset_name: stanford_online_products_i2i
+
 model_name: Qwen/Qwen3-VL-2B-Instruct
 encoder_mode: qwen3_vl
-data_path: data/stanford_online_products/train.jsonl
-val_data_path: data/stanford_online_products/val.jsonl
-image_root: data/stanford_online_products
+retrieval_mode: i2i
 
 # Training setup
 batch_size: 32

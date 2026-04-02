@@ -1,13 +1,10 @@
-# CLIP Minimal Training Configuration
-# Fastest setup for testing and validation
-# Optimized for 24GB consumer-grade GPUs
+dataset_name: flickr30k_t2i
 
 model_name_or_path: "openai/clip-vit-base-patch32"
 encoder_mode: clip
 retrieval_mode: "t2i"
 use_lora: true
 
-# Memory optimization: Gradient Cache
 use_gradient_cache: true
 gradient_cache_chunk_size: 128
 
@@ -15,11 +12,6 @@ output_dir: experiments/clip_minimal
 epochs: 2
 batch_size: 256
 learning_rate: 1.0e-5
-
-# Use sample data
-data_path: data/train.jsonl
-val_data_path: data/val.jsonl
-image_root: data/images
 
 validate_data: false
 

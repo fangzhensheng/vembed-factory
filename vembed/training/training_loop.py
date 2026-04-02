@@ -221,8 +221,8 @@ class Trainer:
     def _step_with_gradient_cache(self, batch: dict[str, Any]) -> float:
         """Training step using gradient cache for memory efficiency.
 
-        Optimization: Coordinate with gradient_accumulation by only syncing
-        gradients on the last accumulation step.
+        Optimization: Use accelerator.no_sync() to skip gradient synchronization
+        in non-final accumulation steps, reducing communication overhead.
 
         Args:
             batch: Input batch.
@@ -230,15 +230,9 @@ class Trainer:
         Returns:
             Loss value.
         """
-        # Check if this is the last accumulation step
-        is_last_accum_step = (self.global_step + 1) % self.grad_accum_steps == 0
-
-        # Pass sync flag to grad_cache: only sync on last accumulation step
-        loss_val = self.grad_cache.step(
-            self.model,
-            batch,
-            no_sync_except_last=is_last_accum_step,
-        )
+        # Gradient cache automatically handles batch unpacking and loss computation
+        # with gradient sync optimization based on distributed training setup
+        loss_val = self.grad_cache.step(self.model, batch)
 
         if self.accelerator.sync_gradients and self.max_grad_norm > 0:
             self.accelerator.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)

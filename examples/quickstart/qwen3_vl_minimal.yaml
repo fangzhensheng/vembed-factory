@@ -1,18 +1,10 @@
-# Qwen3-VL-Embedding-2B Minimal Training Configuration
-# Fastest setup for testing and validation
-# Optimized for 24GB consumer-grade GPUs
+dataset_name: "flickr30k_t2i"
 
-# Model
 model_name: "Qwen/Qwen3-VL-Embedding-2B"
 encoder_mode: "qwen-vl"
 retrieval_mode: "t2i"
 attn_implementation: "flash_attention_2"
 torch_dtype: "bfloat16"
-
-# Data (use sample data)
-data_path: "data/train.jsonl"
-val_data_path: "data/val.jsonl"
-image_root: "data/images"
 
 # Training
 output_dir: "experiments/output_qwen3_2b_minimal"

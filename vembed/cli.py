@@ -22,6 +22,7 @@ from vembed.config import (
 )
 from vembed.hparams import DataArguments, ModelArguments, TrainingArguments
 from vembed.validators import validate_config
+from vembed.training.config import inject_dataset_info
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +171,8 @@ def main(args_list=None):
     train_config.update(dataclasses.asdict(model_args))
     train_config.update(dataclasses.asdict(data_args))
     train_config.update(dataclasses.asdict(training_args))
+
+    inject_dataset_info(train_config)
 
     # ── 6. Validate configuration ────────────────────────────────────
     if not validate_config(train_config):

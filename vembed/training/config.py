@@ -81,6 +81,34 @@ def _load_dataset_info(dataset_name: str) -> dict[str, Any] | None:
         return None
 
 
+def inject_dataset_info(config: dict[str, Any]) -> None:
+    """Inject dataset paths from dataset_info.json into the configuration dict in-place."""
+    if not config.get("dataset_name"):
+        return
+
+    dataset_name = config["dataset_name"]
+    dataset_info = _load_dataset_info(dataset_name)
+    if not dataset_info:
+        logger.warning("Dataset '%s' not found in dataset_info.json", dataset_name)
+        return
+
+    if not config.get("data_path") or config.get("data_path") == "data/train.jsonl":
+        config["data_path"] = dataset_info.get("file_name")
+    if not config.get("val_data_path"):
+        config["val_data_path"] = dataset_info.get("val_file_name")
+    if not config.get("image_root") and dataset_info.get("image_root"):
+        config["image_root"] = dataset_info.get("image_root")
+    if not config.get("column_mapping") and dataset_info.get("columns"):
+        config["column_mapping"] = dataset_info.get("columns")
+
+    logger.info(
+        "Loaded dataset '%s': data_path=%s, val_data_path=%s",
+        dataset_name,
+        config.get("data_path"),
+        config.get("val_data_path"),
+    )
+
+
 def load_and_parse_config() -> dict[str, Any]:
     """Load and parse configuration from args and files.
 
@@ -108,28 +136,7 @@ def load_and_parse_config() -> dict[str, Any]:
                 config.update(file_config)
 
     # Load dataset_info if dataset_name is specified
-    if config.get("dataset_name"):
-        dataset_name = config["dataset_name"]
-        dataset_info = _load_dataset_info(dataset_name)
-        if dataset_info:
-            # Merge dataset_info values (don't override explicit YAML values)
-            if not config.get("data_path") or config.get("data_path") == "data/train.jsonl":
-                config["data_path"] = dataset_info.get("file_name")
-            if not config.get("val_data_path"):
-                config["val_data_path"] = dataset_info.get("val_file_name")
-            if not config.get("image_root") and dataset_info.get("image_root"):
-                config["image_root"] = dataset_info.get("image_root")
-            # Merge column_mapping if not explicitly set
-            if not config.get("column_mapping") and dataset_info.get("columns"):
-                config["column_mapping"] = dataset_info.get("columns")
-            logger.info(
-                "Loaded dataset '%s' from dataset_info.json: data_path=%s, val_data_path=%s",
-                dataset_name,
-                config.get("data_path"),
-                config.get("val_data_path"),
-            )
-        else:
-            logger.warning("Dataset '%s' not found in dataset_info.json", dataset_name)
+    inject_dataset_info(config)
 
     # Apply CLI overrides (highest priority)
     if args.config_override:

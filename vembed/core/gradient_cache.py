@@ -1,5 +1,6 @@
 """Gradient Cache integration with vembed-factory pipeline."""
 
+import logging
 from collections import UserDict
 
 from torch import Tensor
@@ -12,6 +13,8 @@ from vembed.core.constants import (
 )
 from vembed.grad_cache import GradCache as LibGradCache
 
+logger = logging.getLogger(__name__)
+
 
 def _extract_rep(output: object) -> Tensor:
     """Extract plain tensor from model output."""
@@ -23,9 +26,15 @@ def _extract_rep(output: object) -> Tensor:
         return output.pooler_output
     if hasattr(output, "last_hidden_state") and isinstance(output.last_hidden_state, Tensor):
         return output.last_hidden_state[:, 0]
+
+    logger.error(f"Model output type: {type(output)}")
+    if output is None:
+        logger.error("Model returned None - check if model forward() is returning values correctly")
+
     raise TypeError(
         f"Cannot extract tensor from {type(output).__name__}; "
-        "expected Tensor, tuple[Tensor], or ModelOutput with pooler_output/last_hidden_state"
+        "expected Tensor, tuple[Tensor], or ModelOutput with pooler_output/last_hidden_state. "
+        "Model returned None - check if model is initialized and forward pass is correct."
     )
 
 
