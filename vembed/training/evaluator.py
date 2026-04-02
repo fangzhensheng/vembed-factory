@@ -109,8 +109,10 @@ class Evaluator:
                     torch.cuda.empty_cache()
 
         # Aggregate loss across all ranks (critical for correctness in multi-GPU)
+        # accelerator.reduce() defaults to reduction="mean", so it correctly averages the loss
+        # across all processes regardless of whether the dataloader is sharded.
         avg_loss = torch.tensor(total_loss / max(num_batches, 1), device=self.accelerator.device)
-        avg_loss = self.accelerator.reduce(avg_loss).item()
+        avg_loss = self.accelerator.reduce(avg_loss, reduction="mean").item()
 
         self.accelerator.print(f"Validation loss: {avg_loss:.4f}")
 
