@@ -190,9 +190,8 @@ class GradientCache:
                     q["image_grid_thw"] = batch["query_image_grid_thw"]
         else:
             q = {k: batch[k] for k in ("input_ids", "attention_mask") if k in batch}
-            # FIX: For t2i mode, add pixel_values to query (CLIP model needs image+text pairs)
-            if mode == "t2i" and "pixel_values" in batch:
-                q["pixel_values"] = batch["pixel_values"]
+            # For CLIP in t2i mode, query should only be text, not image
+            # Remove the code that incorrectly injects pixel_values into query
 
         if mode.endswith("t"):
             logger.warning(f"[UNPACK] mode ends with 't', treating positive as text")
