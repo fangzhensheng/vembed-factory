@@ -10,9 +10,7 @@ import torch
 logger = logging.getLogger(__name__)
 
 
-def set_seed(
-    seed: int | None = None, workers: bool = False, deterministic: bool = False
-) -> None:
+def set_seed(seed: int | None = None, workers: bool = False, deterministic: bool = False) -> None:
     """Set random seeds for reproducibility across different libraries.
 
     Sets seeds for:
