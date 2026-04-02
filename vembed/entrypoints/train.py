@@ -30,7 +30,6 @@ from vembed.losses.factory import LossFactory  # noqa: E402
 from vembed.training.checkpoint import load_checkpoint  # noqa: E402
 from vembed.training.config import (  # noqa: E402
     get_distributed_config,
-    inject_dataset_info,
     load_and_parse_config,
     prepare_output_dir,
 )
@@ -62,13 +61,6 @@ def main():
     """Main training entrypoint."""
     # Load and merge configuration
     config = load_and_parse_config()
-
-    # Inject dataset info from dataset_info.json if dataset_name is specified
-    inject_dataset_info(config)
-
-    # model_name_or_path → model_name fallback (same as CLI)
-    if config.get("model_name_or_path") and not config.get("model_name"):
-        config["model_name"] = config["model_name_or_path"]
 
     prepare_output_dir(config)
 
