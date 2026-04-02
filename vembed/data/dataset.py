@@ -246,12 +246,6 @@ class GenericRetrievalDataset(Dataset):
 
         is_text_positive = self._looks_like_image_path(positive_content) is False
 
-        # DEBUG: Log first few samples
-        looks_like_img = self._looks_like_image_path(positive_content)
-        if idx < 3:
-            import logging as _logging
-            _logging.warning(f"[DATASET] idx={idx}, positive={str(positive_content)[:30]}, looks_like_img={looks_like_img}, is_text={is_text_positive}")
-
         result = {
             "query_text": query_text,
             "pos_text": str(positive_content),
@@ -268,10 +262,6 @@ class GenericRetrievalDataset(Dataset):
             result["pos_image"] = pos_img
             if p_success:
                 result["pos_image_path"] = str(self._resolve_path(positive_content))
-            # DEBUG
-            if pos_img is None:
-                import logging
-                logging.warning(f"[DATASET] pos_image is None for positive_content={positive_content}, p_success={p_success}")
         else:
             result["pos_image"] = None
 
