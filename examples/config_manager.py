@@ -5,7 +5,6 @@ Training configurations are managed directly via YAML files.
 """
 
 import json
-import os
 from pathlib import Path
 from typing import Any
 

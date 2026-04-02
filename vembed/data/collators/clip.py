@@ -80,7 +80,7 @@ class CLIPFamilyCollator(BaseRetrievalCollator):
                 results = self._process_images_batch(image_groups)
 
                 # Extract results
-                for key, result in zip(group_keys, results):
+                for key, result in zip(group_keys, results, strict=True):
                     pixels = self._get_pixels(result)
                     if key == "pos_image":
                         batch_output["pixel_values"] = pixels

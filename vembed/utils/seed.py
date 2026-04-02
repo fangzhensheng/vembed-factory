@@ -3,7 +3,6 @@
 import logging
 import os
 import random
-from typing import Optional
 
 import numpy as np
 import torch
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def set_seed(
-    seed: Optional[int] = None, workers: bool = False, deterministic: bool = False
+    seed: int | None = None, workers: bool = False, deterministic: bool = False
 ) -> None:
     """Set random seeds for reproducibility across different libraries.
 

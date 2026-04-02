@@ -162,7 +162,7 @@ class GenericRetrievalDataset(Dataset):
             negative_images = [res[0] for res in neg_results]
             neg_paths = [
                 str(self._resolve_path(p)) if success else None
-                for p, (_, success) in zip(negative_inputs, neg_results)
+                for p, (_, success) in zip(negative_inputs, neg_results, strict=True)
             ]
             return negative_images, neg_paths
 
