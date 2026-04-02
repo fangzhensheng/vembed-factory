@@ -70,14 +70,17 @@ This uses the high-level API wrapper that delegates to CLI internally. Perfect f
 ### 3. Train with CLI (Recommended)
 
 ```bash
-# Simple training - using run.py (recommended)
-python run.py examples/clip_train.yaml
+# Quick start - minimal CLIP configuration
+vembed train examples/quickstart/clip_minimal.yaml
+
+# Train CLIP base model
+vembed train examples/models/clip/base.yaml
 
 # Override parameters
-python run.py examples/clip_train.yaml --config_override batch_size=64 learning_rate=1e-5
+vembed train examples/models/clip/base.yaml --config_override batch_size=64 learning_rate=1e-5
 
 # Advanced: explicit accelerate launch with distributed training
-accelerate launch vembed/entrypoints/train.py examples/clip_train.yaml
+accelerate launch vembed/entrypoints/train.py examples/models/clip/base.yaml
 ```
 
 For distributed training (DDP, FSDP), use `accelerate launch` instead of `python run.py`.

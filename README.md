@@ -157,17 +157,23 @@ vembed show-dataset flickr30k_t2i
 **Train Your Model:**
 
 ```bash
-# Train using built-in configuration (Recommended)
+# Quick start - minimal CLIP configuration
+vembed train examples/quickstart/clip_minimal.yaml
+
+# Train CLIP base model
 vembed train examples/models/clip/base.yaml
 
 # Train Qwen3-VL 2B (Multimodal)
 vembed train examples/models/qwen3_vl/2b_base.yaml
 
-# Train ColBERT (Late Interaction)
-vembed train examples/strategies/late_interaction/dinov2_colbert.yaml
+# Train Qwen3-VL 8B with FSDP (Distributed)
+vembed train examples/models/qwen3_vl/8b_fsdp.yaml
+
+# Train DINOv2 for image-to-image retrieval
+vembed train examples/models/dinov2/base.yaml
 
 # Override parameters from CLI
-vembed train examples/models/clip/base.yaml --batch-size 64 --learning-rate 5e-5
+vembed train examples/models/clip/base.yaml --config_override batch_size=64 learning_rate=5e-5
 
 # Dry run (generate config without training)
 vembed train examples/models/clip/base.yaml --dry-run
@@ -198,7 +204,8 @@ vembed list-configs
 vembed train examples/models/clip/base.yaml
 
 # Override specific settings via CLI
-vembed train examples/models/clip/base.yaml --batch-size 64 --learning-rate 1e-5
+vembed train examples/models/clip/base.yaml \
+    --config_override batch_size=64 learning_rate=1e-5
 ```
 
 Key configuration options (can be set in YAML or CLI):

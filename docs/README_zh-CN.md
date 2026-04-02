@@ -80,7 +80,7 @@ cd vembed-factory
 uv sync
 source .venv/bin/activate
 
-python run.py examples/clip_train.yaml
+vembed train examples/quickstart/clip_minimal.yaml
 ```
 
 **选项 2: pip**
@@ -131,14 +131,23 @@ image_emb = predictor.encode_image("cat.jpg")
 ### 命令行界面 (CLI)
 
 ```bash
-# 使用 YAML 配置训练 (推荐)
-python run.py examples/clip_train.yaml
+# 快速开始 - CLIP 最小化配置
+vembed train examples/quickstart/clip_minimal.yaml
+
+# CLIP 基础配置
+vembed train examples/models/clip/base.yaml
 
 # 训练 Qwen3-VL 2B (多模态)
-python run.py examples/qwen3_vl_embedding_2b_train.yaml
+vembed train examples/models/qwen3_vl/2b_base.yaml
 
-# 训练 ColBERT (延迟交互)
-python run.py examples/qwen_colbert.yaml
+# 训练 Qwen3-VL 8B (FSDP 分布式)
+vembed train examples/models/qwen3_vl/8b_fsdp.yaml
+
+# DINOv2 图搜图 (I2I)
+vembed train examples/models/dinov2/base.yaml
+
+# 查看所有可用配置
+vembed list-configs
 ```
 
 ## 数据格式
@@ -160,10 +169,11 @@ vembed-factory 支持灵活的输入数据。JSONL 文件中的每一行都是�
 
 ```bash
 # 使用指定的配置文件运行
-python run.py examples/clip_train.yaml
+vembed train examples/models/clip/base.yaml
 
 # 通过 CLI 覆盖特定设置
-python run.py examples/clip_train.yaml --config_override batch_size=64 learning_rate=1e-5
+vembed train examples/models/clip/base.yaml \
+    --config_override batch_size=64 learning_rate=1e-5
 ```
 
 关键配置选项 (可在 YAML 或 CLI 中设置)：

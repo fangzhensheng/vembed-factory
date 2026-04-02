@@ -135,17 +135,20 @@ image_emb = predictor.encode_image("cat.jpg")
 ### CLI
 
 ```bash
-# Train Qwen3-VL-Embedding (Recommended)
-python run.py examples/qwen3_2b_train.yaml
+# Train CLIP base model (Recommended)
+vembed train examples/models/clip/base.yaml
+
+# Train Qwen3-VL 2B (Multimodal)
+vembed train examples/models/qwen3_vl/2b_base.yaml
 
 # Train CLIP with MRL
-python run.py examples/clip_train.yaml --config_override use_mrl=true
+vembed train examples/models/clip/base.yaml --config_override use_mrl=true
 
 # Train with W&B logging
-python run.py examples/clip_train.yaml --config_override report_to=wandb
+vembed train examples/models/clip/base.yaml --config_override report_to=wandb
 
-# Train ColPali (Late Interaction)
-python run.py examples/qwen_colbert.yaml
+# List all available configurations
+vembed list-configs
 ```
 
 ## Data Format
@@ -166,10 +169,10 @@ Training can be customized via YAML configs and CLI overrides:
 
 ```bash
 # Train with a specific config file
-python run.py examples/clip_train.yaml
+vembed train examples/models/clip/base.yaml
 
 # Override specific settings
-python run.py examples/clip_train.yaml \
+vembed train examples/models/clip/base.yaml \
   --config_override learning_rate=1e-5 batch_size=64 scheduler_type=linear warmup_ratio=0.05
 ```
 

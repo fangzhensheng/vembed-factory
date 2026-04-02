@@ -311,9 +311,10 @@ make uv-test-cov       # With coverage report
 - `configs/siglip.yaml` - SigLIP-specific overrides
 
 **Example Launchers**:
-- `examples/clip_train.yaml` - Ready-to-run CLIP training
-- `examples/qwen3_2b_train.yaml` - Qwen3-VL-2B training (optimized)
-- `examples/qwen_colbert.yaml` - ColPali/ColQwen setup
+- `examples/quickstart/clip_minimal.yaml` - Quick start with minimal CLIP config
+- `examples/models/clip/base.yaml` - Ready-to-run CLIP training
+- `examples/models/qwen3_vl/2b_base.yaml` - Qwen3-VL-2B training (optimized)
+- `examples/models/qwen3_vl/8b_fsdp.yaml` - Qwen3-VL-8B with FSDP (distributed)
 
 ---
 
