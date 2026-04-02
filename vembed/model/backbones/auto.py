@@ -272,8 +272,10 @@ class AutoEmbeddingModel(BaseEmbeddingModel):
             if self.pooling_method == "none":
                 emb = self._select_tokens(emb)
             return self._project(emb)
-            
-        raise ValueError(f"AutoBackbone.forward() received input_ids=None and pixel_values=None. Cannot perform forward pass. kwargs: {kwargs}")
+
+        raise ValueError(
+            f"AutoBackbone.forward() received input_ids=None and pixel_values=None. Cannot perform forward pass. kwargs: {kwargs}"
+        )
 
     def get_text_features(self, input_ids=None, attention_mask=None, **kwargs):
         clip_model = self._find_clip_model()

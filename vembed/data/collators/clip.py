@@ -79,6 +79,7 @@ class CLIPFamilyCollator(BaseRetrievalCollator):
             if fields["has_pos_image"]:
                 # Filter out None images - replace with placeholder
                 from PIL import Image as PILImage
+
                 pos_images = []
                 for item in batch:
                     img = item.get("pos_image")

@@ -75,7 +75,9 @@ class Evaluator:
                 p_embs = maybe_first(self.model(**p_batch))
 
                 if q_embs is None or p_embs is None:
-                    self.accelerator.print(f"WARNING: Skipping batch {num_batches} due to missing embeddings (q_embs or p_embs is None)")
+                    self.accelerator.print(
+                        f"WARNING: Skipping batch {num_batches} due to missing embeddings (q_embs or p_embs is None)"
+                    )
                     continue
 
                 loss_kwargs = {}
