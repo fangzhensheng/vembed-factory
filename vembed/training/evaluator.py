@@ -60,7 +60,6 @@ class Evaluator:
         """
         self.model.eval()
 
-        # Free training-related GPU memory (gradients, optimizer states) before eval
         torch.cuda.empty_cache()
 
         total_loss, num_batches = 0.0, 0
@@ -88,11 +87,9 @@ class Evaluator:
                 total_loss += self.criterion(q_embs, p_embs, None, **loss_kwargs).item()
                 num_batches += 1
 
-                # Delete batch objects early to prevent GPU memory accumulation
                 del q_batch, p_batch, batch
                 torch.cuda.empty_cache()
 
-                # Move embeddings to CPU immediately to avoid GPU memory buildup over iterations
                 all_q_embs.append(self.accelerator.gather_for_metrics(q_embs).cpu())
                 del q_embs
                 torch.cuda.empty_cache()
@@ -108,9 +105,6 @@ class Evaluator:
                     del labels
                     torch.cuda.empty_cache()
 
-        # Aggregate loss across all ranks (critical for correctness in multi-GPU)
-        # accelerator.reduce() defaults to reduction="mean", so it correctly averages the loss
-        # across all processes regardless of whether the dataloader is sharded.
         avg_loss = torch.tensor(total_loss / max(num_batches, 1), device=self.accelerator.device)
         avg_loss = self.accelerator.reduce(avg_loss, reduction="mean").item()
 
