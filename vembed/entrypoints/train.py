@@ -27,6 +27,7 @@ from vembed.data.dataset import VisualRetrievalDataset  # noqa: E402
 from vembed.data.registry import CollatorRegistry  # noqa: E402
 from vembed.data.validation import print_validation_report, validate_dataset  # noqa: E402
 from vembed.losses.factory import LossFactory  # noqa: E402
+from vembed.training.checkpoint import load_checkpoint  # noqa: E402
 from vembed.training.config import (  # noqa: E402
     get_distributed_config,
     load_and_parse_config,
@@ -49,7 +50,6 @@ from vembed.training.optimizer_builder import (  # noqa: E402
     build_scheduler,
     resolve_tracker,
 )
-from vembed.training.checkpoint import load_checkpoint  # noqa: E402
 from vembed.training.training_loop import Trainer  # noqa: E402
 from vembed.utils.seed import set_seed  # noqa: E402
 

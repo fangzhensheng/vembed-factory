@@ -575,8 +575,8 @@ class TestResumeTraining:
 
     def test_vembed_config_persistence(self, temp_config_dir):
         """Test vembed config is saved and can be loaded."""
-        from unittest.mock import MagicMock
         import json
+        from unittest.mock import MagicMock
 
         from vembed.training.checkpoint import save_checkpoint
         from vembed.training.model_builder import build_model
@@ -724,9 +724,9 @@ class TestReproducibility:
 
     def test_dataset_reproducibility(self, temp_data_dir):
         """Test that dataset operations are reproducible with fixed seed."""
-        from vembed.utils.seed import set_seed
         from vembed.data.dataset import VisualRetrievalDataset
         from vembed.training.model_builder import load_processor
+        from vembed.utils.seed import set_seed
 
         processor = load_processor("openai/clip-vit-base-patch32")
 
