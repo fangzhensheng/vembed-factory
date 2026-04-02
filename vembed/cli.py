@@ -18,7 +18,6 @@ from vembed.config import (
     config_dict_to_argv,
     load_base_config,
     merge_configs,
-    parse_override_args,
 )
 from vembed.hparams import DataArguments, ModelArguments, TrainingArguments
 from vembed.training.config import inject_dataset_info
@@ -43,8 +42,11 @@ Examples:
   # Train with a built-in config
   vembed train examples/models/clip/base.yaml
 
-  # Train with parameter overrides
-  vembed train examples/models/clip/base.yaml --batch-size 64 --learning-rate 5e-5
+  # Train with parameter overrides (HfArgumentParser standard syntax)
+  vembed train examples/models/clip/base.yaml --batch_size 64 --learning_rate 5e-5 --use_lora
+
+  # Combine YAML config with CLI overrides
+  vembed train examples/models/clip/base.yaml --max_seq_length 512 --num_gpus 4
 
   # List available configurations
   vembed list-configs
@@ -53,7 +55,7 @@ Examples:
   vembed show-dataset flickr30k_t2i
 
   # Dry run (generate config without training)
-  vembed train config.yaml --dry-run
+  vembed train config.yaml --dry_run
 
 For more help, see: https://github.com/your-repo/vembed-factory
     """
@@ -115,10 +117,9 @@ def main(args_list=None):
         args_list = args_list[1:]
 
     # ── Default: training mode ──────────────────────────────────────────
-    # ── 1. Pre-parse: config_file, config_override ──────────────────────
+    # ── 1. Pre-parse: config_file, debug options ──────────────────────
     pre_parser = argparse.ArgumentParser(add_help=False)
     pre_parser.add_argument("config_file", nargs="?", default=None, help="Path to YAML config file")
-    pre_parser.add_argument("--config_override", nargs="*", default=[])
     pre_parser.add_argument(
         "--debug_gpu_memory",
         type=int,
@@ -159,9 +160,7 @@ def main(args_list=None):
             logger.error("Config file not found: %s", known_args.config_file)
             sys.exit(1)
 
-    overrides = parse_override_args(known_args.config_override)
-
-    merged = merge_configs(defaults, {}, yaml_config, overrides)
+    merged = merge_configs(defaults, {}, yaml_config, {})
 
     # ── 4. Build final argv and parse via HfArgumentParser ────────────
     config_argv = config_dict_to_argv(merged)

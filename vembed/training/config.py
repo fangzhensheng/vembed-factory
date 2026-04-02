@@ -28,12 +28,6 @@ def parse_args() -> argparse.Namespace:
         help="Local rank for distributed training (auto-set by accelerate)",
     )
     parser.add_argument(
-        "--config_override",
-        type=str,
-        nargs="*",
-        help="Override config keys, e.g., model_name=bert batch_size=32",
-    )
-    parser.add_argument(
         "--gradient_checkpointing",
         action="store_true",
         help="Enable gradient checkpointing to save memory",
@@ -117,13 +111,23 @@ def load_and_parse_config() -> dict[str, Any]:
         1. Base config (defaults)
         2. File config (if --config provided)
         3. Dataset info (if dataset_name specified in YAML)
-        4. CLI overrides (if --config_override provided)
-        5. Gradient checkpointing flag (if --gradient_checkpointing)
+        4. Gradient checkpointing flag (if --gradient_checkpointing)
 
     Raises:
         SystemExit: If required config values are missing.
     """
-    args = parse_args()
+    args, unknown_args = argparse.ArgumentParser(allow_abbrev=False).parse_known_args()
+    
+    # We parse the known args manually since we removed parse_args() strict check
+    # to allow arbitrary kwargs to pass through to HfArgumentParser later
+    parser = argparse.ArgumentParser(description="vembed-factory training script", add_help=False)
+    parser.add_argument("--config", type=str, default=None, help="Path to config file")
+    parser.add_argument(
+        "--gradient_checkpointing",
+        action="store_true",
+        help="Enable gradient checkpointing to save memory",
+    )
+    args, _ = parser.parse_known_args()
 
     # Load base configuration
     config = load_base_config()
@@ -137,10 +141,6 @@ def load_and_parse_config() -> dict[str, Any]:
 
     # Load dataset_info if dataset_name is specified
     inject_dataset_info(config)
-
-    # Apply CLI overrides (highest priority)
-    if args.config_override:
-        config.update(parse_override_args(args.config_override))
 
     # Apply gradient checkpointing flag if provided
     if args.gradient_checkpointing:

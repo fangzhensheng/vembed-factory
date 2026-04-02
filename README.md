@@ -173,7 +173,7 @@ vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_8b_fsdp.yaml
 vembed train examples/models/dinov2/vision_dinov2_i2i.yaml
 
 # Override parameters from CLI
-vembed train examples/models/clip/vision_clip_base.yaml --config_override batch_size=64 learning_rate=5e-5
+vembed train examples/models/clip/vision_clip_base.yaml --batch_size 64 --learning_rate 5e-5
 
 # Dry run (generate config without training)
 vembed train examples/models/clip/vision_clip_base.yaml --dry-run
@@ -205,7 +205,7 @@ vembed train examples/models/clip/vision_clip_base.yaml
 
 # Override specific settings via CLI
 vembed train examples/models/clip/vision_clip_base.yaml \
-    --config_override batch_size=64 learning_rate=1e-5
+    --batch_size 64 --learning_rate 1e-5
 ```
 
 Key configuration options (can be set in YAML or CLI):
