@@ -150,6 +150,7 @@ def _get_batch_sizes(batches: list[dict[str, Any]]) -> list[int]:
             )
     return sizes
 
+
 def _concat_sequences(
     batches: list[dict[str, Any]], all_keys: set[str], pad_token_id: int
 ) -> dict[str, torch.Tensor]:
@@ -181,9 +182,8 @@ def _concat_sequences(
             concatenated[seq_key] = torch.cat(padded_seqs, dim=0)
     return concatenated
 
-def _concat_grouped_keys(
-    batches: list[dict[str, Any]], keys: set[str]
-) -> dict[str, torch.Tensor]:
+
+def _concat_grouped_keys(batches: list[dict[str, Any]], keys: set[str]) -> dict[str, torch.Tensor]:
     """Concatenate tensors for a specific group of keys (like patch or grid keys)."""
     concatenated = {}
     for key in keys:
@@ -191,6 +191,7 @@ def _concat_grouped_keys(
         if values:
             concatenated[key] = torch.cat(values, dim=0)
     return concatenated
+
 
 def concat_batches(
     batches: list[dict[str, Any]], pad_token_id: int = 0

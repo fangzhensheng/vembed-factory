@@ -279,7 +279,9 @@ def unify_model_dtype_for_fsdp(
 
         accelerator.print(f"SUCCESS: All parameters converted to {target_dtype}")
     elif len(dtypes_found) == 1:
-        accelerator.print(f"SUCCESS: FSDP dtype check: all parameters already in {list(dtypes_found)[0]}")
+        accelerator.print(
+            f"SUCCESS: FSDP dtype check: all parameters already in {list(dtypes_found)[0]}"
+        )
     else:
         accelerator.print("SUCCESS: FSDP dtype check: no parameters found in model")
 

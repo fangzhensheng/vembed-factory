@@ -14,7 +14,10 @@ def list_datasets_command():
     try:
         # Import config_manager from examples
         import importlib.util
-        spec = importlib.util.spec_from_file_location("config_manager", examples_dir / "config_manager.py")
+
+        spec = importlib.util.spec_from_file_location(
+            "config_manager", examples_dir / "config_manager.py"
+        )
         config_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(config_module)
 
@@ -77,7 +80,10 @@ def show_dataset_command(dataset_name: str):
 
     try:
         import importlib.util
-        spec = importlib.util.spec_from_file_location("config_manager", examples_dir / "config_manager.py")
+
+        spec = importlib.util.spec_from_file_location(
+            "config_manager", examples_dir / "config_manager.py"
+        )
         config_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(config_module)
 

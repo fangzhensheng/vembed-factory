@@ -43,10 +43,7 @@ class ConfigValidator:
         """Validate model configuration."""
         model_name = self.config.get("model_name_or_path")
         if not model_name:
-            self.errors.append(
-                "ERROR: model_name_or_path is required. "
-                "See: vembed list-configs"
-            )
+            self.errors.append("ERROR: model_name_or_path is required. " "See: vembed list-configs")
 
         # Validate composed mode
         encoder_mode = self.config.get("encoder_mode", "auto")
@@ -85,9 +82,7 @@ class ConfigValidator:
                     f"WARNING: retrieval_mode='{retrieval_mode}' usually needs --image_root"
                 )
             elif not os.path.exists(image_root):
-                self.warnings.append(
-                    f"WARNING: image_root directory not found: {image_root}"
-                )
+                self.warnings.append(f"WARNING: image_root directory not found: {image_root}")
 
     def _validate_loss_pooling(self) -> None:
         """Validate loss type and pooling method compatibility."""
@@ -121,8 +116,7 @@ class ConfigValidator:
             num_gpus = self.config.get("num_gpus")
             if not num_gpus:
                 self.warnings.append(
-                    "WARNING: Using FSDP but num_gpus not specified. "
-                    "Set with --num_gpus <N>"
+                    "WARNING: Using FSDP but num_gpus not specified. " "Set with --num_gpus <N>"
                 )
 
     def _validate_distillation(self) -> None:

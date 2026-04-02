@@ -68,6 +68,7 @@ def _find_batch_size_and_keys(model_input: dict) -> tuple[int | None, list[str]]
 
     return batch_size, batch_aligned_keys
 
+
 def _find_grid_and_patch_keys(model_input: dict) -> tuple[str | None, str | None]:
     """Find the keys corresponding to grid metadata and flat patch tensors."""
     for k in model_input:
@@ -83,6 +84,7 @@ def _find_grid_and_patch_keys(model_input: dict) -> tuple[str | None, str | None
                     return k, pk
             return k, None
     return None, None
+
 
 def _split_vlm_inputs(model_input, chunk_size: int) -> list:
     """Custom split for VLM inputs with automatic field routing.

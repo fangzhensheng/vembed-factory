@@ -173,7 +173,9 @@ def load_checkpoint(
     if state_file.exists():
         with open(state_file) as f:
             training_state = json.load(f)
-        logger.info(f"Loaded training state: global_step={training_state.get('global_step')}, epoch={training_state.get('epoch')}")
+        logger.info(
+            f"Loaded training state: global_step={training_state.get('global_step')}, epoch={training_state.get('epoch')}"
+        )
     else:
         logger.warning(f"Training state file not found at {state_file}")
 

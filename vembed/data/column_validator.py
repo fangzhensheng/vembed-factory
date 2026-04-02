@@ -162,7 +162,11 @@ def early_validate_dataset(
 def print_validation_report(report: dict) -> None:
     """Print a formatted validation report."""
     print("\n" + "=" * 70)
-    status = "SUCCESS: COLUMN VALIDATION REPORT" if report["valid"] else "ERROR: COLUMN VALIDATION REPORT"
+    status = (
+        "SUCCESS: COLUMN VALIDATION REPORT"
+        if report["valid"]
+        else "ERROR: COLUMN VALIDATION REPORT"
+    )
     print(status)
     print("=" * 70)
 

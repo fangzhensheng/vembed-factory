@@ -72,14 +72,17 @@ def main(args_list=None):
 
     if args_list and args_list[0] == "list-datasets":
         from vembed.cli_commands import list_datasets_command
+
         return list_datasets_command()
 
     if args_list and args_list[0] == "list-configs":
         from vembed.cli_commands import list_configs_command
+
         return list_configs_command()
 
     if args_list and args_list[0] == "show-dataset":
         from vembed.cli_commands import show_dataset_command
+
         dataset_name = args_list[1] if len(args_list) > 1 else None
         if not dataset_name:
             print("Usage: vembed show-dataset <dataset_name>")
