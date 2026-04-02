@@ -66,6 +66,11 @@ def main(args_list=None):
     if args_list is None:
         args_list = sys.argv[1:]
 
+    # If no arguments provided, print usage and exit
+    if not args_list:
+        print_usage()
+        return 0
+
     # Handle help/info subcommands
     if args_list and args_list[0] in ("--help", "-h", "help"):
         print_usage()
