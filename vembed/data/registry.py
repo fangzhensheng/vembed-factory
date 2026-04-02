@@ -1,10 +1,13 @@
+from typing import Any
+
+
 class CollatorRegistry:
     """Registry for batch collator functions.
 
     Manages registration and retrieval of custom data collators for training.
     """
 
-    _registry = {}
+    _registry: dict[str, Any] = {}
 
     @classmethod
     def register(cls, name):

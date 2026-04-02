@@ -3,6 +3,7 @@
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from datasets import Dataset
 
@@ -76,7 +77,7 @@ def validate_and_clean_data(
         else:
             data = Dataset.from_dict({})
 
-    report = {
+    report: dict[str, Any] = {
         "total": len(data),
         "valid": 0,
         "invalid": 0,

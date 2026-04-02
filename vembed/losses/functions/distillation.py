@@ -22,14 +22,14 @@ class DistillationLoss(BaseLoss):
         self.loss_type = config.get("distillation_loss_type", "kl").lower()
         self._enable_gather = config.get("enable_gather", self.enable_gather_default)
 
-    def _forward(
+    def _forward(  # type: ignore[override]
         self,
         student_query: torch.Tensor,
         student_positive: torch.Tensor,
         negative_emb: torch.Tensor | None = None,
         labels: torch.Tensor | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> Any:
         """Forward pass for distillation loss.
 
         Note: Distillation has a different signature than standard contrastive losses.
@@ -71,14 +71,14 @@ class DistillationLoss(BaseLoss):
 
         raise ValueError(f"Unknown distillation loss type: {self.loss_type}")
 
-    def forward(
+    def forward(  # type: ignore[override]
         self,
         student_query: torch.Tensor,
         student_positive: torch.Tensor,
         negative_emb: torch.Tensor | None = None,
         labels: torch.Tensor | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> Any:
         """Forward pass interface compatible with standard contrastive loss interface.
 
         For distillation, negative_emb is not used. Teacher embeddings should be passed

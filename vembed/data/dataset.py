@@ -64,8 +64,8 @@ class GenericRetrievalDataset(Dataset):
         self.mode = mode
         self.column_mapping = column_mapping or {}
         self.enable_image_cache = enable_image_cache
-        self._image_cache = {}
-        self._resolved_keys = {}
+        self._image_cache: dict[str, Any] = {}
+        self._resolved_keys: dict[str, str] = {}
         self.clean_report = None
 
         # Load data

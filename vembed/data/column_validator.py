@@ -46,7 +46,7 @@ def validate_column_mapping(
         sample_indices = range(sample_size)
         sample = [data[i] for i in sample_indices]
 
-    report = {
+    report: dict[str, Any] = {
         "valid": True,
         "issues": [],
         "column_presence": {},

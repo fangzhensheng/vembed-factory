@@ -16,8 +16,8 @@ class ConfigValidator:
     def __init__(self, config: dict[str, Any]):
         """Initialize validator with config dict."""
         self.config = config
-        self.errors = []
-        self.warnings = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
 
     def validate(self) -> bool:
         """Run all validations. Return True if valid, False if errors found."""

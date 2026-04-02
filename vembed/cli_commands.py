@@ -84,6 +84,8 @@ def show_dataset_command(dataset_name: str):
         spec = importlib.util.spec_from_file_location(
             "config_manager", examples_dir / "config_manager.py"
         )
+        if spec is None or spec.loader is None:
+            raise RuntimeError("Failed to load config_manager module")
         config_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(config_module)
 
