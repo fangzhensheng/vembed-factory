@@ -21,8 +21,8 @@ from vembed.config import (
     parse_override_args,
 )
 from vembed.hparams import DataArguments, ModelArguments, TrainingArguments
-from vembed.validators import validate_config
 from vembed.training.config import inject_dataset_info
+from vembed.validators import validate_config
 
 logger = logging.getLogger(__name__)
 
