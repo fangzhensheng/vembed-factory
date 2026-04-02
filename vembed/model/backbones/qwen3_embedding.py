@@ -52,7 +52,7 @@ class Qwen3EmbeddingTextModel(BaseEmbeddingModel):
         try:
             cfg = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
             return cfg.hidden_size
-        except Exception:
+        except (OSError, ValueError):
             return 3584  # Qwen3-Embedding-8B default
 
     @staticmethod

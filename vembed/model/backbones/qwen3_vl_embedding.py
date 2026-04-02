@@ -50,7 +50,7 @@ class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
             cfg = AutoConfig.from_pretrained(model_name, trust_remote_code=True)
             text_cfg = getattr(cfg, "text_config", None)
             return text_cfg.hidden_size if text_cfg else cfg.hidden_size
-        except Exception:
+        except (OSError, ValueError):
             return 1536
 
     @staticmethod

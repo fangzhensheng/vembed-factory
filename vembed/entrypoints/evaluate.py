@@ -52,7 +52,7 @@ def main():
 
     try:
         processor = ProcessorRegistry.resolve(args.model_path)
-    except Exception:
+    except (ValueError, KeyError, ImportError):
         processor = None
 
     dataset = VisualRetrievalDataset(

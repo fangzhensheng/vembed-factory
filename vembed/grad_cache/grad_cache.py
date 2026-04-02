@@ -25,7 +25,7 @@ class RandContext:
 
         try:
             self.fwd_gpu_devices, self.fwd_gpu_states = get_device_states(*tensors)
-        except Exception:
+        except (RuntimeError, ValueError):
             if torch.cuda.is_available():
                 self.fwd_gpu_devices = list(range(torch.cuda.device_count()))
                 self.fwd_gpu_states = [
