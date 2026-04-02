@@ -51,6 +51,7 @@ from vembed.training.optimizer_builder import (  # noqa: E402
 )
 from vembed.training.checkpoint import load_checkpoint  # noqa: E402
 from vembed.training.training_loop import Trainer  # noqa: E402
+from vembed.utils.seed import set_seed  # noqa: E402
 
 # Post-init accelerate logger — only use after Accelerator() is created
 logger = get_logger(__name__)
@@ -93,6 +94,14 @@ def main():
             config=config,
             init_kwargs=init_kwargs,
         )
+
+    # Set random seed for reproducibility
+    seed = config.get("seed", 42)
+    accelerator.print(f"\nSetting random seed to {seed}")
+    set_seed(
+        seed,
+        workers=accelerator.num_processes > 1,  # Enable worker seeding for distributed
+    )
 
     accelerator.print("\n" + "=" * 70)
     accelerator.print("Training Configuration")

@@ -9,6 +9,7 @@
 #   3. CLI arguments (--config_override key=value)
 
 # Training Setup
+seed: 42                    # Random seed for reproducibility (ensures identical results with same seed)
 output_dir: "output"
 overwrite_output_dir: true
 epochs: 3

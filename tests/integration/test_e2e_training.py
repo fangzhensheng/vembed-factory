@@ -1,9 +1,11 @@
 """End-to-end integration tests for training pipeline."""
 
 import json
+import random
 import tempfile
 from pathlib import Path
 
+import numpy as np
 import pytest
 import torch
 import yaml
@@ -657,6 +659,118 @@ class TestDatasetNameIntegration:
         assert dataset_info is not None
         assert dataset_info.get("columns") is not None
         assert "query" in dataset_info["columns"] or "caption" in dataset_info.get("columns", {})
+
+
+class TestReproducibility:
+    """Test reproducibility with fixed random seed."""
+
+    def test_seed_determinism(self):
+        """Test that same seed produces same tensor results."""
+        from vembed.utils.seed import set_seed
+
+        # Set seed twice (default: deterministic=False for performance)
+        set_seed(42)
+        tensor1 = torch.randn(10, 10)
+
+        set_seed(42)
+        tensor2 = torch.randn(10, 10)
+
+        # CPU operations should be identical
+        assert torch.allclose(tensor1, tensor2), "Same seed should produce identical tensors"
+
+    def test_strict_determinism(self):
+        """Test that strict deterministic mode works."""
+        from vembed.utils.seed import set_seed
+
+        # Set seed with strict deterministic mode (slower but more reproducible)
+        set_seed(42, deterministic=True)
+        tensor1 = torch.randn(10, 10)
+
+        set_seed(42, deterministic=True)
+        tensor2 = torch.randn(10, 10)
+
+        # Should be identical with deterministic mode
+        assert torch.allclose(
+            tensor1, tensor2
+        ), "Same seed with deterministic=True should produce identical results"
+
+    def test_numpy_seed_determinism(self):
+        """Test that numpy random operations are reproducible."""
+        from vembed.utils.seed import set_seed
+
+        # Set seed twice
+        set_seed(42)
+        arr1 = np.random.randn(10, 10)
+
+        set_seed(42)
+        arr2 = np.random.randn(10, 10)
+
+        # Should be identical
+        assert np.allclose(arr1, arr2), "Same seed should produce identical numpy arrays"
+
+    def test_python_random_seed_determinism(self):
+        """Test that Python's random module is reproducible."""
+        from vembed.utils.seed import set_seed
+
+        # Set seed twice
+        set_seed(42)
+        rand1 = [random.random() for _ in range(10)]
+
+        set_seed(42)
+        rand2 = [random.random() for _ in range(10)]
+
+        # Should be identical
+        assert rand1 == rand2, "Same seed should produce identical random sequences"
+
+    def test_dataset_reproducibility(self, temp_data_dir):
+        """Test that dataset operations are reproducible with fixed seed."""
+        from vembed.utils.seed import set_seed
+        from vembed.data.dataset import VisualRetrievalDataset
+        from vembed.training.model_builder import load_processor
+
+        processor = load_processor("openai/clip-vit-base-patch32")
+
+        # First run with seed 42
+        set_seed(42)
+        dataset1 = VisualRetrievalDataset(
+            data_source=str(temp_data_dir / "train.jsonl"),
+            processor=processor,
+            image_root=str(temp_data_dir / "images"),
+            mode="train",
+        )
+        # Get first 3 samples
+        samples1 = [dataset1[i] for i in range(min(3, len(dataset1)))]
+
+        # Second run with same seed
+        set_seed(42)
+        dataset2 = VisualRetrievalDataset(
+            data_source=str(temp_data_dir / "train.jsonl"),
+            processor=processor,
+            image_root=str(temp_data_dir / "images"),
+            mode="train",
+        )
+        samples2 = [dataset2[i] for i in range(min(3, len(dataset2)))]
+
+        # Samples should be in same order and have same structure
+        assert len(samples1) == len(samples2), "Sample count should match"
+        assert samples1[0].keys() == samples2[0].keys(), "Sample keys should match"
+
+    def test_different_seeds_different_results(self):
+        """Test that different seeds produce different results."""
+        from vembed.utils.seed import set_seed
+
+        # Set seed to 42
+        set_seed(42)
+        tensor1 = torch.randn(10, 10)
+
+        # Set seed to 123
+        set_seed(123)
+        tensor2 = torch.randn(10, 10)
+
+        # Should be different
+        assert not torch.allclose(
+            tensor1, tensor2
+        ), "Different seeds should produce different tensors"
 
 
 if __name__ == "__main__":

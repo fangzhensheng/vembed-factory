@@ -115,6 +115,13 @@ class TrainingArguments:
     Arguments pertaining to training loop.
     """
 
+    seed: int = field(
+        default=42,
+        metadata={
+            "help": "Random seed for reproducibility. "
+            "Use same seed to get identical results across runs."
+        },
+    )
     output_dir: str | None = field(
         default="output_run",
         metadata={
