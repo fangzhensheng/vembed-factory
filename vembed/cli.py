@@ -209,6 +209,8 @@ def main(args_list=None):
     # model_name_or_path → model_name fallback
     if train_config.get("model_name_or_path") and not train_config.get("model_name"):
         train_config["model_name"] = train_config["model_name_or_path"]
+    elif train_config.get("model_name") and not train_config.get("model_name_or_path"):
+        train_config["model_name_or_path"] = train_config["model_name"]
 
     # FSDP + gradient cache compatibility notice
     if train_config.get("use_fsdp") and train_config.get("use_gradient_cache"):

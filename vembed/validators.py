@@ -41,7 +41,7 @@ class ConfigValidator:
 
     def _validate_model(self) -> None:
         """Validate model configuration."""
-        model_name = self.config.get("model_name_or_path")
+        model_name = self.config.get("model_name_or_path") or self.config.get("model_name")
         if not model_name:
             self.errors.append("ERROR: model_name_or_path is required. " "See: vembed list-configs")
 
