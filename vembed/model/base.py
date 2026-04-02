@@ -22,9 +22,7 @@ _TORCH_DTYPE_MAP = {
 def safe_load_state_dict(path: str, map_location: str = "cpu") -> dict[Any, Any]:
     """Load state dict with weights_only=True, falling back for older PyTorch versions."""
     try:
-        result: dict[Any, Any] = torch.load(
-            path, map_location=map_location, weights_only=True
-        )
+        result: dict[Any, Any] = torch.load(path, map_location=map_location, weights_only=True)
     except TypeError:
         result = torch.load(path, map_location=map_location)
     return result
