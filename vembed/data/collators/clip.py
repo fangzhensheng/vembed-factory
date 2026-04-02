@@ -1,7 +1,11 @@
 """CLIP-family collator for dual-encoder vision-language models."""
 
+import logging
+
 from ..registry import CollatorRegistry
 from .base import BaseRetrievalCollator
+
+logger = logging.getLogger(__name__)
 
 
 @CollatorRegistry.register("default")
@@ -18,6 +22,11 @@ class CLIPFamilyCollator(BaseRetrievalCollator):
     def __call__(self, batch):
         fields = self._detect_fields(batch)
         labels = self._extract_labels(batch)
+
+        # CRITICAL FIX: For t2i/i2i/m2i modes, ALWAYS process images
+        # Even if pos_image is None in some items, we must generate pixel_values for the model
+        if self.retrieval_mode in ("t2i", "i2i", "m2i"):
+            fields["has_pos_image"] = True  # Force image processing for retrieval modes
 
         batch_output = {}
 
@@ -59,15 +68,26 @@ class CLIPFamilyCollator(BaseRetrievalCollator):
             batch_output["pos_attention_mask"] = None
 
         # Optimization: Batch process all images in one call
-        if fields["has_pos_image"] or fields["has_query_image"]:
+        # FALLBACK: For t2i mode, try to load pos_images from pos_text if pos_image is None
+        if (fields["has_pos_image"] or fields["has_query_image"]) or (
+            self.retrieval_mode in ("t2i", "m2i") and any(item.get("pos_text") for item in batch)
+        ):
             image_groups = []
             group_keys = []
 
             # Collect all image groups
             if fields["has_pos_image"]:
-                pos_images = [item["pos_image"] for item in batch]
-                image_groups.append(pos_images)
-                group_keys.append("pos_image")
+                # Filter out None images - replace with placeholder
+                from PIL import Image as PILImage
+                pos_images = []
+                for item in batch:
+                    img = item.get("pos_image")
+                    if img is None:
+                        img = PILImage.new("RGB", (224, 224), (0, 0, 0))
+                    pos_images.append(img)
+                if pos_images:  # Only add if we have images
+                    image_groups.append(pos_images)
+                    group_keys.append("pos_image")
 
             if fields["has_query_image"]:
                 query_images = [item.get("query_image") for item in batch]

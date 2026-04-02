@@ -72,8 +72,17 @@ class Evaluator:
                 q_batch = unpack_query_batch(batch, self.retrieval_mode)
                 p_batch = unpack_positive_batch(batch, self.retrieval_mode)
 
+                if q_batch.get("input_ids") is None and q_batch.get("pixel_values") is None:
+                    self.accelerator.print(f"WARNING: q_batch has no input_ids or pixel_values! keys: {list(batch.keys())}")
+                if p_batch.get("input_ids") is None and p_batch.get("pixel_values") is None:
+                    self.accelerator.print(f"WARNING: p_batch has no input_ids or pixel_values! keys: {list(batch.keys())}")
+
                 q_embs = maybe_first(self.model(**q_batch))
                 p_embs = maybe_first(self.model(**p_batch))
+
+                if q_embs is None or p_embs is None:
+                    self.accelerator.print(f"WARNING: Skipping batch {num_batches} due to missing embeddings (q_embs or p_embs is None)")
+                    continue
 
                 loss_kwargs = {}
                 has_labels = "labels" in batch

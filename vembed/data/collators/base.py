@@ -155,10 +155,20 @@ class BaseRetrievalCollator:
 
     @staticmethod
     def _detect_fields(batch):
-        """Detect which fields are present in batch."""
+        """Detect which fields are present in batch.
+
+        For retrieval datasets, a field is considered "present" if:
+        - It exists in the item dictionary
+        - For image fields: at least one non-None value exists (not all must be non-None)
+          This handles mixed datasets where some items have images and some don't.
+        """
         return {
-            "has_query_text": any(item.get("query_text") for item in batch),
-            "has_pos_text": any(item.get("pos_text") for item in batch),
-            "has_pos_image": any(item.get("pos_image") for item in batch),
-            "has_query_image": any(item.get("query_image") for item in batch),
+            "has_query_text": any("query_text" in item for item in batch),
+            "has_pos_text": any("pos_text" in item for item in batch),
+            "has_pos_image": any(
+                "pos_image" in item and item["pos_image"] is not None for item in batch
+            ),
+            "has_query_image": any(
+                "query_image" in item and item["query_image"] is not None for item in batch
+            ),
         }

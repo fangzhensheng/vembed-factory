@@ -1,0 +1,13 @@
+dataset_name: flickr30k_t2i
+model_name_or_path: openai/clip-vit-base-patch32
+encoder_mode: clip
+retrieval_mode: t2i
+use_lora: false
+use_gradient_cache: false
+output_dir: experiments/debug_minimal
+epochs: 1
+batch_size: 16
+learning_rate: 1.0e-5
+num_workers: 0
+logging_steps: 50
+validate_data: false

@@ -18,6 +18,12 @@ logger = logging.getLogger(__name__)
 
 def _extract_rep(output: object) -> Tensor:
     """Extract plain tensor from model output."""
+    # DEBUG: Log output type before checking
+    if output is None:
+        logger.warning(f"[EXTRACT_REP] model returned None!")
+    else:
+        logger.warning(f"[EXTRACT_REP] output type: {type(output)}, has pooler_output: {hasattr(output, 'pooler_output')}, has last_hidden_state: {hasattr(output, 'last_hidden_state')}")
+
     if isinstance(output, Tensor):
         return output
     if isinstance(output, tuple) and len(output) > 0 and isinstance(output[0], Tensor):
@@ -184,19 +190,27 @@ class GradientCache:
                     q["image_grid_thw"] = batch["query_image_grid_thw"]
         else:
             q = {k: batch[k] for k in ("input_ids", "attention_mask") if k in batch}
+            # FIX: For t2i mode, add pixel_values to query (CLIP model needs image+text pairs)
+            if mode == "t2i" and "pixel_values" in batch:
+                q["pixel_values"] = batch["pixel_values"]
 
         if mode.endswith("t"):
+            logger.warning(f"[UNPACK] mode ends with 't', treating positive as text")
             if "pos_input_ids" in batch:
                 p["input_ids"] = batch["pos_input_ids"]
                 if "pos_attention_mask" in batch:
                     p["attention_mask"] = batch["pos_attention_mask"]
         else:
+            logger.warning(f"[UNPACK] mode doesn't end with 't', treating positive as image")
             # Prefer prefixed keys
             pv = batch.get("pos_pixel_values")
+            logger.warning(f"[UNPACK] pos_pixel_values in batch: {pv is not None}")
             if pv is None:
                 pv = batch.get("pixel_values")
+                logger.warning(f"[UNPACK] fallback to pixel_values: {pv is not None}")
             if pv is not None:
                 p["pixel_values"] = pv
+                logger.warning(f"[UNPACK] set p[pixel_values]")
 
             grid = batch.get("pos_image_grid_thw")
             if grid is None:
@@ -223,6 +237,9 @@ class GradientCache:
 
     def step(self, model, batch) -> float:
         q_batch, p_batch, n_batch = self._unpack_batch(batch)
+
+        # DEBUG: Log unpacked batches
+        logger.warning(f"[STEP] q_batch keys: {list(q_batch.keys())}, p_batch keys: {list(p_batch.keys())}")
 
         loss_kwargs = {}
         if "labels" in batch and batch["labels"] is not None:
