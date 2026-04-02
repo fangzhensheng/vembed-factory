@@ -56,7 +56,7 @@ class Evaluator:
         Returns:
             Dictionary containing:
             - "loss": Global average validation loss (all_reduce'd)
-            - "recall@1", "recall@5", etc: Recall metrics if labels available
+            - "recall@1", "recall@10", etc: Recall metrics if labels available
         """
         self.model.eval()
 

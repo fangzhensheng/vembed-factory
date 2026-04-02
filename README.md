@@ -161,22 +161,22 @@ vembed show-dataset flickr30k_t2i
 vembed train examples/quickstart/clip_minimal.yaml
 
 # Train CLIP base model
-vembed train examples/models/clip/base.yaml
+vembed train examples/models/clip/vision_clip_base.yaml
 
 # Train Qwen3-VL 2B (Multimodal)
-vembed train examples/models/qwen3_vl/2b_base.yaml
+vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml
 
 # Train Qwen3-VL 8B with FSDP (Distributed)
-vembed train examples/models/qwen3_vl/8b_fsdp.yaml
+vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_8b_fsdp.yaml
 
 # Train DINOv2 for image-to-image retrieval
-vembed train examples/models/dinov2/base.yaml
+vembed train examples/models/dinov2/vision_dinov2_i2i.yaml
 
 # Override parameters from CLI
-vembed train examples/models/clip/base.yaml --config_override batch_size=64 learning_rate=5e-5
+vembed train examples/models/clip/vision_clip_base.yaml --config_override batch_size=64 learning_rate=5e-5
 
 # Dry run (generate config without training)
-vembed train examples/models/clip/base.yaml --dry-run
+vembed train examples/models/clip/vision_clip_base.yaml --dry-run
 ```
 
 ## Data Format
@@ -201,10 +201,10 @@ Training is configured primarily via YAML files. We follow a hierarchy:
 vembed list-configs
 
 # Run with a specific config file
-vembed train examples/models/clip/base.yaml
+vembed train examples/models/clip/vision_clip_base.yaml
 
 # Override specific settings via CLI
-vembed train examples/models/clip/base.yaml \
+vembed train examples/models/clip/vision_clip_base.yaml \
     --config_override batch_size=64 learning_rate=1e-5
 ```
 

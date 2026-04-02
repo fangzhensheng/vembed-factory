@@ -17,30 +17,35 @@ cat examples/quickstart/README.md
 最小化的配置示例，适合新手快速启动训练。
 
 ### models/ - 按模型分类
-- clip/ - CLIP系列
-- qwen3_vl/ - Qwen-VL系列
-- dinov2/ - DINOv2系列
-- siglip/ - SigLIP
-- other/ - 其他模型
+- clip/ - CLIP系列 (vision_clip_*.yaml)
+- qwen3_vl/ - Qwen-VL系列 (multimodal_qwen3_vl_*.yaml)
+- dinov2/ - DINOv2系列 (vision_dinov2_*.yaml)
+- siglip/ - SigLIP (vision_siglip_*.yaml)
+- other/ - 其他模型 (text_bert_*, vision_mae_*)
 
 ### strategies/ - 按策略分类
-- hard_negative/ - 硬负样本挖掘
-- in_batch_hard/ - 批内硬负样本
-- knowledge_distillation/ - 知识蒸馏
-- special_loss/ - 特殊Loss函数
-- late_interaction/ - 晚期交互
+- hard_negative/ - 硬负样本挖掘 (strategy_hardneg_*.yaml)
+- in_batch_hard/ - 批内硬负样本 (strategy_inbatch_*.yaml)
+- knowledge_distillation/ - 知识蒸馏 (strategy_distill_*.yaml)
+- special_loss/ - 特殊Loss函数 (strategy_loss_*.yaml)
+- late_interaction/ - 晚期交互 (strategy_lateint_*.yaml)
+
+### datasets/ - 按数据集分类
+- dataset_coco_t2i.yaml - COCO数据集（图文）
+- dataset_flickr30k_t2i.yaml - Flickr30k数据集（图文）
+- dataset_msmarco_t2t.yaml - MS MARCO数据集（纯文本）
 
 ### distributed/ - 分布式训练
 FSDP和多GPU配置
 
 ## 🎯 如何选择配置？
 
-**我有16GB显存** → `models/clip/base.yaml`
-**我有24GB显存** → `models/qwen3_vl/2b_base.yaml`
-**我有多块GPU** → `distributed/fsdp.yaml`
+**我有16GB显存** → `models/clip/vision_clip_base.yaml`
+**我有24GB显存** → `models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml`
+**我有多块GPU** → `models/qwen3_vl/multimodal_qwen3_vl_8b_fsdp.yaml`
 **我是新手** → `quickstart/clip_minimal.yaml`
-**我想要硬负样本** → `strategies/hard_negative/`
-**我想要知识蒸馏** → `strategies/knowledge_distillation/`
+**我想要硬负样本** → `strategies/hard_negative/strategy_hardneg_*.yaml`
+**我想要知识蒸馏** → `strategies/knowledge_distillation/strategy_distill_*.yaml`
 
 ## 📖 使用方法
 
@@ -61,20 +66,20 @@ vembed show-dataset flickr30k_t2i
 
 ```bash
 # 基础用法
-vembed train examples/models/clip/base.yaml
+vembed train examples/models/clip/vision_clip_base.yaml
 
 # 命令行覆盖参数
-vembed train examples/models/clip/base.yaml \
+vembed train examples/models/clip/vision_clip_base.yaml \
     --learning-rate 5e-5 \
     --batch-size 64 \
     --epochs 10
 
 # 恢复中断的训练
-vembed train examples/models/clip/base.yaml \
+vembed train examples/models/clip/vision_clip_base.yaml \
     --resume-from-checkpoint outputs/model/checkpoint-1000
 
 # 干运行（只生成配置，不训练）
-vembed train examples/models/clip/base.yaml --dry-run
+vembed train examples/models/clip/vision_clip_base.yaml --dry-run
 ```
 
 ## 📚 原始配置文件

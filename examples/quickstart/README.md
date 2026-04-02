@@ -35,8 +35,8 @@ cp examples/quickstart/clip_minimal.yaml my_config.yaml
 
 **选项B：Qwen-VL（更准确，需要24GB显存）**
 ```bash
-# 从models/qwen3_vl/2b_base.yaml复制
-cp examples/models/qwen3_vl/2b_base.yaml my_config.yaml
+# 从models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml复制
+cp examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml my_config.yaml
 ```
 
 ### Step 3: 修改配置（1分钟）
@@ -80,9 +80,9 @@ python run.py my_config.yaml
 ## 📚 下一步
 
 - **调整参数**：修改 `batch_size`、`learning_rate` 等参数
-- **用不同模型**：查看 `examples/models/` 下的其他配置
-- **用特殊策略**：查看 `examples/strategies/` 下的硬负样本、知识蒸馏等
-- **分布式训练**：查看 `examples/distributed/` 使用多GPU
+- **用不同模型**：查看 `examples/models/` 下的其他配置（vision_clip_*、multimodal_qwen3_vl_* 等）
+- **用特殊策略**：查看 `examples/strategies/` 下的硬负样本（strategy_hardneg_*）、知识蒸馏（strategy_distill_*）等
+- **分布式训练**：使用 `models/qwen3_vl/multimodal_qwen3_vl_8b_fsdp.yaml` 进行多GPU训练
 
 ## 🆘 常见问题
 
