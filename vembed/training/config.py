@@ -12,7 +12,7 @@ from typing import Any
 
 import yaml
 
-from vembed.config import load_base_config, parse_override_args
+from vembed.config import load_base_config
 
 logger = logging.getLogger(__name__)
 
