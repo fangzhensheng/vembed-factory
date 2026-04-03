@@ -36,16 +36,11 @@ def test_custom_loss_config_override():
         # Check if cli_main was called
         mock_cli_main.assert_called_once()
 
-        # Verify args contain our custom loss type override
+        # Verify args contain our custom loss type override (standard format)
         call_args = mock_cli_main.call_args[0][0]
-        assert "--config_override" in call_args
 
-        # Find index of config override
-        override_idx = call_args.index("--config_override")
-        overrides = call_args[override_idx + 1 :]
-
-        # Check if loss_type override exists
-        assert "loss_type=my_custom_loss" in overrides
+        # Check if loss_type override exists as standard parameter
+        assert "--loss_type=my_custom_loss" in call_args
 
 
 def test_custom_collator_config_override():
@@ -64,13 +59,9 @@ def test_custom_collator_config_override():
         mock_cli_main.assert_called_once()
 
         call_args = mock_cli_main.call_args[0][0]
-        assert "--config_override" in call_args
 
-        override_idx = call_args.index("--config_override")
-        overrides = call_args[override_idx + 1 :]
-
-        # Check if encoder_mode override exists (collator uses encoder_mode key)
-        assert "encoder_mode=my_custom_collator" in overrides
+        # Check if encoder_mode override exists as standard parameter (collator uses encoder_mode key)
+        assert "--encoder_mode=my_custom_collator" in call_args
 
 
 def test_default_config_behavior():
@@ -85,15 +76,10 @@ def test_default_config_behavior():
 
         call_args = mock_cli_main.call_args[0][0]
 
-        # Should contain default overrides but not custom loss/collator
-        override_idx = call_args.index("--config_override")
-        overrides = call_args[override_idx + 1 :]
+        # loss_type should NOT be overridden (defaults to infonce)
+        # Check that no loss_type override exists in args
+        assert not any("--loss_type=" in arg for arg in call_args)
 
-        # loss_type should NOT be overridden (defaults to infonce in config loader)
-        # unless it was explicitly set to something other than infonce in init
-        # In our simplified trainer, default loss_type is "infonce"
-        # and logic is: if self.loss_type and self.loss_type != "infonce"
-        assert not any(arg.startswith("loss_type=") for arg in overrides)
-
-        # encoder_mode should be "auto" (default)
-        assert "encoder_mode=auto" in overrides
+        # encoder_mode should NOT be overridden when using default "auto"
+        # (only added if different from default)
+        assert not any("--encoder_mode=" in arg for arg in call_args)

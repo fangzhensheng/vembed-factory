@@ -117,7 +117,7 @@ def load_and_parse_config() -> dict[str, Any]:
         SystemExit: If required config values are missing.
     """
     args, unknown_args = argparse.ArgumentParser(allow_abbrev=False).parse_known_args()
-    
+
     # We parse the known args manually since we removed parse_args() strict check
     # to allow arbitrary kwargs to pass through to HfArgumentParser later
     parser = argparse.ArgumentParser(description="vembed-factory training script", add_help=False)
