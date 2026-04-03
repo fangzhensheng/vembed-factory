@@ -225,7 +225,7 @@ batch_size: 64
 accelerate config    # 选择 multi_gpu / multi_machine
 
 # 启动训练
-accelerate launch --multi_machine_launch run.py config.yaml
+accelerate launch --multi_machine_launch vembed/entrypoints/train.py config.yaml
 
 # 自动分布式数据并行，无需修改代码
 ```

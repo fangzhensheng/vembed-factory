@@ -152,10 +152,10 @@ output_dir: "experiments/ecommerce_search_model"
 
 ```bash
 # 单 GPU 训练
-python run.py ecommerce_search_config.yaml
+vembed train ecommerce_search_config.yaml
 
 # 多 GPU 分布式训练
-accelerate launch run.py ecommerce_search_config.yaml
+accelerate launch vembed/entrypoints/train.py ecommerce_search_config.yaml
 
 # 监控训练进度
 watch -n 10 'ls -lht experiments/ecommerce_search_model/checkpoint* | head -5'

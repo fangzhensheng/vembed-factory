@@ -288,7 +288,7 @@ print(f"Query embeddings: {query_emb.shape}")  # Should be [B, L, D] for ColBERT
 
 ### Step 3: Run Dry-Run Training
 ```bash
-python run.py examples/dinov2_colbert.yaml --dry_run
+vembed train examples/dinov2_colbert.yaml --dry_run
 # Should complete without OOM errors
 ```
 

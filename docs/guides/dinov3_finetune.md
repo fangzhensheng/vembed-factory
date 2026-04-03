@@ -125,7 +125,7 @@ bash examples/run_dinov3_i2i.sh
 Or use the Python CLI directly:
 
 ```bash
-python run.py examples/dinov3_i2i.yaml
+vembed train examples/dinov3_i2i.yaml
 ```
 
 During training, model weights and logs will be saved in the `experiments/output_sop_dinov3_i2i` directory.
@@ -180,7 +180,7 @@ eval_batch_size: 32          # Adjust evaluation batch size
 
 Then run:
 ```bash
-python run.py examples/dinov3_i2i.yaml
+vembed train examples/dinov3_i2i.yaml
 ```
 
 This approach is cleaner and allows you to save your configuration for future reference.
@@ -206,7 +206,7 @@ use_gradient_cache: false
 
 Then run training normally:
 ```bash
-python run.py examples/dinov3_i2i.yaml
+vembed train examples/dinov3_i2i.yaml
 ```
 
 This will eliminate the gradient caching overhead and train significantly faster, though you may need to reduce `batch_size` or `eval_batch_size` if you encounter OOM errors on your GPU.
@@ -225,7 +225,7 @@ model_name: facebook/dinov3-vits14-pretrain-lvd1689m
 
 Then run:
 ```bash
-python run.py examples/dinov3_i2i.yaml
+vembed train examples/dinov3_i2i.yaml
 ```
 
 **Model Comparison:**

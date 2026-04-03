@@ -57,8 +57,11 @@ torch_dtype: "float32" → "float16" / "bfloat16"
 # 自动尝试配置（从严格到宽松）
 for batch in 128 64 32 16 8; do
     for use_gc in true false; do
-        python run.py config.yaml \
-            --config_override batch_size=$batch use_gradient_cache=$use_gc
+        if [ "$use_gc" = "true" ]; then
+            vembed train config.yaml --batch_size $batch --use_gradient_cache
+        else
+            vembed train config.yaml --batch_size $batch
+        fi
         echo "尝试: batch=$batch, grad_cache=$use_gc"
     done
 done
@@ -431,7 +434,7 @@ print(f'✓ 推理成功，embedding 维度: {emb.shape}')
    └─ 其他？→ 继续下一步
 
 2. 查看日志
-   python run.py config.yaml 2>&1 | tee train.log
+   vembed train config.yaml 2>&1 | tee train.log
    tail -100 train.log
 
 3. 运行诊断脚本

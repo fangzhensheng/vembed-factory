@@ -171,9 +171,10 @@ vembed-factory 支持灵活的输入数据。JSONL 文件中的每一行都是�
 # 使用指定的配置文件运行
 vembed train examples/models/clip/base.yaml
 
-# 通过 CLI 覆盖特定设置
+# 通过 CLI 覆盖特定设置 (现代参数格式)
 vembed train examples/models/clip/base.yaml \
-    --config_override batch_size=64 learning_rate=1e-5
+    --batch_size 64 \
+    --learning_rate 1e-5
 ```
 
 关键配置选项 (可在 YAML 或 CLI 中设置)：

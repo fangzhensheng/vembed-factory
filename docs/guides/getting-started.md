@@ -73,17 +73,35 @@ This uses the high-level API wrapper that delegates to CLI internally. Perfect f
 # Quick start - minimal CLIP configuration
 vembed train examples/quickstart/clip_minimal.yaml
 
-# Train CLIP base model
-vembed train examples/models/clip/base.yaml
+# Train CLIP base model with data
+vembed train examples/models/clip/vision_clip_base.yaml \
+    --data_path data/train.jsonl \
+    --image_root data/images
 
-# Override parameters
-vembed train examples/models/clip/base.yaml --config_override batch_size=64 learning_rate=1e-5
+# Override parameters using modern CLI interface (recommended)
+vembed train examples/models/clip/vision_clip_base.yaml \
+    --data_path data/train.jsonl \
+    --image_root data/images \
+    --batch_size 64 \
+    --learning_rate 1e-5 \
+    --epochs 3 \
+    --use_mrl \
+    --mrl_dims [512,256,128]
 
-# Advanced: explicit accelerate launch with distributed training
-accelerate launch vembed/entrypoints/train.py examples/models/clip/base.yaml
+# Alternative: using legacy --config_override format (still supported)
+vembed train examples/models/clip/vision_clip_base.yaml \
+    --data_path data/train.jsonl \
+    --config_override batch_size=64 learning_rate=1e-5 epochs=3
+
+# Advanced: explicit accelerate launch for distributed training (DDP/FSDP)
+accelerate launch vembed/entrypoints/train.py examples/models/clip/vision_clip_base.yaml \
+    --data_path data/train.jsonl \
+    --num_gpus 8 \
+    --use_fsdp
 ```
 
-For distributed training (DDP, FSDP), use `accelerate launch` instead of `python run.py`.
+**Modern CLI Interface** (recommended): Use standard `--key value` parameters
+**Legacy Format**: `--config_override key=value` still works for backward compatibility
 
 ### 4. Train with Python API (Advanced)
 
@@ -196,13 +214,37 @@ See [REFACTORING_SUMMARY.md](../../REFACTORING_SUMMARY.md) for complete details.
 
 **Q: Out of memory?**
 ```bash
-accelerate launch vembed/entrypoints/train.py config.yaml --batch_size 8 --config_override use_gradient_cache=true
+# Modern interface (recommended)
+vembed train config.yaml --batch_size 8 --use_gradient_cache --gradient_checkpointing
+
+# Or use accelerate directly
+accelerate launch vembed/entrypoints/train.py config.yaml \
+    --batch_size 8 \
+    --use_gradient_cache \
+    --gradient_checkpointing
 ```
 
 **Q: How to log to W&B?**
 ```bash
 wandb login
-accelerate launch vembed/entrypoints/train.py config.yaml --config_override report_to=wandb
+
+# Modern interface
+vembed train config.yaml --report_to wandb
+
+# Or use accelerate
+accelerate launch vembed/entrypoints/train.py config.yaml --report_to wandb
+```
+
+**Q: What's the difference between CLI parameter formats?**
+
+Both formats work, but the modern format is recommended:
+
+```bash
+# Modern format (recommended - supports shell auto-completion)
+vembed train config.yaml --batch_size 64 --learning_rate 5e-5 --use_mrl
+
+# Legacy format (still supported for backward compatibility)
+vembed train config.yaml --config_override batch_size=64 learning_rate=5e-5 use_mrl=true
 ```
 
 **Q: What's the difference between VEmbedFactoryTrainer and the new Trainer?**

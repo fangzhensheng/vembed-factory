@@ -25,13 +25,13 @@ The CLI module provides the main entry point for vembed-factory. It handles argu
 
 ```bash
 # Using a YAML config file
-python run.py examples/clip_train.yaml
+vembed train examples/quickstart/clip_minimal.yaml
 
-# Override specific parameters via CLI
-python run.py examples/clip_train.yaml --batch_size 64 --learning_rate 1e-5
+# Override specific parameters via CLI (modern format - recommended)
+vembed train examples/quickstart/clip_minimal.yaml --batch_size 64 --learning_rate 1e-5
 
 # Multi-GPU training
-accelerate launch --multi_gpu --num_processes 4 run.py examples/clip_train.yaml
+accelerate launch --multi_gpu --num_processes 4 vembed/entrypoints/train.py examples/quickstart/clip_minimal.yaml
 ```
 
 ### Python API
@@ -56,7 +56,7 @@ trainer.train(
 ### Workflow 1: Quick Start with Defaults
 ```bash
 # Train CLIP on your data with default settings
-python run.py examples/clip_train.yaml \
+vembed train examples/quickstart/clip_minimal.yaml \
   --data_path your_data.jsonl \
   --output_dir ./my_model
 ```
@@ -64,15 +64,17 @@ python run.py examples/clip_train.yaml \
 ### Workflow 2: Fine-tune Vision-Language Model
 ```bash
 # Train Qwen3-VL with memory optimization
-python run.py examples/qwen3_2b_train.yaml \
+vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml \
   --data_path data/train.jsonl \
-  --epochs 10
+  --epochs 10 \
+  --use_gradient_cache
 ```
 
 ### Workflow 3: Distributed Training
 ```bash
 # Train on 8 GPUs with gradient cache
-accelerate launch --multi_gpu --num_processes 8 run.py examples/clip_train.yaml
+accelerate launch --multi_gpu --num_processes 8 vembed/entrypoints/train.py examples/quickstart/clip_minimal.yaml \
+  --use_gradient_cache
 ```
 
 ## Configuration Hierarchy

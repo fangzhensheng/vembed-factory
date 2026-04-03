@@ -116,10 +116,10 @@ eval_strategy: "epoch"
 ### 3.2 启动训练
 
 ```bash
-python run.py colpali_training.yaml
+vembed train colpali_training.yaml
 
 # 多 GPU
-accelerate launch run.py colpali_training.yaml
+accelerate launch vembed/entrypoints/train.py colpali_training.yaml
 ```
 
 ---

@@ -147,7 +147,7 @@ bash examples/run_dinov3_i2i.sh
 或者直接使用 Python 运行脚本：
 
 ```bash
-python run.py examples/dinov3_i2i.yaml
+vembed train examples/dinov3_i2i.yaml
 ```
 
 训练过程中，模型权重和日志将保存在 `experiments/output_sop_dinov3_i2i` 目录下。
@@ -202,7 +202,7 @@ eval_batch_size: 32          # 调整验证 batch size
 
 然后运行：
 ```bash
-python run.py examples/dinov3_i2i.yaml
+vembed train examples/dinov3_i2i.yaml
 ```
 
 直接编辑配置文件的方式更清晰，也便于保存你的配置供将来参考。
@@ -228,7 +228,7 @@ use_gradient_cache: false
 
 然后正常运行训练：
 ```bash
-python run.py examples/dinov3_i2i.yaml
+vembed train examples/dinov3_i2i.yaml
 ```
 
 这样可以消除梯度缓存的开销，获得显著更快的训练速度。但如果遇到显存不足（OOM），需要减小 `batch_size` 或 `eval_batch_size`。
@@ -247,7 +247,7 @@ model_name: facebook/dinov3-vits14-pretrain-lvd1689m
 
 然后运行：
 ```bash
-python run.py examples/dinov3_i2i.yaml
+vembed train examples/dinov3_i2i.yaml
 ```
 
 **可选模型及性能对比：**

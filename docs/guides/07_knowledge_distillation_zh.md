@@ -123,18 +123,17 @@ eval_strategy: "epoch"
 
 ```bash
 # 单 GPU
-python run.py distillation_config.yaml
+vembed train distillation_config.yaml
 
 # 多 GPU
-accelerate launch run.py distillation_config.yaml
+accelerate launch vembed/entrypoints/train.py distillation_config.yaml
 
 # CLI 覆盖
-python run.py distillation_config.yaml \
-    --config_override \
-        teacher_model_name_or_path="path/to/teacher" \
-        temperature=4.0 \
-        distillation_weight=0.5 \
-        epochs=5
+vembed train distillation_config.yaml \
+    --teacher_model_name_or_path "path/to/teacher" \
+    --temperature 4.0 \
+    --distillation_weight 0.5 \
+    --epochs 5
 ```
 
 ---

@@ -292,17 +292,18 @@ epochs: 3
 
 ```bash
 # 基础训练命令
-python run.py examples/qwen3_multimodal_t2i.yaml
+vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml
 
 # 指定 GPU
-CUDA_VISIBLE_DEVICES=0 python run.py examples/qwen3_multimodal_t2i.yaml
+CUDA_VISIBLE_DEVICES=0 vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml
 
 # 多 GPU 训练
-accelerate launch run.py examples/qwen3_multimodal_t2i.yaml
+accelerate launch vembed/entrypoints/train.py examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml
 
-# CLI 参数覆盖
-python run.py examples/qwen3_multimodal_t2i.yaml \
-    --config_override batch_size=32 epochs=5 use_mrl=false
+# CLI 参数覆盖（现代格式）
+vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml \
+    --batch_size 32 \
+    --epochs 5
 ```
 
 ---
@@ -426,13 +427,13 @@ result = strategy.process_batch(conversations, aligned_images)
 
 ```bash
 # 模式 1：文本-图像（T2I）
-python run.py examples/qwen3_multimodal_t2i.yaml --config_override retrieval_mode=t2i
+vembed train examples/qwen3_multimodal_t2i.yaml --retrieval_mode t2i
 
 # 模式 2：图像-文本（I2T）
-python run.py examples/qwen3_multimodal_t2i.yaml --config_override retrieval_mode=i2t
+vembed train examples/qwen3_multimodal_t2i.yaml --retrieval_mode i2t
 
 # 模式 3：多模态-图像（M2I）
-python run.py examples/qwen3_multimodal_t2i.yaml --config_override retrieval_mode=m2i data_path=data/m2i_train.jsonl
+vembed train examples/qwen3_multimodal_t2i.yaml --retrieval_mode m2i --data_path data/m2i_train.jsonl
 ```
 
 ### 5.2 完整的三模式训练脚本
@@ -446,23 +447,22 @@ DATA_DIR="data/flickr30k"
 
 # 模式 1：T2I（文本-图像）
 echo "=== 训练 T2I 模式 ==="
-python run.py $BASE_CONFIG \
-    --config_override retrieval_mode=t2i \
-    output_dir=experiments/qwen3_t2i
+vembed train $BASE_CONFIG \
+    --retrieval_mode t2i \
+    --output_dir experiments/qwen3_t2i
 
 # 模式 2：I2T（图像-文本）
 echo "=== 训练 I2T 模式 ==="
-python run.py $BASE_CONFIG \
-    --config_override retrieval_mode=i2t \
-    output_dir=experiments/qwen3_i2t
+vembed train $BASE_CONFIG \
+    --retrieval_mode i2t \
+    --output_dir experiments/qwen3_i2t
 
 # 模式 3：M2I（多模态-图像）
 echo "=== 训练 M2I 模式 ==="
-python run.py $BASE_CONFIG \
-    --config_override \
-        retrieval_mode=m2i \
-        data_path=$DATA_DIR/train_m2i.jsonl \
-        output_dir=experiments/qwen3_m2i
+vembed train $BASE_CONFIG \
+    --retrieval_mode m2i \
+    --data_path $DATA_DIR/train_m2i.jsonl \
+    --output_dir experiments/qwen3_m2i
 ```
 
 ---

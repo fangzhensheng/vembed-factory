@@ -27,7 +27,7 @@ Do you have multiple GPUs?
 **When**: Debugging, small models, testing
 
 ```bash
-python run.py config.yaml
+vembed train config.yaml
 ```
 
 **Pros:**
@@ -90,8 +90,14 @@ accelerate launch vembed/entrypoints/train.py config.yaml
 **When**: 4-8 GPUs, model 2-8B, want large effective batch size
 
 ```bash
-# Automatically enabled when gradient_checkpointing + model > 1B
-python run.py config.yaml --config_override use_gradient_cache=true
+# Modern CLI interface (recommended)
+accelerate launch vembed/entrypoints/train.py config.yaml \
+    --use_gradient_cache \
+    --gradient_accumulation_steps 4
+
+# Or legacy format
+accelerate launch vembed/entrypoints/train.py config.yaml \
+    --config_override use_gradient_cache=true gradient_accumulation_steps=4
 ```
 
 **How it works:**

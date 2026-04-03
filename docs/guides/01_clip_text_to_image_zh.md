@@ -256,12 +256,14 @@ batch_size: 64
 #### 4.2.1 单 GPU 训练
 
 ```bash
-# 方式 1：使用 run.py（推荐）
-python run.py examples/clip_text_to_image.yaml
+# 方式 1：使用 vembed train（推荐）
+vembed train examples/quickstart/clip_minimal.yaml
 
-# 方式 2：使用 CLI 参数覆盖
-python run.py examples/clip_text_to_image.yaml \
-    --config_override batch_size=64 epochs=5 learning_rate=1e-5
+# 方式 2：使用 CLI 参数覆盖（现代格式）
+vembed train examples/quickstart/clip_minimal.yaml \
+    --batch_size 64 \
+    --epochs 5 \
+    --learning_rate 1e-5
 
 # 方式 3：使用训练脚本
 bash examples/run_clip_train.sh
@@ -271,30 +273,29 @@ bash examples/run_clip_train.sh
 
 ```bash
 # 方式 1：自动检测并使用所有 GPU
-accelerate launch run.py examples/clip_text_to_image.yaml
+accelerate launch vembed/entrypoints/train.py examples/quickstart/clip_minimal.yaml
 
 # 方式 2：指定使用的 GPU
-CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch run.py examples/clip_text_to_image.yaml
+CUDA_VISIBLE_DEVICES=0,1,2,3 accelerate launch vembed/entrypoints/train.py examples/quickstart/clip_minimal.yaml
 
 # 方式 3：手动配置分布式策略
 accelerate config                          # 交互式配置
-accelerate launch run.py examples/clip_text_to_image.yaml
+accelerate launch vembed/entrypoints/train.py examples/quickstart/clip_minimal.yaml
 ```
 
 ### 4.3 实际训练示例
 
 ```bash
-# 完整的训练命令示例
-python run.py examples/clip_text_to_image.yaml \
-    --config_override \
-        data_path="data/flickr30k/train.jsonl" \
-        val_data_path="data/flickr30k/val.jsonl" \
-        image_root="data/flickr30k" \
-        output_dir="experiments/clip_t2i_finetuned" \
-        batch_size=128 \
-        epochs=3 \
-        learning_rate=2.0e-5 \
-        use_lora=true
+# 完整的训练命令示例（现代 CLI 格式）
+vembed train examples/quickstart/clip_minimal.yaml \
+    --data_path data/flickr30k/train.jsonl \
+    --val_data_path data/flickr30k/val.jsonl \
+    --image_root data/flickr30k \
+    --output_dir experiments/clip_t2i_finetuned \
+    --batch_size 128 \
+    --epochs 3 \
+    --learning_rate 2.0e-5 \
+    --use_lora
 ```
 
 ### 4.4 训练日志示例

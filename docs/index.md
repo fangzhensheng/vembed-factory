@@ -141,11 +141,11 @@ vembed train examples/models/clip/base.yaml
 # Train Qwen3-VL 2B (Multimodal)
 vembed train examples/models/qwen3_vl/2b_base.yaml
 
-# Train CLIP with MRL
-vembed train examples/models/clip/base.yaml --config_override use_mrl=true
+# Train CLIP with MRL (modern CLI format)
+vembed train examples/models/clip/base.yaml --use_mrl --mrl_dims [512,256,128]
 
 # Train with W&B logging
-vembed train examples/models/clip/base.yaml --config_override report_to=wandb
+vembed train examples/models/clip/base.yaml --report_to wandb
 
 # List all available configurations
 vembed list-configs
@@ -171,7 +171,14 @@ Training can be customized via YAML configs and CLI overrides:
 # Train with a specific config file
 vembed train examples/models/clip/base.yaml
 
-# Override specific settings
+# Override specific settings (modern CLI format)
+vembed train examples/models/clip/base.yaml \
+  --learning_rate 1e-5 \
+  --batch_size 64 \
+  --scheduler_type linear \
+  --warmup_ratio 0.05
+
+# Alternative: legacy format (still supported)
 vembed train examples/models/clip/base.yaml \
   --config_override learning_rate=1e-5 batch_size=64 scheduler_type=linear warmup_ratio=0.05
 ```

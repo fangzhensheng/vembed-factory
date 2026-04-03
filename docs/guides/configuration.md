@@ -26,34 +26,44 @@ warmup_ratio: 0.1
 
 Train:
 ```bash
-python run.py config.yaml
+vembed train config.yaml
 ```
 
-### Via CLI
+### Via CLI (Modern Interface - Recommended)
 
 ```bash
-python run.py \
-  --model_name_or_path "openai/clip-vit-base-patch32" \
+vembed train config.yaml \
   --data_path "data/train.jsonl" \
   --epochs 3 \
   --batch_size 32 \
-  --learning_rate 1e-5
+  --learning_rate 1e-5 \
+  --use_lora \
+  --output_dir "output"
+```
+
+### Via CLI (Legacy Format - Still Supported)
+
+```bash
+vembed train config.yaml \
+  --config_override \
+    data_path="data/train.jsonl" \
+    epochs=3 \
+    batch_size=32 \
+    learning_rate=1e-5
 ```
 
 ### Via Python API
 
 ```python
-from vembed import Trainer
+from vembed.trainer import VEmbedTrainer
 
-trainer = Trainer("openai/clip-vit-base-patch32")
+trainer = VEmbedTrainer("openai/clip-vit-base-patch32")
 trainer.train(
     data_path="data/train.jsonl",
     output_dir="output",
     epochs=3,
     batch_size=32,
-    learning_rate=1e-5,
-    retrieval_mode="t2i",
-    loss_type="infonce"
+    learning_rate=1e-5
 )
 ```
 
@@ -283,17 +293,21 @@ class TrainingArguments:
 1. Load defaults from `configs/defaults.yaml`
 2. Apply preset if model matches (e.g., `configs/clip.yaml`)
 3. Merge user YAML config file
-4. Apply CLI overrides and `--config_override` arguments
+4. Apply CLI arguments (modern format or legacy `--config_override`)
 5. Final config written to `.train_config.yaml` in output directory
 
 **Example:**
 
 ```bash
 # Merges: defaults < clip preset < config.yaml < CLI args
-python run.py config.yaml --batch_size 64
+# Modern interface (recommended)
+vembed train config.yaml --batch_size 64 --learning_rate 1e-5
+
+# Legacy format (still supported)
+vembed train config.yaml --config_override batch_size=64 learning_rate=1e-5
 ```
 
-The CLI argument `--batch_size 64` overrides any value in config.yaml.
+The CLI arguments override any value in config.yaml, both formats work identically.
 
 ## Environment Variables
 
@@ -325,6 +339,54 @@ python run.py output/.train_config.yaml
 ## Tips
 
 - Start with a preset YAML and modify specific values
-- Use `--config_override param1=value1 param2=value2` for quick experiments
+- **Modern CLI** (recommended): `vembed train config.yaml --batch_size 64 --learning_rate 1e-5`
+  - Supports shell auto-completion
+  - More intuitive parameter format
+- **Legacy CLI** (backward compatible): `vembed train config.yaml --config_override batch_size=64 learning_rate=1e-5`
 - Enable W&B (`report_to: wandb`) to track experiments
 - Use gradient caching (`use_gradient_cache: true`) for large effective batch sizes
+
+## Configuration Examples by Use Case
+
+### Fast CLIP Fine-tuning
+```bash
+vembed train examples/models/clip/vision_clip_base.yaml \
+    --data_path data/train.jsonl \
+    --batch_size 64 \
+    --epochs 3
+```
+
+### Large Model with Memory Optimization
+```bash
+vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_8b_base.yaml \
+    --data_path data/train.jsonl \
+    --batch_size 4 \
+    --use_gradient_cache \
+    --gradient_checkpointing
+```
+
+### Distributed Training with FSDP
+```bash
+accelerate launch vembed/entrypoints/train.py config.yaml \
+    --data_path data/train.jsonl \
+    --num_gpus 8 \
+    --use_fsdp
+```
+
+### LoRA Fine-tuning
+```bash
+vembed train config.yaml \
+    --data_path data/train.jsonl \
+    --use_lora \
+    --lora_r 8 \
+    --lora_alpha 16 \
+    --batch_size 32
+```
+
+### MRL Training
+```bash
+vembed train config.yaml \
+    --data_path data/train.jsonl \
+    --use_mrl \
+    --mrl_dims [768,512,256]
+```
