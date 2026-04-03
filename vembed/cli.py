@@ -13,12 +13,7 @@ import sys
 import yaml
 from transformers import HfArgumentParser
 
-from vembed.config import (
-    apply_false_booleans,
-    config_dict_to_argv,
-    load_base_config,
-    merge_configs,
-)
+from vembed.config import apply_false_booleans, config_dict_to_argv, load_base_config, merge_configs
 from vembed.hparams import DataArguments, ModelArguments, TrainingArguments
 from vembed.training.config import inject_dataset_info
 from vembed.validators import validate_config
