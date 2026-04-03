@@ -69,7 +69,7 @@ data_path: "data/train.jsonl"
 output_dir: "output_lora"
 ```
 
-### CLI Override (Modern Format - Recommended)
+### CLI Override
 
 ```bash
 vembed train config.yaml \
@@ -77,13 +77,6 @@ vembed train config.yaml \
   --lora_r 32 \
   --lora_alpha 64 \
   --lora_dropout 0.1
-```
-
-### CLI Override (Legacy Format - Still Supported)
-
-```bash
-vembed train config.yaml \
-  --config_override use_lora=true lora_r=32 lora_alpha=64
 ```
 
 ## LoRA Architecture
@@ -266,7 +259,7 @@ gradient_checkpointing: true
 
 ```bash
 # Simple training
-python run.py config_lora.yaml
+vembed train config_lora.yaml
 
 # Distributed with DDP
 accelerate launch vembed/entrypoints/train.py config_lora.yaml

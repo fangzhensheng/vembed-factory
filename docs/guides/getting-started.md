@@ -88,11 +88,6 @@ vembed train examples/models/clip/vision_clip_base.yaml \
     --use_mrl \
     --mrl_dims [512,256,128]
 
-# Alternative: using legacy --config_override format (still supported)
-vembed train examples/models/clip/vision_clip_base.yaml \
-    --data_path data/train.jsonl \
-    --config_override batch_size=64 learning_rate=1e-5 epochs=3
-
 # Advanced: explicit accelerate launch for distributed training (DDP/FSDP)
 accelerate launch vembed/entrypoints/train.py examples/models/clip/vision_clip_base.yaml \
     --data_path data/train.jsonl \
@@ -100,8 +95,7 @@ accelerate launch vembed/entrypoints/train.py examples/models/clip/vision_clip_b
     --use_fsdp
 ```
 
-**Modern CLI Interface** (recommended): Use standard `--key value` parameters
-**Legacy Format**: `--config_override key=value` still works for backward compatibility
+**CLI Interface**: Use standard `--key value` parameters
 
 ### 4. Train with Python API (Advanced)
 
@@ -237,14 +231,10 @@ accelerate launch vembed/entrypoints/train.py config.yaml --report_to wandb
 
 **Q: What's the difference between CLI parameter formats?**
 
-Both formats work, but the modern format is recommended:
+Use the modern CLI format with shell auto-completion:
 
 ```bash
-# Modern format (recommended - supports shell auto-completion)
 vembed train config.yaml --batch_size 64 --learning_rate 5e-5 --use_mrl
-
-# Legacy format (still supported for backward compatibility)
-vembed train config.yaml --config_override batch_size=64 learning_rate=5e-5 use_mrl=true
 ```
 
 **Q: What's the difference between VEmbedFactoryTrainer and the new Trainer?**

@@ -177,10 +177,6 @@ vembed train examples/models/clip/base.yaml \
   --batch_size 64 \
   --scheduler_type linear \
   --warmup_ratio 0.05
-
-# Alternative: legacy format (still supported)
-vembed train examples/models/clip/base.yaml \
-  --config_override learning_rate=1e-5 batch_size=64 scheduler_type=linear warmup_ratio=0.05
 ```
 
 Key configuration options:

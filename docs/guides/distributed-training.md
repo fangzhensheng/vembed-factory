@@ -94,10 +94,6 @@ accelerate launch vembed/entrypoints/train.py config.yaml
 accelerate launch vembed/entrypoints/train.py config.yaml \
     --use_gradient_cache \
     --gradient_accumulation_steps 4
-
-# Or legacy format
-accelerate launch vembed/entrypoints/train.py config.yaml \
-    --config_override use_gradient_cache=true gradient_accumulation_steps=4
 ```
 
 **How it works:**

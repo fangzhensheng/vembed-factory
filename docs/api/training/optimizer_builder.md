@@ -162,7 +162,7 @@ log_with, init_kwargs = resolve_tracker("wandb")
 
 ```bash
 wandb login
-python train.py config.yaml --config_override report_to=wandb
+vembed train config.yaml --report_to wandb
 ```
 
 Logs to W&B with:
@@ -174,14 +174,14 @@ Logs to W&B with:
 ### TensorBoard
 
 ```bash
-python train.py config.yaml --config_override report_to=tensorboard
+vembed train config.yaml --report_to tensorboard
 tensorboard --logdir output/runs
 ```
 
 ### SwanLab
 
 ```bash
-python train.py config.yaml --config_override report_to=swanlab
+vembed train config.yaml --report_to swanlab
 ```
 
 ## Related Modules

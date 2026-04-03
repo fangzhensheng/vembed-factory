@@ -41,17 +41,6 @@ vembed train config.yaml \
   --output_dir "output"
 ```
 
-### Via CLI (Legacy Format - Still Supported)
-
-```bash
-vembed train config.yaml \
-  --config_override \
-    data_path="data/train.jsonl" \
-    epochs=3 \
-    batch_size=32 \
-    learning_rate=1e-5
-```
-
 ### Via Python API
 
 ```python
@@ -246,7 +235,7 @@ project: "embedding-training"
 Then login and train:
 ```bash
 wandb login
-python run.py config.yaml
+vembed train config.yaml
 ```
 
 ### TensorBoard
@@ -293,21 +282,17 @@ class TrainingArguments:
 1. Load defaults from `configs/defaults.yaml`
 2. Apply preset if model matches (e.g., `configs/clip.yaml`)
 3. Merge user YAML config file
-4. Apply CLI arguments (modern format or legacy `--config_override`)
+4. Apply CLI arguments
 5. Final config written to `.train_config.yaml` in output directory
 
 **Example:**
 
 ```bash
 # Merges: defaults < clip preset < config.yaml < CLI args
-# Modern interface (recommended)
 vembed train config.yaml --batch_size 64 --learning_rate 1e-5
-
-# Legacy format (still supported)
-vembed train config.yaml --config_override batch_size=64 learning_rate=1e-5
 ```
 
-The CLI arguments override any value in config.yaml, both formats work identically.
+The CLI arguments override any value in config.yaml.
 
 ## Environment Variables
 
@@ -318,7 +303,7 @@ export VEMBED_BATCH_SIZE=16
 export VEMBED_LEARNING_RATE=1e-5
 export VEMBED_EPOCHS=5
 
-python run.py config.yaml  # Uses env values as defaults
+vembed train config.yaml  # Uses env values as defaults
 ```
 
 ## Saving Configuration
@@ -333,16 +318,15 @@ cat output/.train_config.yaml
 Use this to reproduce training:
 
 ```bash
-python run.py output/.train_config.yaml
+vembed train output/.train_config.yaml
 ```
 
 ## Tips
 
 - Start with a preset YAML and modify specific values
-- **Modern CLI** (recommended): `vembed train config.yaml --batch_size 64 --learning_rate 1e-5`
+- Use modern CLI format: `vembed train config.yaml --batch_size 64 --learning_rate 1e-5`
   - Supports shell auto-completion
-  - More intuitive parameter format
-- **Legacy CLI** (backward compatible): `vembed train config.yaml --config_override batch_size=64 learning_rate=1e-5`
+  - Clear and intuitive parameter format
 - Enable W&B (`report_to: wandb`) to track experiments
 - Use gradient caching (`use_gradient_cache: true`) for large effective batch sizes
 

@@ -18,17 +18,17 @@ The entrypoints module provides the main functions for training, evaluation, and
 
 ### Train via CLI
 ```bash
-python run.py examples/clip_train.yaml
+vembed train examples/clip_train.yaml
 ```
 
 ### Evaluate
 ```bash
-python run.py examples/clip_train.yaml --eval_only
+vembed train examples/clip_train.yaml --eval_only
 ```
 
 ### Multi-GPU Training
 ```bash
-accelerate launch --multi_gpu run.py examples/clip_train.yaml
+accelerate launch --multi_gpu vembed/entrypoints/train.py examples/clip_train.yaml
 ```
 
 ## Common Patterns
