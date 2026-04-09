@@ -34,21 +34,19 @@ vembed train examples/quickstart/clip_minimal.yaml --batch_size 64 --learning_ra
 accelerate launch --multi_gpu --num_processes 4 vembed/entrypoints/train.py examples/quickstart/clip_minimal.yaml
 ```
 
-### Python API
+### Python API (using CLI directly)
 
 ```python
-from vembed import Trainer
+from vembed.cli import main
 
-# Create trainer
-trainer = Trainer("openai/clip-vit-base-patch32")
-
-# Train
-trainer.train(
-    data_path="data/train.jsonl",
-    output_dir="output",
-    epochs=3,
-    batch_size=128
-)
+# Train using CLI entrypoint
+args = [
+    "train",
+    "examples/models/clip/base.yaml",
+    "--batch_size", "64",
+    "--learning_rate", "1e-5",
+]
+main(args)
 ```
 
 ## Common Workflows
@@ -116,4 +114,3 @@ A: Set `output_dir` to a new folder and ensure the old checkpoint has `training_
 ---
 
 ::: vembed.cli.main
-::: vembed.cli.parse_args

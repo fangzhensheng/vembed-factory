@@ -64,13 +64,17 @@ def main():
         mode="eval",
     )
 
-    collator_name = args.encoder_mode if CollatorRegistry.get(args.encoder_mode) else "default"
-    collator_cls = CollatorRegistry.get(collator_name)
+    collator_cls = CollatorRegistry.get(args.encoder_mode)
     if collator_cls is None:
-        raise ValueError(
-            f"No collator registered for encoder_mode={args.encoder_mode}. "
-            f"Available: {CollatorRegistry.list_collators()}"
+        accelerator.print(
+            f"⚠️ encoder_mode={args.encoder_mode} not registered, falling back to 'default'"
         )
+        collator_cls = CollatorRegistry.get("default")
+        if collator_cls is None:
+            raise ValueError(
+                f"No collator registered for encoder_mode={args.encoder_mode} or 'default'. "
+                f"Available: {CollatorRegistry.list_collators()}"
+            )
     collator = collator_cls(processor=processor, mode="eval", retrieval_mode=args.retrieval_mode)
     dataloader = DataLoader(
         dataset,

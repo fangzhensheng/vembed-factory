@@ -64,12 +64,10 @@ class VEmbedTrainer:
         attn_implementation: str | None = None,
         torch_dtype: str | None = None,
         gradient_checkpointing: bool = False,
-        config_override: str | None = None,
     ):
-        """Start the training process by delegating to the CLI entrypoint."""
+        """Train model via CLI entrypoint."""
         cli_args: list[str] = [
-            "--preset",
-            self.mode,
+            "train",
             f"--model_name={self.model_name}",
             f"--data_path={data_path}",
             f"--output_dir={self.output_dir}",
@@ -81,11 +79,12 @@ class VEmbedTrainer:
 
         if use_gradient_cache:
             cli_args.append("--use_gradient_cache")
-        else:
-            cli_args.append("--no_use_gradient_cache")
-
         if use_mrl:
             cli_args.append("--use_mrl")
+        if use_lora:
+            cli_args.append("--use_lora")
+        if gradient_checkpointing:
+            cli_args.append("--gradient_checkpointing")
 
         if report_to:
             cli_args.append(f"--report_to={report_to}")
@@ -93,49 +92,30 @@ class VEmbedTrainer:
             cli_args.append(f"--attn_implementation={attn_implementation}")
         if torch_dtype:
             cli_args.append(f"--torch_dtype={torch_dtype}")
-        if gradient_checkpointing:
-            cli_args.append("--gradient_checkpointing")
 
-        # Add loss_type as standard parameter
         if self.loss_type and self.loss_type != "infonce":
             cli_args.append(f"--loss_type={self.loss_type}")
 
-        # Add encoder_mode as standard parameter (use collator_type if specified)
         resolved_encoder_mode = self.collator_type if self.collator_type else encoder_mode
         if resolved_encoder_mode and resolved_encoder_mode != "auto":
             cli_args.append(f"--encoder_mode={resolved_encoder_mode}")
 
-        overrides: list[str] = [
-            f"model_name={self.model_name}",
-        ]
+        if val_data_path:
+            cli_args.append(f"--val_data_path={val_data_path}")
+        if save_steps > 0:
+            cli_args.append(f"--save_steps={save_steps}")
 
         if text_model_name:
-            overrides.append(f"text_model_name={text_model_name}")
+            cli_args.append(f"--text_model_name={text_model_name}")
         if image_model_name:
-            overrides.append(f"image_model_name={image_model_name}")
+            cli_args.append(f"--image_model_name={image_model_name}")
+
         if use_mrl and mrl_dims:
-            overrides.append(f"mrl_dims={mrl_dims}")
-        if val_data_path:
-            overrides.append(f"val_data_path={val_data_path}")
-        if save_steps > 0:
-            overrides.append(f"save_steps={save_steps}")
-
-        if config_override:
-            overrides.append(config_override)
-
-        if overrides:
-            import shlex
-
-            cli_args.append("--config_override")
-            for override in overrides:
-                cli_args.extend(shlex.split(override))
+            cli_args.append(f"--mrl_dims={' '.join(map(str, mrl_dims))}")
 
         logger.info(f"Starting training for {self.model_name}...")
         logger.info(f"   Mode: {self.mode}, Retrieval: {retrieval_mode}")
 
-        import sys
-
-        sys.argv = [sys.argv[0]] + cli_args
         exit_code = cli_main(cli_args)
 
         if exit_code == 0:

@@ -39,7 +39,16 @@ def load_data(
             data_format = "tsv"
         elif path_obj.suffix == ".parquet":
             data_format = "parquet"
-        elif path_obj.is_dir() or not path_obj.exists():
+        elif not path_obj.exists():
+            # If path doesn't exist, check if it looks like a local path
+            if path_obj.suffix or "/" in str(path) or "\\" in str(path):
+                raise FileNotFoundError(
+                    f"Data file not found: {path}\n"
+                    f"Please check the file path. If you want to load a HuggingFace dataset, "
+                    f"use the dataset name directly (e.g., 'wikitext', 'openwebtext')."
+                )
+            data_format = "huggingface"
+        elif path_obj.is_dir():
             data_format = "huggingface"
         else:
             raise ValueError(f"Cannot infer format for {path}. Please specify `data_format`.")

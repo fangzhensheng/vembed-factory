@@ -176,7 +176,7 @@ vembed train examples/models/dinov2/vision_dinov2_i2i.yaml
 vembed train examples/models/clip/vision_clip_base.yaml --batch_size 64 --learning_rate 5e-5
 
 # Dry run (generate config without training)
-vembed train examples/models/clip/vision_clip_base.yaml --dry-run
+vembed train examples/models/clip/vision_clip_base.yaml --dry_run
 ```
 
 ## Data Format
