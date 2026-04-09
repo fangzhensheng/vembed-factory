@@ -1,5 +1,5 @@
 model_name: Qwen/Qwen2-VL-7B-Instruct
-encoder_mode: qwen-vl
+encoder_mode: qwen3_vl
 retrieval_mode: "m2i"
 use_lora: true
 data_path: data/train.jsonl

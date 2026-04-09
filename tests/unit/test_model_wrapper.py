@@ -3,7 +3,7 @@
 Tests the new VEmbedWrapper features including:
 - encoder_mode auto-detection
 - text-only model support (qwen)
-- multimodal model support (qwen-vl)
+- multimodal model support (qwen3_vl)
 - supports_images property
 """
 
@@ -28,10 +28,10 @@ class TestEncoderModeDetection:
         "model_path,expected_mode",
         [
             # Qwen-VL (multimodal)
-            ("experiments/output_qwen3_vl_embedding_2b", "qwen-vl"),
-            ("Qwen/Qwen3-VL-Embedding-2B", "qwen-vl"),
-            ("models/Qwen/Qwen3-VL-Embedding-8B", "qwen-vl"),
-            ("checkpoint/qwen3_vl", "qwen-vl"),
+            ("experiments/output_qwen3_vl_embedding_2b", "qwen3_vl"),
+            ("Qwen/Qwen3-VL-Embedding-2B", "qwen3_vl"),
+            ("models/Qwen/Qwen3-VL-Embedding-8B", "qwen3_vl"),
+            ("checkpoint/qwen3_vl", "qwen3_vl"),
             # Qwen-Embedding (text-only)
             ("experiments/output_qwen3_embedding", "qwen"),
             ("Qwen/Qwen3-Embedding-8B", "qwen"),
@@ -51,7 +51,7 @@ class TestEncoderModeDetection:
 
     def test_case_insensitive_detection(self):
         """Test that detection is case-insensitive."""
-        assert _auto_detect_encoder_mode("QWEN3_VL_EMBEDDING") == "qwen-vl"
+        assert _auto_detect_encoder_mode("QWEN3_VL_EMBEDDING") == "qwen3_vl"
         assert _auto_detect_encoder_mode("QWEN3-EMBEDDING") == "qwen"
         assert _auto_detect_encoder_mode("SIGLIP") == "siglip"
 
@@ -80,9 +80,9 @@ class TestVEmbedWrapperInit:
         mock_model.eval = MagicMock()
         mock_model_cls.return_value = mock_model
 
-        VEmbedWrapper("test_path", encoder_mode="qwen-vl")
+        VEmbedWrapper("test_path", encoder_mode="qwen3_vl")
 
-        mock_proc_registry_local.get.assert_called_once_with("qwen-vl")
+        mock_proc_registry_local.get.assert_called_once_with("qwen3_vl")
         mock_model_cls.assert_called_once()
 
     @patch("benchmark.model_wrapper.VisualRetrievalModel")
@@ -106,7 +106,7 @@ class TestVEmbedWrapperInit:
 
         VEmbedWrapper(
             "test_path",
-            encoder_mode="qwen-vl",
+            encoder_mode="qwen3_vl",
             attn_implementation="flash_attention_2",
             torch_dtype="bfloat16",
         )

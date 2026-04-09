@@ -199,7 +199,7 @@ class GenericVLMStrategy(VLMStrategy):
         return result
 
 
-@CollatorRegistry.register("qwen-vl")
+@CollatorRegistry.register("qwen3_vl")
 @CollatorRegistry.register("llava")
 @CollatorRegistry.register("phi-3-vision")
 class VLMRetrievalCollator(BaseRetrievalCollator):

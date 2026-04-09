@@ -3,6 +3,7 @@
 import logging
 from collections import UserDict
 
+import torch
 from torch import Tensor
 
 from vembed.core.constants import (
@@ -176,6 +177,10 @@ class GradientCache:
                 q["pixel_values"] = batch["query_pixel_values"]
                 if "query_image_grid_thw" in batch:
                     q["image_grid_thw"] = batch["query_image_grid_thw"]
+                if "query_input_ids" in batch:
+                    q["input_ids"] = batch["query_input_ids"]
+                    if "query_attention_mask" in batch:
+                        q["attention_mask"] = batch["query_attention_mask"]
         elif mode.startswith("m"):
             q = {k: batch[k] for k in ("input_ids", "attention_mask") if k in batch}
             if "query_pixel_values" in batch:

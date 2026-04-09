@@ -61,7 +61,14 @@ class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
         1. Flip attention mask
         2. Find first '1' (which corresponds to the last '1' in original)
         3. Extract hidden state at that position
+
+        Falls back to last token if mask dimensions don't match hidden state.
         """
+        # Fallback for dimension mismatch (e.g., when attention_mask is short from placeholder)
+        if attention_mask.shape[1] != hidden.shape[1]:
+            # Just use the last token
+            return hidden[:, -1, :]
+
         flipped_tensor = attention_mask.flip(dims=[1])
         last_one_positions = flipped_tensor.argmax(dim=1)
         # Calculate original index: seq_len - 1 - index_in_flipped
@@ -77,6 +84,15 @@ class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
         image_grid_thw=None,
         **kwargs,
     ):
+        # Qwen3-VL requires both text and image inputs
+        # Pure image tasks should use DINO or other vision-only models
+        if input_ids is None or attention_mask is None:
+            if pixel_values is not None:
+                logger.warning(
+                    "Qwen3-VL requires text input (input_ids). Pure image tasks should use DINO or other vision-only models. "
+                    "If you need multimodal training, use mode='t2i' with text queries instead of 'i2i'."
+                )
+
         outputs = self.backbone(
             input_ids=input_ids,
             attention_mask=attention_mask,

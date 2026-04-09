@@ -5,7 +5,7 @@ for benchmark evaluation.
 Supports all model types including:
 - Text-only models (qwen, bge, bert, e5, etc.)
 - Vision-only models (dinov2, dino, etc.)
-- Vision-Language models (qwen-vl, llava, clip, siglip, etc.)
+- Vision-Language models (qwen3_vl, llava, clip, siglip, etc.)
 - Composed models (DINOv2+BERT, etc.)
 """
 
@@ -45,8 +45,8 @@ def _auto_detect_encoder_mode(model_path: str) -> str | None:
     """Auto-detect encoder_mode from model path.
 
     Examples:
-        "experiments/output_qwen3_vl_embedding_2b" -> "qwen-vl"
-        "Qwen/Qwen3-VL-Embedding-2B" -> "qwen-vl"
+        "experiments/output_qwen3_vl_embedding_2b" -> "qwen3_vl"
+        "Qwen/Qwen3-VL-Embedding-2B" -> "qwen3_vl"
         "experiments/output_qwen3_embedding" -> "qwen"
         "Qwen/Qwen3-Embedding-8B" -> "qwen"
     """
@@ -54,7 +54,7 @@ def _auto_detect_encoder_mode(model_path: str) -> str | None:
 
     # Check for Qwen-VL (multimodal)
     if "qwen" in lower and ("vl" in lower or "vision" in lower or "m3" in lower):
-        return "qwen-vl"
+        return "qwen3_vl"
 
     # Check for Qwen text embedding (text-only)
     if "qwen" in lower and "embedding" in lower:

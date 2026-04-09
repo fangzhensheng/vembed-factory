@@ -58,14 +58,14 @@ gradient_cache_chunk_size: 8   # Micro-batch size for Gradient Cache
 model_name_or_path: null
 model_name: null
 encoder_mode: "auto"       # Model family collator selection
-                           # Options: auto, clip, siglip, vit, dinov2, mae, bert, bge, e5, qwen, qwen-vl, llava, composed
+                           # Options: auto, clip, siglip, vit, dinov2, mae, bert, bge, e5, qwen, qwen3_vl, llava, composed
                            # - clip: CLIP-family models (CLIP, SigLIP, etc.)
                            # - vit: ViT-family vision models (google/vit-*, DINO, MAE, etc.)
                            # - dinov2: DINO-series (alias for vit, for backward compatibility)
                            # - mae: MAE-series (alias for vit, for backward compatibility)
                            # - bert: BERT-family text encoders (BERT, BGE, E5, Qwen-Embedding, etc.)
                            # - bge/e5/qwen: Aliases for bert (for backward compatibility)
-                           # - qwen-vl/llava: VLMs with chat templates
+                           # - qwen3_vl/llava: VLMs with chat templates
                            # - composed: Dual-processor mode (separate text/image encoders)
                            # - auto: Auto-detect from model_name (falls back to clip)
 projection_dim: null       # Optional output dimension projection (Linear layer)

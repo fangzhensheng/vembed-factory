@@ -1,0 +1,30 @@
+# Qwen3-VL-Embedding-2B SOP Training Configuration for Image-to-Image Retrieval
+
+# Model settings
+model_name: "Qwen/Qwen3-VL-Embedding-2B"
+encoder_mode: "qwen3_vl"
+retrieval_mode: "i2i"               # Set to image-to-image retrieval
+attn_implementation: "flash_attention_2"
+torch_dtype: "bfloat16"
+
+# Data settings (update these paths for your SOP dataset)
+data_path: "data/stanford_online_products/train.jsonl"
+val_data_path: "data/stanford_online_products/val.jsonl"
+image_root: "data/stanford_online_products"
+
+# Training settings
+output_dir: "experiments/output_qwen3_2b_sop_i2i"
+epochs: 5
+batch_size: 32
+learning_rate: 2.0e-5
+loss_type: "infonce"
+
+# Memory Optimization
+use_gradient_cache: false
+gradient_cache_chunk_size: 64
+gradient_checkpointing: true
+use_lora: true
+
+# Multi-Resolution Learning (MRL)
+use_mrl: true
+mrl_dims: [1536, 1024, 768, 512, 256, 128, 64]
