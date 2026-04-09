@@ -100,7 +100,7 @@ class QwenVLMStrategy(VLMStrategy):
 
         try:
             image_inputs, video_inputs = process_vision_info(conversations)
-        except Exception as e:
+        except (ValueError, TypeError, KeyError) as e:
             logger.error(f"Error in processing vision info: {e}")
             image_inputs, video_inputs = None, None
 

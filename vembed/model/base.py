@@ -152,7 +152,7 @@ class BaseEmbeddingModel(nn.Module, ABC):
         except ImportError:
             logger.warning("Found adapter_config.json but 'peft' is not installed.")
             return backbone
-        except Exception as e:
+        except (ValueError, OSError) as e:
             logger.warning(f"Failed to load LoRA adapter: {e}")
             return backbone
 

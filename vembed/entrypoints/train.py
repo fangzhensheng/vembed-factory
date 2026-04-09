@@ -372,7 +372,7 @@ def main():
                 mode=config.get("resume_mode", "full"),
             )
             logger.info(f"Checkpoint loaded successfully: {resume_state}")
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError) as e:
             logger.error(f"Failed to resume from checkpoint: {e}")
             raise
 

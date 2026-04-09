@@ -314,7 +314,7 @@ def compile_model(
         accelerator.print("Compiling model with torch.compile...")
         try:
             model = torch.compile(model)
-        except Exception as e:
+        except RuntimeError as e:
             accelerator.print(f"Warning: torch.compile failed: {e}")
 
     return model
@@ -345,7 +345,7 @@ def enable_static_graph(
         and hasattr(model, "_set_static_graph")
     ):
         try:
-            model._set_static_graph()
+            model.module._set_static_graph()
             accelerator.print("Enabled static graph for DDP")
-        except Exception as e:
+        except AttributeError as e:
             accelerator.print(f"Warning: Could not set static graph: {e}")

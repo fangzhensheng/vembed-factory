@@ -31,7 +31,7 @@ class InfoNCELoss(BaseLoss):
         """Compute loss for one direction (query → positive)."""
         batch_size = query_emb.size(0)
 
-        # 1. In-batch negatives
+        # Calculate similarities for in-batch negatives
         if negative_emb is None:
             logits = query_emb @ positive_emb.T / self.temperature
 
@@ -41,7 +41,7 @@ class InfoNCELoss(BaseLoss):
             target_labels = torch.arange(batch_size, device=query_emb.device)
             return self.cross_entropy(logits, target_labels)
 
-        # 2. Explicit hard negatives
+        # Calculate similarities for explicit hard negatives
         negative_emb = F.normalize(negative_emb, p=2, dim=-1)
 
         # Global negatives (shared across batch)

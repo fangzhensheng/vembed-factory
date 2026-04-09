@@ -156,15 +156,15 @@ def load_checkpoint(
         try:
             processor.load_pretrained(str(checkpoint_path))
             logger.info(f"Loaded processor from {checkpoint_path}")
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             logger.warning(f"Failed to load processor: {e}")
 
     # Load optimizer + scheduler state (full mode)
     if mode == "full":
         try:
-            accelerator.load_state(str(checkpoint_path))
+            accelerator.load_state(checkpoint_path)
             logger.info(f"Loaded optimizer and scheduler state from {checkpoint_path}")
-        except Exception as e:
+        except RuntimeError as e:
             logger.warning(f"Failed to load optimizer/scheduler state: {e}")
 
     # Load training state
