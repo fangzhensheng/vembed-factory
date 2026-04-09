@@ -220,6 +220,13 @@ def main(args_list=None):
         )
 
     # ── 8. Save config & launch training ──────────────────────────────
+    import datetime
+
+    # Append timestamp to output_dir to prevent overwriting
+    base_output_dir = train_config.get("output_dir", "experiments/output")
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    train_config["output_dir"] = f"{base_output_dir}_{timestamp}"
+
     os.makedirs(train_config["output_dir"], exist_ok=True)
     config_path = os.path.join(train_config["output_dir"], ".train_config.yaml")
     with open(config_path, "w") as f:
