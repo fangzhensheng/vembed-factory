@@ -1,3 +1,4 @@
+import importlib
 from typing import Any
 
 
@@ -8,6 +9,14 @@ class CollatorRegistry:
     """
 
     _registry: dict[str, Any] = {}
+    _loaded: bool = False
+
+    @classmethod
+    def _ensure_loaded(cls) -> None:
+        if cls._loaded:
+            return
+        importlib.import_module("vembed.data.collators")
+        cls._loaded = True
 
     @classmethod
     def register(cls, name):
@@ -36,6 +45,7 @@ class CollatorRegistry:
         Returns:
             The collator class if found, None otherwise.
         """
+        cls._ensure_loaded()
         return cls._registry.get(name)
 
     @classmethod
@@ -45,4 +55,5 @@ class CollatorRegistry:
         Returns:
             List of registered collator names.
         """
+        cls._ensure_loaded()
         return list(cls._registry.keys())

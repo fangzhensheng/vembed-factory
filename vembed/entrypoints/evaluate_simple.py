@@ -49,7 +49,7 @@ def main():
 
     collator_cls = CollatorRegistry.get(args.encoder_mode)
     if collator_cls is None:
-        print(f"⚠️ encoder_mode={args.encoder_mode} not registered, falling back to 'default'")
+        print(f"encoder_mode={args.encoder_mode} not registered, falling back to 'default'")
         collator_cls = CollatorRegistry.get("default")
         if collator_cls is None:
             raise ValueError(
