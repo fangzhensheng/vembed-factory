@@ -25,6 +25,11 @@
     "val_file_name": "data/coco/val.jsonl",
     "retrieval_mode": "t2i",
     "image_root": "data/coco",
-    "description": "COCO text-to-image retrieval dataset"
+    "description": "COCO text-to-image retrieval dataset",
+    "columns": {
+      "query": "query",
+      "positive": "image_id",
+      "negatives": "negatives"
+    }
   }
 }

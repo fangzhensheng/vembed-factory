@@ -96,18 +96,18 @@ class VEmbedTrainer:
         if gradient_checkpointing:
             cli_args.append("--gradient_checkpointing")
 
+        # Add loss_type as standard parameter
+        if self.loss_type and self.loss_type != "infonce":
+            cli_args.append(f"--loss_type={self.loss_type}")
+
+        # Add encoder_mode as standard parameter (use collator_type if specified)
+        resolved_encoder_mode = self.collator_type if self.collator_type else encoder_mode
+        if resolved_encoder_mode and resolved_encoder_mode != "auto":
+            cli_args.append(f"--encoder_mode={resolved_encoder_mode}")
+
         overrides: list[str] = [
             f"model_name={self.model_name}",
-            f"encoder_mode={encoder_mode}",
         ]
-
-        if self.loss_type and self.loss_type != "infonce":
-            overrides.append(f"loss_type={self.loss_type}")
-
-        if self.collator_type:
-            overrides.append(f"encoder_mode={self.collator_type}")
-        elif encoder_mode:
-            pass
 
         if text_model_name:
             overrides.append(f"text_model_name={text_model_name}")
