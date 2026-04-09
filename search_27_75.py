@@ -1,4 +1,5 @@
 import math
+
 for N in range(1, 4096):
     for dims in range(1, 10):
         loss = math.log(N) * dims

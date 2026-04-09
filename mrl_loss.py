@@ -36,4 +36,3 @@ for dim in mrl_dims:
     loss_dim = nn.CrossEntropyLoss()(logits_dim, torch.arange(512))
     total_loss_512 += loss_dim.item()
 print(f"MRL N=512: {total_loss_512}")
-
