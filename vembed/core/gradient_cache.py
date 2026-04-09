@@ -3,7 +3,6 @@
 import logging
 from collections import UserDict
 
-import torch
 from torch import Tensor
 
 from vembed.core.constants import (

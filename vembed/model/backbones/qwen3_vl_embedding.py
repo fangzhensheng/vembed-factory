@@ -86,12 +86,11 @@ class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
     ):
         # Qwen3-VL requires both text and image inputs
         # Pure image tasks should use DINO or other vision-only models
-        if input_ids is None or attention_mask is None:
-            if pixel_values is not None:
-                logger.warning(
-                    "Qwen3-VL requires text input (input_ids). Pure image tasks should use DINO or other vision-only models. "
-                    "If you need multimodal training, use mode='t2i' with text queries instead of 'i2i'."
-                )
+        if (input_ids is None or attention_mask is None) and pixel_values is not None:
+            logger.warning(
+                "Qwen3-VL requires text input (input_ids). Pure image tasks should use DINO or other vision-only models. "
+                "Consider changing retrieval_mode to t2i or padding with a dummy prompt."
+            )
 
         outputs = self.backbone(
             input_ids=input_ids,
