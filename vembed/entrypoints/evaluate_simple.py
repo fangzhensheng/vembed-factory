@@ -1,17 +1,16 @@
 import argparse
 import os
-import sys
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-from vembed.data.dataset import VisualRetrievalCollator, VisualRetrievalDataset
+from vembed.data.dataset import VisualRetrievalDataset
+from vembed.data.registry import CollatorRegistry
 from vembed.evaluation.metrics import compute_metrics
 from vembed.model.modeling import VisualRetrievalModel
 from vembed.model.processors import ProcessorRegistry
+from vembed.training.data_utils import unpack_positive_batch, unpack_query_batch
 
 
 def parse_args():
@@ -20,6 +19,7 @@ def parse_args():
     parser.add_argument("--data_path", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="eval_results")
     parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--encoder_mode", type=str, default="auto")
     parser.add_argument(
         "--retrieval_mode",
         type=str,
@@ -34,7 +34,7 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     processor = ProcessorRegistry.resolve(args.model_path)
-    model = VisualRetrievalModel(args.model_path)
+    model = VisualRetrievalModel(args.model_path, encoder_mode=args.encoder_mode)
     model.eval()
     if torch.cuda.is_available():
         model.cuda()
@@ -46,7 +46,15 @@ def main():
         mode="eval",
         column_mapping=None,
     )
-    collator = VisualRetrievalCollator(processor, mode="eval")
+
+    collator_name = args.encoder_mode if CollatorRegistry.get(args.encoder_mode) else "default"
+    collator_cls = CollatorRegistry.get(collator_name)
+    if collator_cls is None:
+        raise ValueError(
+            f"No collator registered for encoder_mode={args.encoder_mode}. "
+            f"Available: {CollatorRegistry.list_collators()}"
+        )
+    collator = collator_cls(processor=processor, mode="eval", retrieval_mode=args.retrieval_mode)
     loader = DataLoader(
         dataset,
         batch_size=args.batch_size,
@@ -61,24 +69,14 @@ def main():
         for batch in loader:
             device = next(model.parameters()).device
 
-            if args.retrieval_mode.startswith("i"):
-                q_batch = {"pixel_values": batch["query_pixel_values"].to(device)}
-            else:
-                q_batch = {
-                    "input_ids": batch["input_ids"].to(device),
-                    "attention_mask": batch["attention_mask"].to(device),
-                }
+            q_inputs = unpack_query_batch(batch, args.retrieval_mode)
+            p_inputs = unpack_positive_batch(batch, args.retrieval_mode)
 
-            if args.retrieval_mode.endswith("t"):
-                p_batch = {
-                    "input_ids": batch["pos_input_ids"].to(device),
-                    "attention_mask": batch["pos_attention_mask"].to(device),
-                }
-            else:
-                p_batch = {"pixel_values": batch["pixel_values"].to(device)}
+            q_inputs = {k: (v.to(device) if hasattr(v, "to") else v) for k, v in q_inputs.items()}
+            p_inputs = {k: (v.to(device) if hasattr(v, "to") else v) for k, v in p_inputs.items()}
 
-            query_embs_all.append(model(**q_batch).detach().cpu().numpy())
-            positive_embs_all.append(model(**p_batch).detach().cpu().numpy())
+            query_embs_all.append(model(**q_inputs).detach().cpu().numpy())
+            positive_embs_all.append(model(**p_inputs).detach().cpu().numpy())
 
     query_embs = np.concatenate(query_embs_all)
     positive_embs = np.concatenate(positive_embs_all)

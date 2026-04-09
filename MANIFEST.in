@@ -1,2 +1,3 @@
 include requirements.txt
 recursive-include vembed/configs *.yaml *.yml
+include vembed/training/dataset_info.json

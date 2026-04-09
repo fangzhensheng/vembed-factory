@@ -1,0 +1,114 @@
+# vembed-factory — Default Configuration
+#
+# These are global defaults for all training scripts.
+# Each example YAML file should override these with specific values.
+#
+# Override priority:
+#   1. defaults.yaml (these values)
+#   2. example YAML file
+#   3. CLI arguments (--config_override key=value)
+
+# Training Setup
+seed: 42                    # Random seed for reproducibility (ensures identical results with same seed)
+output_dir: "output"
+overwrite_output_dir: true
+epochs: 3
+batch_size: 32              # Per-GPU batch size (effective = batch_size × num_gpus)
+save_strategy: "epoch"
+save_steps: 0              # Save every N steps. 0 = disabled.
+logging_steps: 10
+
+# Data
+data_path: "data/train.jsonl"
+val_data_path: null
+image_root: ""
+max_seq_length: 128
+max_image_size: 224        # For CLIP/SigLIP. Qwen-VL handles dynamic resolution.
+
+# Data Loading Optimization
+num_workers: 4             # Number of data loading workers (0=single-process, 4-8 for multi-GPU)
+pin_memory: true           # Pin memory for faster GPU transfer (requires sufficient RAM)
+prefetch_factor: 2         # Number of batches to prefetch per worker
+persistent_workers: true   # Keep workers alive across epochs (faster)
+enable_image_cache: false  # Cache images in memory (useful for small datasets with multiple epochs)
+
+# Data Validation & Processing
+validate_data: false       # Validate dataset integrity before training
+skip_invalid_records: true # Skip records with missing/invalid fields
+
+# Optimizer
+lr: 2.0e-5
+weight_decay: 0.01
+max_grad_norm: 1.0         # Gradient clipping. 0 = disabled.
+
+# Learning Rate Scheduler
+scheduler_type: "cosine"   # Options: cosine, linear, constant, constant_with_warmup
+warmup_ratio: 0.1          # Fraction of total steps for warmup
+warmup_steps: 0            # If > 0, overrides warmup_ratio
+
+# Precision & Memory
+fp16: true
+torch_dtype: null              # float16, bfloat16, float32, auto, or null (framework default)
+attn_implementation: null      # flash_attention_2, sdpa, eager, or null (auto)
+use_gradient_cache: false
+gradient_cache_chunk_size: 8   # Micro-batch size for Gradient Cache
+
+# Model Configuration
+# NOTE: Must be overridden in example YAML files!
+model_name_or_path: null
+model_name: null
+encoder_mode: "auto"       # Model family collator selection
+                           # Options: auto, clip, siglip, vit, dinov2, mae, bert, bge, e5, qwen, qwen3_vl, llava, composed
+                           # - clip: CLIP-family models (CLIP, SigLIP, etc.)
+                           # - vit: ViT-family vision models (google/vit-*, DINO, MAE, etc.)
+                           # - dinov2: DINO-series (alias for vit, for backward compatibility)
+                           # - mae: MAE-series (alias for vit, for backward compatibility)
+                           # - bert: BERT-family text encoders (BERT, BGE, E5, Qwen-Embedding, etc.)
+                           # - bge/e5/qwen: Aliases for bert (for backward compatibility)
+                           # - qwen3_vl/llava: VLMs with chat templates
+                           # - composed: Dual-processor mode (separate text/image encoders)
+                           # - auto: Auto-detect from model_name (falls back to clip)
+projection_dim: null       # Optional output dimension projection (Linear layer)
+
+# Token Pruning (for late-interaction / ColBERT models)
+topk_tokens: 0             # 0 = keep all tokens; >0 = attention-guided top-K pruning (e.g. 32, 64)
+
+# Loss Configuration
+loss_type: "infonce"       # Options: infonce, mrl, triplet, cosent, colbert
+temperature: 0.05
+use_mrl: false
+mrl_dims: [768, 512, 256, 128]
+mrl_weights: [1.0, 1.0, 1.0, 1.0]
+
+# Distillation
+teacher_model_name: null   # If set, enables knowledge distillation
+distillation_alpha: 0.5    # Weight for task loss; (1-alpha) for distillation
+distillation_temperature: 1.0
+distillation_loss_type: "kl"
+
+# LoRA (requires `pip install peft`)
+use_lora: false
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: null  # null = auto-detect; or list like ["q_proj", "v_proj"]
+
+# Retrieval Mode
+retrieval_mode: "t2i"      # Options: t2i, i2i, i2t, t2t, m2i, m2t
+
+# Pooling Method
+pooling_method: null       # Options: mean, cls, last_token, none
+                           # For ColBERT (loss_type=colbert): auto-set to "none" (token-level embeddings)
+                           # For others: auto-set to "cls" (default) if not specified
+
+# Token Pruning (ColBERT-specific optimization)
+topk_tokens: 0             # 0=keep all tokens (default). >0=attention-guided top-K pruning.
+                           # Only effective when pooling_method="none" (token-level embeddings).
+                           # Example: topk_tokens=32 for vision models with ~256 patches.
+
+# Experiment Tracking
+report_to: "none"          # Options: wandb, tensorboard, swanlab, all, none
+
+# GPU Memory Management
+debug_gpu_memory: null     # For testing on consumer GPU: set to GB limit (e.g., 24 for 24GB GPU)
+                           # null = no limit (use full GPU memory available)

@@ -91,7 +91,7 @@ where = ["."]
 include = ["vembed*"]
 
 [tool.setuptools.package-data]
-vembed = ["configs/*.yaml"]
+vembed = ["configs/*.yaml", "training/dataset_info.json"]
 
 # ---------------------------------------------------------------------------
 # Tool configurations

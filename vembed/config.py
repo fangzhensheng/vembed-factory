@@ -142,7 +142,7 @@ def config_dict_to_argv(
             # handled by apply_false_booleans() after parsing.
             if v:
                 argv.append(f"--{k}")
-        elif isinstance(v, list | tuple):
+        elif isinstance(v, (list, tuple)):
             argv.append(f"--{k}")
             argv.extend(str(item) for item in v)
         else:

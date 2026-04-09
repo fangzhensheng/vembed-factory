@@ -1,7 +1,7 @@
 import argparse
+import json
 import logging
 import os
-import sys
 
 import numpy as np
 import torch
@@ -9,13 +9,13 @@ from accelerate import Accelerator
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
-from vembed.data.dataset import VisualRetrievalCollator, VisualRetrievalDataset
+from vembed.data.dataset import VisualRetrievalDataset
+from vembed.data.registry import CollatorRegistry
 from vembed.evaluation.metrics import compute_metrics
 from vembed.evaluation.report import generate_report
 from vembed.model.modeling import VisualRetrievalModel
 from vembed.model.processors import ProcessorRegistry
+from vembed.training.data_utils import unpack_positive_batch, unpack_query_batch
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,8 @@ def parse_args():
     parser.add_argument("--image_root", type=str, default="")
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--output_dir", type=str, default="eval_output")
+    parser.add_argument("--encoder_mode", type=str, default="auto")
+    parser.add_argument("--retrieval_mode", type=str, default="t2i")
     return parser.parse_args()
 
 
@@ -34,21 +36,21 @@ def main():
     args = parse_args()
     accelerator = Accelerator()
 
-    # Load vembed specific config if exists to ensure consistent evaluation
     config_path = os.path.join(args.model_path, "vembed_config.json")
-    model_kwargs = {}
+    model_kwargs: dict = {}
     if os.path.exists(config_path):
-        import json
-
         with open(config_path) as f:
             vembed_config = json.load(f)
-            # Keys to forward to VisualRetrievalModel
-            for key in ["pooling_method", "projection_dim", "topk_tokens", "use_mrl", "mrl_dims"]:
-                if key in vembed_config:
-                    model_kwargs[key] = vembed_config[key]
+        for key in ["pooling_method", "projection_dim", "topk_tokens", "use_mrl", "mrl_dims"]:
+            if key in vembed_config:
+                model_kwargs[key] = vembed_config[key]
+        if "encoder_mode" in vembed_config and args.encoder_mode == "auto":
+            args.encoder_mode = vembed_config["encoder_mode"]
+        if "retrieval_mode" in vembed_config and args.retrieval_mode == "t2i":
+            args.retrieval_mode = vembed_config["retrieval_mode"]
         accelerator.print(f"Loaded vembed config: {model_kwargs}")
 
-    model = VisualRetrievalModel(args.model_path, **model_kwargs)
+    model = VisualRetrievalModel(args.model_path, encoder_mode=args.encoder_mode, **model_kwargs)
 
     try:
         processor = ProcessorRegistry.resolve(args.model_path)
@@ -61,7 +63,15 @@ def main():
         image_root=args.image_root,
         mode="eval",
     )
-    collator = VisualRetrievalCollator(processor, mode="eval")
+
+    collator_name = args.encoder_mode if CollatorRegistry.get(args.encoder_mode) else "default"
+    collator_cls = CollatorRegistry.get(collator_name)
+    if collator_cls is None:
+        raise ValueError(
+            f"No collator registered for encoder_mode={args.encoder_mode}. "
+            f"Available: {CollatorRegistry.list_collators()}"
+        )
+    collator = collator_cls(processor=processor, mode="eval", retrieval_mode=args.retrieval_mode)
     dataloader = DataLoader(
         dataset,
         batch_size=args.batch_size,
@@ -77,8 +87,10 @@ def main():
 
     with torch.no_grad():
         for batch in tqdm(dataloader, disable=not accelerator.is_local_main_process):
-            q_emb = model(input_ids=batch["input_ids"], attention_mask=batch["attention_mask"])
-            p_emb = model(pixel_values=batch["pixel_values"])
+            q_inputs = unpack_query_batch(batch, args.retrieval_mode)
+            p_inputs = unpack_positive_batch(batch, args.retrieval_mode)
+            q_emb = model(**q_inputs)
+            p_emb = model(**p_inputs)
 
             all_query_embs.append(accelerator.gather_for_metrics(q_emb).cpu().numpy())
             all_positive_embs.append(accelerator.gather_for_metrics(p_emb).cpu().numpy())

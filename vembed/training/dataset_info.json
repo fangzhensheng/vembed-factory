@@ -1,0 +1,35 @@
+{
+  "_note": "columns map framework-level names (query, positive, negatives) to actual dataset field names. The framework auto-detects via COLUMN_ALIASES if not explicitly specified.",
+  "msmarco_t2t": {
+    "file_name": "data/msmarco/train.jsonl",
+    "val_file_name": "data/msmarco/val.jsonl",
+    "retrieval_mode": "t2t",
+    "description": "MS MARCO text-to-text retrieval dataset"
+  },
+  "flickr30k_t2i": {
+    "file_name": "data/flickr30k/train.jsonl",
+    "val_file_name": "data/flickr30k/val.jsonl",
+    "retrieval_mode": "t2i",
+    "image_root": "data/flickr30k",
+    "description": "Flickr30K image-text retrieval dataset"
+  },
+  "stanford_online_products_i2i": {
+    "file_name": "data/stanford_online_products/train.jsonl",
+    "val_file_name": "data/stanford_online_products/val.jsonl",
+    "retrieval_mode": "i2i",
+    "image_root": "data/stanford_online_products",
+    "description": "Stanford Online Products image-to-image retrieval dataset"
+  },
+  "coco_t2i": {
+    "file_name": "data/coco/train.jsonl",
+    "val_file_name": "data/coco/val.jsonl",
+    "retrieval_mode": "t2i",
+    "image_root": "data/coco",
+    "description": "COCO text-to-image retrieval dataset",
+    "columns": {
+      "query": "query",
+      "positive": "image_id",
+      "negatives": "negatives"
+    }
+  }
+}

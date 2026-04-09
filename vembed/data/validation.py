@@ -35,7 +35,7 @@ def validate_dataset(
         - missing_fields: Dict of field -> count of missing records
         - required_fields_present: Boolean for each required field
     """
-    data = load_data(data_source) if isinstance(data_source, str | Path) else data_source
+    data = load_data(data_source) if isinstance(data_source, (str, Path)) else data_source
     total = len(data)
 
     sample_size = min(sample_size, total)
