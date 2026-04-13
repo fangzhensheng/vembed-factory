@@ -113,8 +113,8 @@ docker run --gpus all -it -v $(pwd)/data:/app/data vembed-factory bash
 ```python
 from vembed import Trainer
 
-trainer = Trainer("openai/clip-vit-base-patch32")
-trainer.train(data_path="data/train.jsonl", output_dir="output", epochs=3)
+trainer = Trainer("openai/clip-vit-base-patch32", output_dir="output")
+trainer.train(data_path="data/train.jsonl", epochs=3)
 ```
 
 ### 推理 (Inference)

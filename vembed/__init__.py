@@ -5,8 +5,8 @@ Quick Start::
     from vembed import Trainer, VEmbedModel
 
     # Train using Python API
-    trainer = Trainer("openai/clip-vit-base-patch32")
-    trainer.train(data_path="data/train.jsonl", output_dir="output", epochs=3)
+    trainer = Trainer("openai/clip-vit-base-patch32", output_dir="output")
+    trainer.train(data_path="data/train.jsonl", epochs=3)
 
     # Use for inference
     predictor = VEmbedModel(model_path="output/checkpoint-epoch-3")

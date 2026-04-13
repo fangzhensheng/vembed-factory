@@ -2,7 +2,9 @@ import logging
 
 import torch
 
-from vembed.cli import main as cli_main
+from vembed.config import load_base_config, merge_configs
+from vembed.entrypoints.train import train_entrypoint
+from vembed.training.config import prepare_output_dir
 
 logger = logging.getLogger(__name__)
 
@@ -64,63 +66,72 @@ class VEmbedTrainer:
         attn_implementation: str | None = None,
         torch_dtype: str | None = None,
         gradient_checkpointing: bool = False,
-    ):
-        """Train model via CLI entrypoint."""
-        cli_args: list[str] = [
-            "train",
-            f"--model_name={self.model_name}",
-            f"--data_path={data_path}",
-            f"--output_dir={self.output_dir}",
-            f"--epochs={epochs}",
-            f"--batch_size={batch_size}",
-            f"--lr={learning_rate}",
-            f"--retrieval_mode={retrieval_mode}",
-        ]
+        image_root: str | None = None,
+        **kwargs,
+    ) -> dict:
+        """Train model with direct entrypoint (no CLI layer).
 
-        if use_gradient_cache:
-            cli_args.append("--use_gradient_cache")
-        if use_mrl:
-            cli_args.append("--use_mrl")
-        if use_lora:
-            cli_args.append("--use_lora")
-        if gradient_checkpointing:
-            cli_args.append("--gradient_checkpointing")
-
-        if report_to:
-            cli_args.append(f"--report_to={report_to}")
-        if attn_implementation:
-            cli_args.append(f"--attn_implementation={attn_implementation}")
-        if torch_dtype:
-            cli_args.append(f"--torch_dtype={torch_dtype}")
-
-        if self.loss_type and self.loss_type != "infonce":
-            cli_args.append(f"--loss_type={self.loss_type}")
-
-        resolved_encoder_mode = self.collator_type if self.collator_type else encoder_mode
-        if resolved_encoder_mode and resolved_encoder_mode != "auto":
-            cli_args.append(f"--encoder_mode={resolved_encoder_mode}")
-
-        if val_data_path:
-            cli_args.append(f"--val_data_path={val_data_path}")
-        if save_steps > 0:
-            cli_args.append(f"--save_steps={save_steps}")
-
-        if text_model_name:
-            cli_args.append(f"--text_model_name={text_model_name}")
-        if image_model_name:
-            cli_args.append(f"--image_model_name={image_model_name}")
-
-        if use_mrl and mrl_dims:
-            cli_args.append(f"--mrl_dims={' '.join(map(str, mrl_dims))}")
-
+        Returns:
+            Dictionary with training results including output_dir and model_path.
+        """
         logger.info(f"Starting training for {self.model_name}...")
         logger.info(f"   Mode: {self.mode}, Retrieval: {retrieval_mode}")
 
-        exit_code = cli_main(cli_args)
+        # Load defaults and merge with user config
+        defaults = load_base_config()
 
-        if exit_code == 0:
-            logger.info(f"Training finished successfully! Model saved to {self.output_dir}")
-        else:
-            logger.error(f"Training failed with exit code {exit_code}")
+        user_config = {
+            "model_name": self.model_name,
+            "data_path": data_path,
+            "output_dir": self.output_dir,
+            "epochs": epochs,
+            "batch_size": batch_size,
+            "lr": learning_rate,
+            "retrieval_mode": retrieval_mode,
+            "use_gradient_cache": use_gradient_cache,
+            "use_mrl": use_mrl,
+            "use_lora": use_lora,
+            "gradient_checkpointing": gradient_checkpointing,
+        }
 
-        return exit_code
+        if self.loss_type and self.loss_type != "infonce":
+            user_config["loss_type"] = self.loss_type
+
+        resolved_encoder_mode = self.collator_type if self.collator_type else encoder_mode
+        if resolved_encoder_mode and resolved_encoder_mode != "auto":
+            user_config["encoder_mode"] = resolved_encoder_mode
+
+        if val_data_path:
+            user_config["val_data_path"] = val_data_path
+        if save_steps > 0:
+            user_config["save_steps"] = save_steps
+
+        if text_model_name:
+            user_config["text_model_name"] = text_model_name
+        if image_model_name:
+            user_config["image_model_name"] = image_model_name
+
+        if report_to:
+            user_config["report_to"] = report_to
+        if attn_implementation:
+            user_config["attn_implementation"] = attn_implementation
+        if torch_dtype:
+            user_config["torch_dtype"] = torch_dtype
+        if image_root:
+            user_config["image_root"] = image_root
+
+        if use_mrl and mrl_dims:
+            user_config["mrl_dims"] = mrl_dims
+
+        user_config.update(kwargs)
+
+        config = merge_configs(defaults, {}, {}, user_config)
+        prepare_output_dir(config)
+
+        try:
+            result = train_entrypoint(config, accelerator=None)
+            logger.info(f"Training finished successfully! Model saved to {result['output_dir']}")
+            return result
+        except Exception as e:
+            logger.error(f"Training failed with error: {e}")
+            raise

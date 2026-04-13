@@ -1,6 +1,5 @@
 """Test VEmbedTrainer configuration and execution."""
 
-import sys
 from unittest.mock import patch
 
 import torch.nn as nn
@@ -20,66 +19,109 @@ class MockLoss(nn.Module):
 
 
 def test_custom_loss_config_override():
-    """Test that loss_type is correctly passed to CLI args."""
+    """Test that loss_type is correctly passed to train_entrypoint config."""
     trainer = VEmbedTrainer(
         model_name="openai/clip-vit-base-patch32",
         loss_type="my_custom_loss",
     )
 
-    with patch("vembed.trainer.cli_main") as mock_cli_main:
-        mock_cli_main.return_value = 0
+    with (
+        patch("vembed.trainer.load_base_config", return_value={}),
+        patch("vembed.trainer.prepare_output_dir") as mock_prepare_output_dir,
+        patch("vembed.trainer.train_entrypoint") as mock_train_entrypoint,
+    ):
+        mock_train_entrypoint.return_value = {
+            "output_dir": trainer.output_dir,
+            "model_path": "dummy/model/path",
+        }
 
-        # Mock sys.argv to avoid messing up actual sys.argv
-        with patch.object(sys, "argv", ["script.py"]):
-            trainer.train(data_path="dummy/path")
+        result = trainer.train(data_path="dummy/path")
 
-        # Check if cli_main was called
-        mock_cli_main.assert_called_once()
-
-        # Verify args contain our custom loss type override (standard format)
-        call_args = mock_cli_main.call_args[0][0]
-
-        # Check if loss_type override exists as standard parameter
-        assert "--loss_type=my_custom_loss" in call_args
+        assert result["output_dir"] == trainer.output_dir
+        mock_prepare_output_dir.assert_called_once()
+        passed_config = mock_train_entrypoint.call_args[0][0]
+        assert passed_config["loss_type"] == "my_custom_loss"
 
 
 def test_custom_collator_config_override():
-    """Test that collator_type is correctly passed to CLI args via encoder_mode override."""
+    """Test that collator_type is correctly passed via encoder_mode override."""
     trainer = VEmbedTrainer(
         model_name="openai/clip-vit-base-patch32",
         collator_type="my_custom_collator",
     )
 
-    with patch("vembed.trainer.cli_main") as mock_cli_main:
-        mock_cli_main.return_value = 0
+    with (
+        patch("vembed.trainer.load_base_config", return_value={}),
+        patch("vembed.trainer.prepare_output_dir"),
+        patch("vembed.trainer.train_entrypoint") as mock_train_entrypoint,
+    ):
+        mock_train_entrypoint.return_value = {
+            "output_dir": trainer.output_dir,
+            "model_path": "dummy/model/path",
+        }
 
-        with patch.object(sys, "argv", ["script.py"]):
-            trainer.train(data_path="dummy/path")
+        trainer.train(data_path="dummy/path")
 
-        mock_cli_main.assert_called_once()
-
-        call_args = mock_cli_main.call_args[0][0]
-
-        # Check if encoder_mode override exists as standard parameter (collator uses encoder_mode key)
-        assert "--encoder_mode=my_custom_collator" in call_args
+        passed_config = mock_train_entrypoint.call_args[0][0]
+        assert passed_config["encoder_mode"] == "my_custom_collator"
 
 
 def test_default_config_behavior():
     """Test that default values are used when no custom types provided."""
     trainer = VEmbedTrainer(model_name="openai/clip-vit-base-patch32")
 
-    with patch("vembed.trainer.cli_main") as mock_cli_main:
-        mock_cli_main.return_value = 0
+    with (
+        patch("vembed.trainer.load_base_config", return_value={}),
+        patch("vembed.trainer.prepare_output_dir"),
+        patch("vembed.trainer.train_entrypoint") as mock_train_entrypoint,
+    ):
+        mock_train_entrypoint.return_value = {
+            "output_dir": trainer.output_dir,
+            "model_path": "dummy/model/path",
+        }
 
-        with patch.object(sys, "argv", ["script.py"]):
-            trainer.train(data_path="dummy/path")
+        trainer.train(data_path="dummy/path")
 
-        call_args = mock_cli_main.call_args[0][0]
+        passed_config = mock_train_entrypoint.call_args[0][0]
+        assert "loss_type" not in passed_config
+        assert "encoder_mode" not in passed_config
 
-        # loss_type should NOT be overridden (defaults to infonce)
-        # Check that no loss_type override exists in args
-        assert not any("--loss_type=" in arg for arg in call_args)
 
-        # encoder_mode should NOT be overridden when using default "auto"
-        # (only added if different from default)
-        assert not any("--encoder_mode=" in arg for arg in call_args)
+def test_image_root_passed_to_config():
+    """Test that image_root is correctly passed to train_entrypoint config."""
+    trainer = VEmbedTrainer(model_name="openai/clip-vit-base-patch32")
+
+    with (
+        patch("vembed.trainer.load_base_config", return_value={}),
+        patch("vembed.trainer.prepare_output_dir"),
+        patch("vembed.trainer.train_entrypoint") as mock_train_entrypoint,
+    ):
+        mock_train_entrypoint.return_value = {
+            "output_dir": trainer.output_dir,
+            "model_path": "dummy/model/path",
+        }
+
+        trainer.train(data_path="dummy/path", image_root="/data/images")
+
+        passed_config = mock_train_entrypoint.call_args[0][0]
+        assert passed_config["image_root"] == "/data/images"
+
+
+def test_image_root_omitted_when_none():
+    """Test that image_root is not set in config when not provided."""
+    trainer = VEmbedTrainer(model_name="openai/clip-vit-base-patch32")
+
+    with (
+        patch("vembed.trainer.load_base_config", return_value={}),
+        patch("vembed.trainer.prepare_output_dir"),
+        patch("vembed.trainer.train_entrypoint") as mock_train_entrypoint,
+    ):
+        mock_train_entrypoint.return_value = {
+            "output_dir": trainer.output_dir,
+            "model_path": "dummy/model/path",
+        }
+
+        trainer.train(data_path="dummy/path")
+
+        passed_config = mock_train_entrypoint.call_args[0][0]
+        assert "image_root" not in passed_config

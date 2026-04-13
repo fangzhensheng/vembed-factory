@@ -145,7 +145,7 @@ class TestTrainEntrypoint:
         """Test that train module has required functions."""
         from vembed.entrypoints import train
 
-        required_functions = ["main"]
+        required_functions = ["main", "train_entrypoint"]
         for func_name in required_functions:
             assert hasattr(train, func_name), f"Missing function: {func_name}"
 

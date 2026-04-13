@@ -40,14 +40,15 @@ def run_custom(args):
         batch_size=args.batch_size,
         retrieval_mode=args.retrieval_mode,
         encoder_mode=args.encoder_mode,
-        config_override=f"pooling_method={args.pooling} image_root={IMAGE_ROOT}",
+        image_root=IMAGE_ROOT,
+        pooling_method=args.pooling,
     )
 
 
 def clip_basic():
     """Minimal CLIP training."""
     trainer = Trainer("openai/clip-vit-base-patch32", output_dir="experiments/output_quick_clip")
-    trainer.train(data_path=DATA, epochs=1, config_override=f"image_root={IMAGE_ROOT}")
+    trainer.train(data_path=DATA, epochs=1, image_root=IMAGE_ROOT)
 
 
 def siglip_lora():
@@ -55,9 +56,7 @@ def siglip_lora():
     trainer = Trainer(
         "google/siglip-base-patch16-224", output_dir="experiments/output_quick_siglip"
     )
-    trainer.train(
-        data_path=DATA, epochs=1, use_lora=True, config_override=f"image_root={IMAGE_ROOT}"
-    )
+    trainer.train(data_path=DATA, epochs=1, use_lora=True, image_root=IMAGE_ROOT)
 
 
 def clip_flash_attn():
@@ -71,7 +70,7 @@ def clip_flash_attn():
         use_lora=True,
         attn_implementation="flash_attention_2",
         torch_dtype="bfloat16",
-        config_override=f"image_root={IMAGE_ROOT}",
+        image_root=IMAGE_ROOT,
     )
 
 
@@ -85,12 +84,17 @@ def clip_mrl():
         epochs=1,
         use_lora=True,
         use_mrl=True,
-        config_override=f"image_root={IMAGE_ROOT}",
+        image_root=IMAGE_ROOT,
     )
 
 
 def clip_distill():
-    """Knowledge distillation: CLIP-Large -> CLIP-Base."""
+    """Knowledge distillation: CLIP-Large -> CLIP-Base.
+
+    Note: Advanced parameters like teacher_model_name can be passed
+    directly via **kwargs or through a YAML config:
+        vembed train examples/distillation.yaml
+    """
     trainer = Trainer("openai/clip-vit-base-patch32", output_dir="experiments/output_quick_distill")
     trainer.train(
         data_path=DATA,
@@ -98,12 +102,10 @@ def clip_distill():
         epochs=1,
         use_lora=True,
         use_mrl=True,
-        config_override=(
-            'teacher_model_name="openai/clip-vit-large-patch14" '
-            "distillation_alpha=0.5 "
-            "distillation_temperature=2.0 "
-            f"image_root={IMAGE_ROOT}"
-        ),
+        image_root=IMAGE_ROOT,
+        teacher_model_name="openai/clip-vit-large-patch14",
+        distillation_alpha=0.5,
+        distillation_temperature=2.0,
     )
 
 
@@ -118,7 +120,7 @@ def qwen3_vl():
         use_lora=True,
         attn_implementation="flash_attention_2",
         torch_dtype="bfloat16",
-        config_override=f"image_root={IMAGE_ROOT}",
+        image_root=IMAGE_ROOT,
     )
 
 

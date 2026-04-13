@@ -57,44 +57,68 @@ from vembed.utils.seed import set_seed  # noqa: E402
 logger = get_logger(__name__)
 
 
-def main():
-    """Main training entrypoint."""
-    # Load and merge configuration
-    config = load_and_parse_config()
+def train_entrypoint(config: dict, accelerator: Accelerator | None = None) -> dict:
+    """Core training logic - can be called directly or via main().
 
-    prepare_output_dir(config)
+    Args:
+        config: Training configuration dictionary.
+        accelerator: Optional Accelerator instance. If None, creates a new one.
 
-    # Note: GPU memory limit is set in cli.py before accelerator initialization
-    # Do NOT call torch.cuda.set_per_process_memory_fraction here (can only be called once per process)
-
+    Returns:
+        Dictionary with training results including output_dir.
+    """
     use_grad_checkpointing, use_gradient_cache, find_unused = get_distributed_config(config)
 
-    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=find_unused)
-    report_to = config.get("report_to", "none")
-    run_name = config.get("run_name")
-    run_tags = config.get("run_tags")
-    run_notes = config.get("run_notes")
-    log_with, init_kwargs = resolve_tracker(
-        report_to,
-        run_name=run_name,
-        run_tags=run_tags,
-        run_notes=run_notes,
-    )
+    if accelerator is None:
+        debug_gpu_memory = config.get("debug_gpu_memory")
+        if debug_gpu_memory:
+            import torch
 
-    gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
+            gpu_memory_gb = int(debug_gpu_memory)
+            try:
+                if hasattr(torch.cuda, "set_per_process_memory_fraction"):
+                    device_total_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+                    fraction = min(gpu_memory_gb / device_total_gb, 1.0)
+                    torch.cuda.set_per_process_memory_fraction(fraction)
+                    logger.info(
+                        "GPU memory limited to %sGB (%.2f%% of %.1fGB device)",
+                        gpu_memory_gb,
+                        fraction * 100,
+                        device_total_gb,
+                    )
+                else:
+                    logger.warning("torch.cuda.set_per_process_memory_fraction not available")
+            except Exception as e:
+                logger.warning("Failed to set GPU memory limit: %s", e)
 
-    accelerator = Accelerator(
-        kwargs_handlers=[ddp_kwargs],
-        log_with=log_with,
-        project_dir=config["output_dir"],
-        gradient_accumulation_steps=gradient_accumulation_steps,
-    )
-    if log_with is not None:
-        accelerator.init_trackers(
-            project_name="vembed-factory",
-            config=config,
-            init_kwargs=init_kwargs,
+        ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=find_unused)
+        report_to = config.get("report_to", "none")
+        run_name = config.get("run_name")
+        run_tags = config.get("run_tags")
+        run_notes = config.get("run_notes")
+        log_with, init_kwargs = resolve_tracker(
+            report_to,
+            run_name=run_name,
+            run_tags=run_tags,
+            run_notes=run_notes,
         )
+
+        gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
+
+        accelerator = Accelerator(
+            kwargs_handlers=[ddp_kwargs],
+            log_with=log_with,
+            project_dir=config["output_dir"],
+            gradient_accumulation_steps=gradient_accumulation_steps,
+        )
+        if log_with is not None:
+            accelerator.init_trackers(
+                project_name="vembed-factory",
+                config=config,
+                init_kwargs=init_kwargs,
+            )
+
+    log_with = accelerator.log_with
 
     # Set random seed for reproducibility
     seed = config.get("seed", 42)
@@ -395,10 +419,34 @@ def main():
     trainer.train()
 
     # Cleanup
-    if log_with is not None:
+    if accelerator.log_with is not None:
         accelerator.end_training()
 
     accelerator.print("Training complete.")
+
+    # Derive model_path from actual last checkpoint on disk
+    output_dir = config["output_dir"]
+    try:
+        checkpoints = sorted(
+            (d for d in os.listdir(output_dir) if d.startswith("checkpoint-")),
+            key=lambda d: os.path.getmtime(os.path.join(output_dir, d)),
+        )
+        model_path = os.path.join(output_dir, checkpoints[-1]) if checkpoints else output_dir
+    except OSError:
+        model_path = output_dir
+
+    return {"output_dir": output_dir, "model_path": model_path}
+
+
+def main():
+    """CLI entrypoint - loads config from file and calls train_entrypoint."""
+    config = load_and_parse_config()
+    prepare_output_dir(config)
+
+    # Note: GPU memory limit is set in cli.py before accelerator initialization
+    # Do NOT call torch.cuda.set_per_process_memory_fraction here (can only be called once per process)
+
+    train_entrypoint(config, accelerator=None)
 
 
 if __name__ == "__main__":
