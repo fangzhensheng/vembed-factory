@@ -66,7 +66,7 @@ pip install -e ".[torch]"
 
 ```bash
 # 检查是否成功安装
-python -c "from vembed import Trainer, Predictor; print('✓ vembed-factory 安装成功')"
+python -c "from vembed import Trainer, VEmbedModel; print('✓ vembed-factory 安装成功')"
 ```
 
 ### 2.3 硬件需求
@@ -345,22 +345,22 @@ Best checkpoint saved to: experiments/clip_t2i_finetuned/checkpoint-234
 ### 5.2 完整评测脚本
 
 ```python
-from vembed import Predictor
+from vembed import VEmbedModel
 import numpy as np
 
 # 加载微调后的模型
-predictor = Predictor(
+predictor = VEmbedModel(
     model_path="experiments/clip_t2i_finetuned/checkpoint-234",
     device="cuda:0"
 )
 
 # 编码所有文本查询
 queries = ["a red car", "a blue bicycle", ...]
-query_embeddings = predictor.encode_text(queries, batch_size=32)
+query_embeddings = predictor.encode_text(queries)
 
 # 编码所有图片
 images = ["image_1.jpg", "image_2.jpg", ...]
-image_embeddings = predictor.encode_image(images, batch_size=32)
+image_embeddings = predictor.encode_image(images)
 
 # 计算相似度矩阵
 similarities = np.dot(query_embeddings, image_embeddings.T)
@@ -515,10 +515,10 @@ model_name_or_path: "openai/clip-vit-small-patch32"
 ### 7.1 单个样本推理
 
 ```python
-from vembed import Predictor
+from vembed import VEmbedModel
 
 # 加载模型
-predictor = Predictor("experiments/clip_t2i_finetuned/checkpoint-234")
+predictor = VEmbedModel("experiments/clip_t2i_finetuned/checkpoint-234")
 
 # 编码单个文本
 text_emb = predictor.encode_text("red sport shoes")
@@ -541,10 +541,10 @@ import numpy as np
 
 # 批量编码
 queries = ["red shoes", "blue shoes", "green shoes"]
-query_embeddings = predictor.encode_text(queries, batch_size=32)
+query_embeddings = predictor.encode_text(queries)
 
 candidates = ["shoes_1.jpg", "shoes_2.jpg", "shoes_3.jpg", ...]
-candidate_embeddings = predictor.encode_image(candidates, batch_size=32)
+candidate_embeddings = predictor.encode_image(candidates)
 
 # 计算相似度矩阵
 similarities = np.dot(query_embeddings, candidate_embeddings.T)  # (3, N)
@@ -572,7 +572,7 @@ import numpy as np
 
 # 1. 编码所有候选图片
 candidates = ["shoes_1.jpg", "shoes_2.jpg", ...]
-embeddings = predictor.encode_image(candidates, batch_size=32)
+embeddings = predictor.encode_image(candidates)
 
 # 2. 构建 FAISS 索引
 dimension = embeddings.shape[1]
@@ -595,11 +595,11 @@ for rank, idx in enumerate(indices[0], 1):
 # api_server.py
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
-from vembed import Predictor
+from vembed import VEmbedModel
 import numpy as np
 
 app = FastAPI()
-predictor = Predictor("experiments/clip_t2i_finetuned/checkpoint-234")
+predictor = VEmbedModel("experiments/clip_t2i_finetuned/checkpoint-234")
 
 @app.post("/search/text")
 async def search_by_text(query: str, top_k: int = 10):
@@ -672,5 +672,5 @@ curl -X POST "http://localhost:8000/search/text?query=red%20shoes&top_k=10"
 - [vembed-factory GitHub](https://github.com/fangzhensheng/vembed-factory)
 - [CLIP 原始论文](https://arxiv.org/abs/2103.14030)
 - [Flickr30k 数据集](https://github.com/BryanPlummer/flickr30k_entities)
-- 兄弟教程：[Qwen3-VL 多模态检索微调](./qwen3_multimodal_retrieval_zh.md)
+- 兄弟教程：[Qwen3-VL 多模态检索微调](./02_qwen3_multimodal_retrieval_zh.md)
 

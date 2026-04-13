@@ -120,9 +120,9 @@ trainer.train(data_path="data/train.jsonl", epochs=3)
 ### 推理 (Inference)
 
 ```python
-from vembed import Predictor
+from vembed import VEmbedModel
 
-predictor = Predictor(model_path="output/checkpoint-epoch-3")
+predictor = VEmbedModel(model_path="output/checkpoint-epoch-3")
 
 text_emb = predictor.encode_text("a photo of a cat")
 image_emb = predictor.encode_image("cat.jpg")
@@ -135,16 +135,16 @@ image_emb = predictor.encode_image("cat.jpg")
 vembed train examples/quickstart/clip_minimal.yaml
 
 # CLIP 基础配置
-vembed train examples/models/clip/base.yaml
+vembed train examples/quickstart/clip_minimal.yaml
 
 # 训练 Qwen3-VL 2B (多模态)
-vembed train examples/models/qwen3_vl/2b_base.yaml
+vembed train examples/quickstart/qwen3_vl_minimal.yaml
 
 # 训练 Qwen3-VL 8B (FSDP 分布式)
-vembed train examples/models/qwen3_vl/8b_fsdp.yaml
+vembed train examples/distributed/qwen3_vl_8b_fsdp.yaml
 
 # DINOv2 图搜图 (I2I)
-vembed train examples/models/dinov2/base.yaml
+vembed train examples/strategies/late_interaction/strategy_lateint_dinov2_colbert.yaml
 
 # 查看所有可用配置
 vembed list-configs
@@ -169,10 +169,10 @@ vembed-factory 支持灵活的输入数据。JSONL 文件中的每一行都是�
 
 ```bash
 # 使用指定的配置文件运行
-vembed train examples/models/clip/base.yaml
+vembed train examples/quickstart/clip_minimal.yaml
 
 # 通过 CLI 覆盖特定设置 (现代参数格式)
-vembed train examples/models/clip/base.yaml \
+vembed train examples/quickstart/clip_minimal.yaml \
     --batch_size 64 \
     --learning_rate 1e-5
 ```
@@ -194,22 +194,22 @@ vembed train examples/models/clip/base.yaml \
 | `use_mrl` | `false` | Matryoshka 表征学习 |
 | `use_lora` | `false` | LoRA 微调 |
 
-完整列表请参考 [`configs/defaults.yaml`](configs/defaults.yaml)。
+完整列表请参考 [`../configs/defaults.yaml`](../configs/defaults.yaml)。
 
 ## 学习资源
 
 ### 分步指南
 
-- **[DINOv2 图像检索](guides/dinov2_finetune.md)** - 在 SOP 数据集上微调 DINOv2 实现高精度图像搜索
-- **[双塔模型双向损失](guides/bidirectional_loss.md)** - 用双向训练优化文到图和图到文两个方向
-- **[双向损失决策表](guides/BIDIRECTIONAL_DECISION_TABLE.md)** - 快速参考：应该使用双向损失吗？
-- **[VLM 与双向损失分析](guides/VLM_BIDIRECTIONAL_QUICKREF.md)** - 双向损失在 VLM 模型中何时有效？
+- **[DINOv3 图像检索](guides/dinov3_finetune_zh.md)** - 在 SOP 数据集上微调 DINOv3 实现高精度图像搜索
+- **[快速开始](guides/getting-started.md)** - 从零完成第一次训练
+- **[Python API 指南](guides/python-api.md)** - 当前高层与低层 Python API
+- **[配置指南](guides/configuration.md)** - YAML 与 CLI 参数说明
 - **[Jupyter Notebooks](../notebooks/)** - 交互式教程覆盖各种使用场景
 - **[API 文档](api/)** - 所有模块的详细 API 参考
 
 ## 开发与贡献
 
-有兴趣贡献？请查看 [CONTRIBUTING.md](../CONTRIBUTING.md) 了解开发环境设置和指南。
+有兴趣贡献？请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解开发环境设置和指南。
 
 ## 评测结果
 
@@ -218,7 +218,7 @@ vembed train examples/models/clip/base.yaml \
 我们使用 `vembed-factory` 在 SOP 数据集 (电商商品) 上微调了 **DINOv3-ViT-B/16** 和 **MAE-base** 模型。
 
 **定性结果 (Top-5 检索):**
-![SOP I2I Demo](docs/assets/sop_i2i_demo.png)
+![SOP I2I Demo](assets/sop_i2i_demo.png)
 
 | 模型 | 指标 | 零样本 (Zero-shot) | 微调后 (Fine-tuned) | 提升 (Delta) |
 | :--- | :--- | :--- | :--- | :--- |
@@ -239,7 +239,7 @@ vembed train examples/models/clip/base.yaml \
 我们使用 `vembed-factory` 在 Flickr30k (Karpathy split) 上微调了 **CLIP ViT-B/32** 和 **Qwen3-VL-Embedding-2B**。
 
 **可视化结果 (Top-5 检索):**
-![Flickr30k T2I Demo](docs/assets/flickr30k_t2i_demo.png)
+![Flickr30k T2I Demo](assets/flickr30k_t2i_demo.png)
 
 #### 文搜图 (Text → Image)
 

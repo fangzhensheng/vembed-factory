@@ -372,5 +372,4 @@ GPU 数量 > 4 或模型 > 8B：FSDP
 
 **相关教程：**
 - [参数高效微调](./04_parameter_efficient_tuning_zh.md)
-- [问题诊断](./troubleshooting_optimization_zh.md)
-
+- [问题诊断](./08_troubleshooting_optimization_zh.md)

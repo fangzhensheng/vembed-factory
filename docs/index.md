@@ -124,9 +124,9 @@ trainer.train(data_path="data/train.jsonl", epochs=3)
 ### Inference
 
 ```python
-from vembed import Predictor
+from vembed import VEmbedModel
 
-predictor = Predictor(model_path="output/checkpoint-epoch-3")
+predictor = VEmbedModel(model_path="output/checkpoint-epoch-3")
 
 text_emb = predictor.encode_text("a photo of a cat")
 image_emb = predictor.encode_image("cat.jpg")
@@ -136,16 +136,16 @@ image_emb = predictor.encode_image("cat.jpg")
 
 ```bash
 # Train CLIP base model (Recommended)
-vembed train examples/models/clip/base.yaml
+vembed train examples/quickstart/clip_minimal.yaml
 
 # Train Qwen3-VL 2B (Multimodal)
-vembed train examples/models/qwen3_vl/2b_base.yaml
+vembed train examples/quickstart/qwen3_vl_minimal.yaml
 
 # Train CLIP with MRL (modern CLI format)
-vembed train examples/models/clip/base.yaml --use_mrl --mrl_dims [512,256,128]
+vembed train examples/quickstart/clip_minimal.yaml --use_mrl --mrl_dims [512,256,128]
 
 # Train with W&B logging
-vembed train examples/models/clip/base.yaml --report_to wandb
+vembed train examples/quickstart/clip_minimal.yaml --report_to wandb
 
 # List all available configurations
 vembed list-configs
@@ -169,10 +169,10 @@ Training can be customized via YAML configs and CLI overrides:
 
 ```bash
 # Train with a specific config file
-vembed train examples/models/clip/base.yaml
+vembed train examples/quickstart/clip_minimal.yaml
 
 # Override specific settings (modern CLI format)
-vembed train examples/models/clip/base.yaml \
+vembed train examples/quickstart/clip_minimal.yaml \
   --learning_rate 1e-5 \
   --batch_size 64 \
   --scheduler_type linear \
@@ -200,8 +200,8 @@ See [`https://github.com/fangzhensheng/vembed-factory/blob/main/vembed/configs/d
 ```
 vembed-factory/
 ├── vembed/
-│   ├── __init__.py        # Public API: Trainer, Predictor, __version__
-│   ├── trainer.py         # High-level Training API (VEmbedFactoryTrainer)
+│   ├── __init__.py        # Public API: Trainer, VEmbedModel, __version__
+│   ├── trainer.py         # High-level Training API (VEmbedTrainer / Trainer alias)
 │   ├── inference.py       # High-level Inference API
 │   ├── cli.py             # CLI entry point
 │   ├── configs/           # YAML presets (clip, siglip, qwen, ...)
@@ -220,10 +220,9 @@ vembed-factory/
 ├── notebooks/             # Jupyter tutorials (4 notebooks)
 ├── tests/                 # Unit tests
 ├── docs/                  # Documentation
-│   ├── REFACTORING_SUMMARY.md       # Detailed refactoring summary
-│   ├── REFACTORING_BEFORE_AFTER.md  # Code comparison
-│   ├── QUICK_REFERENCE.md           # Quick usage guide
-│   └── api/training/                # Training API documentation
+│   ├── structure.md                # Repository structure and architecture
+│   ├── guides/                     # User guides
+│   └── api/training/               # Training API documentation
 ├── Dockerfile             # GPU-ready container
 └── Makefile               # Common commands (make help)
 ```
@@ -231,11 +230,10 @@ vembed-factory/
 ### 📝 Documentation Updates
 
 The training module has been refactored into 8 specialized components. See new documentation:
-- **[REFACTORING_SUMMARY.md](../REFACTORING_SUMMARY.md)** - Complete refactoring overview
-- **[QUICK_REFERENCE.md](../QUICK_REFERENCE.md)** - Quick reference for all modules
-- **[ARCHITECTURE_CLARIFICATION.md](../ARCHITECTURE_CLARIFICATION.md)** - Call chain explanations
-- **[TRAINER_CLARIFICATION.md](../TRAINER_CLARIFICATION.md)** - Difference between Trainer classes
-- **[vembed/training/README.md](../vembed/training/README.md)** - Training module API docs
+- **[structure.md](structure.md)** - Repository structure and architecture
+- **[guides/python-api.md](guides/python-api.md)** - Current Python API guide
+- **[api/training/index.md](api/training/index.md)** - Training module API reference
+- **[vembed/training/README.md](../vembed/training/README.md)** - Low-level training module guide
 
 ## Development
 

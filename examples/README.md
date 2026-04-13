@@ -1,92 +1,65 @@
 # vembed-factory 配置示例指南
 
-欢迎！这里包含了vembed-factory的所有配置示例。本指南将帮助你快速找到合适的配置。
+docker push ai-harbor.facethink.com/mlops-public/prepare-agent-04-v3
 
-## 🚀 快速开始（推荐）
+## 目录结构
 
-如果你是第一次使用vembed-factory，直接从这里开始：
+### `quickstart/`
 
-```bash
-# 查看快速开始配置
-cat examples/quickstart/README.md
-```
+docker -harbor.com/mlops-public/prepare-agent-v2:04-09-v3
 
-## 📁 目录结构
+- `clip_minimal.yaml`
+- `qwen3_vl_minimal.yaml`
+- `debug_minimal.yaml`
 
-### quickstart/ - 快速开始
-最小化的配置示例，适合新手快速启动训练。
+### `strategies/`
 
-### models/ - 按模型分类
-- clip/ - CLIP系列 (vision_clip_*.yaml)
-- qwen3_vl/ - Qwen-VL系列 (multimodal_qwen3_vl_*.yaml)
-- dinov2/ - DINOv2系列 (vision_dinov2_*.yaml)
-- siglip/ - SigLIP (vision_siglip_*.yaml)
-- other/ - 其他模型 (text_bert_*, vision_mae_*)
+docker push ai-harbor.facethink.com/mlops-public/prepare-agent-v2:04-09-v3
 
-### strategies/ - 按策略分类
-- hard_negative/ - 硬负样本挖掘 (strategy_hardneg_*.yaml)
-- in_batch_hard/ - 批内硬负样本 (strategy_inbatch_*.yaml)
-- knowledge_distillation/ - 知识蒸馏 (strategy_distill_*.yaml)
-- special_loss/ - 特殊Loss函数 (strategy_loss_*.yaml)
-- late_interaction/ - 晚期交互 (strategy_lateint_*.yaml)
+- `hard_negative/`
+- `in_batch_hard/`
+- `knowledge_distillation/`
+- `late_interaction/`
+- `special_loss/`
 
-### datasets/ - 按数据集分类
-- dataset_coco_t2i.yaml - COCO数据集（图文）
-- dataset_flickr30k_t2i.yaml - Flickr30k数据集（图文）
-- dataset_msmarco_t2t.yaml - MS MARCO数据集（纯文本）
+### `distributed/`
 
-### distributed/ - 分布式训练
-FSDP和多GPU配置
+docker push ai-harbor.facethink.com/mlops-public/prepare-agent-v2:04-09-v3
 
-## 🎯 如何选择配置？
+- `qwen3_vl_8b_fsdp.yaml`
+- `qwen3_vl_2b_wandb.yaml`
+- `qwen3_vl_2b_swanlab.yaml`
 
-**我有16GB显存** → `models/clip/vision_clip_base.yaml`
-**我有24GB显存** → `models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml`
-**我有多块GPU** → `models/qwen3_vl/multimodal_qwen3_vl_8b_fsdp.yaml`
-**我是新手** → `quickstart/clip_minimal.yaml`
-**我想要硬负样本** → `strategies/hard_negative/strategy_hardneg_*.yaml`
-**我想要知识蒸馏** → `strategies/knowledge_distillation/strategy_distill_*.yaml`
+### `datasets/`
 
-## 📖 使用方法
+docker push ai-harbor.facethink.com/mlops-public/prepare-agent-v2:04-09-v3
 
-**查看可用配置和数据集：**
+- `dataset_coco_t2i.yaml`
+- `dataset_flickr30k_t2i.yaml`
+- `dataset_msmarco_t2t.yaml`
+
+## 典型选择
+
+- **第一次使用**: `examples/quickstart/clip_minimal.yaml`
+- **想试多模态 VLM**: `examples/quickstart/qwen3_vl_minimal.yaml`
+- **需要 FSDP**: `examples/distributed/qwen3_vl_8b_fsdp.yaml`
+- **需要知识蒸馏**: `examples/strategies/knowledge_distillation/strategy_distill_clip_distillation.yaml`
+- **需要 ColBERT/late interaction**: `examples/strategies/late_interaction/strategy_lateint_dinov2_colbert.yaml`
+
+## 使用方式
 
 ```bash
-# 列出所有训练配置
+# 基础训练
+vembed train examples/quickstart/clip_minimal.yaml
+
+# 覆盖参数
+vembed train examples/quickstart/clip_minimal.yaml     --learning_rate 5e-5     --batch_size 64     --epochs 10
+
+# 干运行
+vembed train examples/quickstart/clip_minimal.yaml --dry_run
+
+# 查看可用配置
 vembed list-configs
-
-# 列出所有数据集
-vembed list-datasets
-
-# 查看某个数据集详情
-vembed show-dataset flickr30k_t2i
 ```
 
-**训练模型：**
-
-```bash
-# 基础用法
-vembed train examples/models/clip/vision_clip_base.yaml
-
-# 命令行覆盖参数
-vembed train examples/models/clip/vision_clip_base.yaml \
-    --learning-rate 5e-5 \
-    --batch-size 64 \
-    --epochs 10
-
-# 恢复中断的训练
-vembed train examples/models/clip/vision_clip_base.yaml \
-    --resume-from-checkpoint outputs/model/checkpoint-1000
-
-# 干运行（只生成配置，不训练）
-vembed train examples/models/clip/vision_clip_base.yaml --dry-run
-```
-
-## 📚 原始配置文件
-
-原始的27个YAML文件都保留在examples/目录根目录中，可以继续使用。
-新的组织结构是为了更好地帮助用户快速找到合适的配置。
-
----
-
-提示：从quickstart/开始，然后根据需要调整参数。祝训练顺利！ 🚀
+check `examples/quickstart/README.md`。

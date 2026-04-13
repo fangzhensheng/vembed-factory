@@ -133,7 +133,7 @@ A: Start with 5e-5 for fine-tuning. Use smaller LR (2e-5) for large models to av
 
 - **Hyperparameters**: [hparams.md](hparams.md) - Configuration dataclasses
 - **CLI**: [cli.md](cli.md) - Command-line interface
-- **Training**: [../training/trainer.md](../training/trainer.md) - Training orchestration
+- **Training**: [training/trainer.md](training/trainer.md) - Training orchestration
 
 ---
 

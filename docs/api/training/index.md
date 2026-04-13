@@ -252,10 +252,10 @@ Combine multiple techniques:
 from vembed.training import Trainer, load_and_parse_config
 from vembed.training.model_builder import build_model
 
-# ✗ Wrong - VEmbedFactoryTrainer is from vembed.trainer, not training
-from vembed.training import VEmbedFactoryTrainer  # ImportError!
+# ✗ Wrong - the high-level trainer is not exported from vembed.training
+from vembed.training import VEmbedTrainer  # ImportError!
 # Use instead:
-from vembed.trainer import VEmbedFactoryTrainer
+from vembed import Trainer
 ```
 
 ### Configuration Issues
@@ -291,10 +291,9 @@ config['lora_r'] = 8  # Smaller rank
 
 ## Related Documentation
 
-- [REFACTORING_SUMMARY.md](../../REFACTORING_SUMMARY.md) - Complete refactoring overview
-- [QUICK_REFERENCE.md](../../QUICK_REFERENCE.md) - Quick module reference
-- [vembed/training/README.md](../../vembed/training/README.md) - User guide with examples
-- [trainer.md](./trainer.md) - VEmbedFactoryTrainer (high-level API)
+- [vembed/training/README.md](../../../vembed/training/README.md) - User guide with examples
+- [trainer.md](./trainer.md) - High-level `VEmbedTrainer` API
+- [training_loop.md](./training_loop.md) - Low-level training loop API
 
 ---
 

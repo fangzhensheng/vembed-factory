@@ -292,16 +292,16 @@ epochs: 3
 
 ```bash
 # 基础训练命令
-vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml
+vembed train examples/quickstart/qwen3_vl_minimal.yaml
 
 # 指定 GPU
-CUDA_VISIBLE_DEVICES=0 vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml
+CUDA_VISIBLE_DEVICES=0 vembed train examples/quickstart/qwen3_vl_minimal.yaml
 
 # 多 GPU 训练
-accelerate launch vembed/entrypoints/train.py examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml
+accelerate launch vembed/entrypoints/train.py --config examples/quickstart/qwen3_vl_minimal.yaml
 
 # CLI 参数覆盖（现代格式）
-vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml \
+vembed train examples/quickstart/qwen3_vl_minimal.yaml \
     --batch_size 32 \
     --epochs 5
 ```
@@ -488,12 +488,12 @@ vembed train $BASE_CONFIG \
 ### 6.2 完整评测脚本
 
 ```python
-from vembed import Predictor
+from vembed import VEmbedModel
 import numpy as np
 from vembed.evaluation.metrics import compute_recall_at_k
 
 # 加载模型
-predictor = Predictor("experiments/qwen3_t2i/checkpoint-234")
+predictor = VEmbedModel("experiments/qwen3_t2i/checkpoint-234")
 
 # 编码
 queries = ["red shoes", "blue bags", ...]  # N 个查询
@@ -546,11 +546,11 @@ mrl_dims: [1536, 1024, 768, 512, 256, 128]  # 维度层级
 
 ```python
 # 快速搜索（低维）
-predictor_fast = Predictor("checkpoint", mrl_dim=256)
+predictor_fast = VEmbedModel("checkpoint", mrl_dim=256)
 fast_embeddings = predictor_fast.encode_text(queries)
 
 # 精确重排（高维）
-predictor_precise = Predictor("checkpoint", mrl_dim=1536)
+predictor_precise = VEmbedModel("checkpoint", mrl_dim=1536)
 precise_embeddings = predictor_precise.encode_text(queries)
 
 # 两阶段流程
@@ -667,6 +667,5 @@ epochs: 3-5
 
 **相关教程：**
 - [CLIP 文本-图像检索](./01_clip_text_to_image_zh.md)
-- [电商搜索系统端到端](./ecommerce_search_system_zh.md)
-- [参数高效微调完全指南](./parameter_efficient_tuning_zh.md)
-
+- [电商搜索系统端到端](./03_ecommerce_search_system_zh.md)
+- [参数高效微调完全指南](./04_parameter_efficient_tuning_zh.md)

@@ -1,85 +1,76 @@
 # Inference API
 
-High-level inference interface for embedding models.
+High-level inference interface for encoding text and images from trained checkpoints.
 
 ## Overview
 
-The inference module provides the `VEmbedModel` class for loading trained models and encoding text/images into embeddings. Supports batching, multi-modality, and optional dimension reduction via MRL.
-
-### Key Features
-- Simple model loading from checkpoint
-- Batch encoding support
-- Multi-modality support (text, image, multimodal)
-- Optional MRL dimension reduction
-- Automatic device management
+`VEmbedModel` loads a checkpoint and exposes text and image encoding methods for retrieval use cases.
 
 ## Quick Start
 
 ```python
 from vembed.inference import VEmbedModel
 
-# Load model
-predictor = VEmbedModel("output/checkpoint-epoch-3")
+model = VEmbedModel("output/checkpoint-epoch-3")
 
-# Encode text
-text_emb = predictor.encode_text("a photo of a cat")  # (768,)
-
-# Encode image
-image_emb = predictor.encode_image("cat.jpg")  # (768,)
-
-# Compute similarity
+text_emb = model.encode_text("a photo of a cat")
+image_emb = model.encode_image("cat.jpg")
 similarity = (text_emb @ image_emb.T).item()
 print(f"Similarity: {similarity:.4f}")
 ```
 
+For single-item inputs, the returned arrays keep a batch dimension of 1.
+
 ## Common Use Cases
 
-### Image Retrieval with Batch Processing
+### Batch Retrieval
+
 ```python
 import numpy as np
+from vembed.inference import VEmbedModel
 
-predictor = VEmbedModel("models/clip-fine-tuned")
-
-# Encode query
-query_emb = predictor.encode_image("query.jpg")
-
-# Batch encode database
-db_images = ["img1.jpg", "img2.jpg", "img3.jpg"]
-db_embs = predictor.encode_image(db_images)  # (3, 768)
-
-# Find top-k
-similarities = query_emb @ db_embs.T
-top_indices = np.argsort(similarities)[::-1][:10]
+model = VEmbedModel("models/clip-fine-tuned")
+query_emb = model.encode_image("query.jpg")
+image_embs = model.encode_image(["img1.jpg", "img2.jpg", "img3.jpg"])
+similarities = query_emb @ image_embs.T
+ranking = np.argsort(similarities[0])[::-1]
 ```
 
 ### MRL Dimension Reduction
-```python
-# Use 256-dim embeddings for faster search
-predictor = VEmbedModel(
-    "models/qwen3-mrl",
-    mrl_dim=256
-)
 
-text_emb = predictor.encode_text("hello")  # (256,) instead of (1536,)
+```python
+model = VEmbedModel(
+    "models/qwen3-mrl",
+    mrl_dim=256,
+)
+text_emb = model.encode_text("hello")
 ```
 
 ### Pooling Methods
+
 ```python
-predictor = VEmbedModel(
+model = VEmbedModel(
     "model_path",
-    pooling_method="cls"  # Options: "mean", "cls", "max"
+    pooling_method="cls",  # Common values: mean, cls, last_token, none
 )
 ```
 
-## API Reference
+## API Summary
 
 | Method | Input | Output | Description |
 |--------|-------|--------|-------------|
-| `encode_text()` | str or List[str] | (D,) or (N,D) | Encode text |
-| `encode_image()` | str or List[str] | (D,) or (N,D) | Encode image |
+| `encode_text()` | `str` or `list[str]` | `(N, D)` | Encode text inputs |
+| `encode_image()` | image path, `PIL.Image`, or list | `(N, D)` | Encode image inputs |
+| `encode()` | text or image input | `(N, D)` | Generic wrapper |
 
-Where D = embedding_dim, N = batch size
+`N` is the batch size. Single-item inputs still return `N=1`.
 
----
+## Notes
+
+- `encode_text()` and `encode_image()` do not accept a `batch_size` parameter.
+- `VEmbedModel` does not provide a built-in `similarity()` helper.
+- Set `mrl_dim` on the constructor to truncate embeddings during inference.
+
+## API Reference
 
 ::: vembed.inference.VEmbedModel

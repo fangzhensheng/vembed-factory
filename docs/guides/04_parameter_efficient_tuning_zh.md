@@ -131,11 +131,11 @@ mrl_dims: [1536, 1024, 768, 512, 256, 128]  # 维度层级
 
 ```python
 # 快速检索
-predictor_fast = Predictor("checkpoint", mrl_dim=256)
+predictor_fast = VEmbedModel("checkpoint", mrl_dim=256)
 fast_embs = predictor_fast.encode_text(queries)  # 快
 
 # 精确重排
-predictor_precise = Predictor("checkpoint", mrl_dim=1536)
+predictor_precise = VEmbedModel("checkpoint", mrl_dim=1536)
 precise_embs = predictor_precise.encode_text(queries)  # 精确
 ```
 
@@ -323,5 +323,5 @@ GPU 显存？
 **相关教程：**
 - [CLIP 微调](./01_clip_text_to_image_zh.md)
 - [Qwen3-VL 微调](./02_qwen3_multimodal_retrieval_zh.md)
-- [多卡分布式训练](./distributed_training_deep_dive_zh.md)
+- [多卡分布式训练](./05_distributed_training_zh.md)
 

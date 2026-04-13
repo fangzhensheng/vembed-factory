@@ -1,6 +1,6 @@
 # Getting Started with vembed-factory
 
-vembed-factory is a training framework optimized for visual and multimodal embeddings. This guide shows you how to train your first model in minutes.
+vembed-factory supports three training entry points that all lead into the same training core.
 
 ## Installation
 
@@ -9,27 +9,21 @@ vembed-factory is a training framework optimized for visual and multimodal embed
 git clone https://github.com/fangzhensheng/vembed-factory.git
 cd vembed-factory
 
-# Install with uv (recommended)
+# Recommended: uv
 uv sync
 source .venv/bin/activate
 
-# Or with pip
+# Or pip
 pip install -e ".[all]"
 ```
 
 ## Three Ways to Train
 
-vembed-factory supports multiple training approaches:
-
 | Method | Use Case | Complexity |
 |--------|----------|-----------|
-| **CLI** (`vembed train`) | Production, batch training | Low |
-| **Python API - Simple** (`VEmbedFactoryTrainer`) | Prototyping, quick experiments | Low |
-| **Python API - Advanced** (`Trainer` from `vembed.training`) | Research, customization | Medium |
-
-Choose based on your needs. All three are 100% compatible and use the same training core.
-
----
+| **CLI** (`vembed train`) | Reproducible runs and production workflows | Low |
+| **Python API - Simple** (`Trainer`) | Prototyping and notebooks | Low |
+| **Python API - Advanced** (`vembed.training.Trainer`) | Research and custom orchestration | Medium |
 
 ## Your First Training
 
@@ -42,80 +36,62 @@ Create `data/train.jsonl` with retrieval pairs:
 {"query": "a dog running", "positive": "dog_running.jpg", "negatives": ["dog_sitting.jpg"]}
 ```
 
-Supported formats:
-- **Text-to-Image (T2I)**: `{"query": "...", "positive": "image.jpg", "negatives": [...]}`
-- **Image-to-Image (I2I)**: `{"query_image": "...", "positive": "...", "negatives": [...]}`
-- **Image-to-Text (I2T)**: `{"query_image": "...", "positive": "text"}`
-- **Multimodal (M2I)**: `{"query_image": "...", "query": "...", "positive": "..."}`
-- **Text-to-Text (T2T)**: `{"query": "...", "positive": "..."}`
-
-### 2. Train with Python API (Simple)
+### 2. Train with the High-Level Python API
 
 ```python
-from vembed.trainer import VEmbedFactoryTrainer
+from vembed import Trainer
 
-# Initialize with any HuggingFace model
-trainer = VEmbedFactoryTrainer("openai/clip-vit-base-patch32")
-
-# Train in 3 lines
-trainer.train(
-    data_path="data/train.jsonl",
-    output_dir="output",
-    epochs=3
+trainer = Trainer(
+    "openai/clip-vit-base-patch32",
+    output_dir="output/clip_run",
 )
+
+result = trainer.train(
+    data_path="data/train.jsonl",
+    image_root="data/images",
+    epochs=3,
+)
+
+print(result["model_path"])
 ```
 
-This uses the high-level API wrapper that delegates to CLI internally. Perfect for quick prototyping.
+This high-level API calls the core training entrypoint directly and is ideal for quick experiments.
 
-### 3. Train with CLI (Recommended)
+### 3. Train with the CLI
 
 ```bash
 # Quick start - minimal CLIP configuration
 vembed train examples/quickstart/clip_minimal.yaml
 
-# Train CLIP base model with data
-vembed train examples/models/clip/vision_clip_base.yaml \
-    --data_path data/train.jsonl \
-    --image_root data/images
+# Quick start - minimal Qwen3-VL configuration
+vembed train examples/quickstart/qwen3_vl_minimal.yaml
 
-# Override parameters using modern CLI interface (recommended)
-vembed train examples/models/clip/vision_clip_base.yaml \
+# Override parameters from CLI
+vembed train examples/quickstart/clip_minimal.yaml \
     --data_path data/train.jsonl \
     --image_root data/images \
     --batch_size 64 \
     --learning_rate 1e-5 \
-    --epochs 3 \
-    --use_mrl \
-    --mrl_dims [512,256,128]
+    --epochs 3
 
-# Advanced: explicit accelerate launch for distributed training (DDP/FSDP)
-accelerate launch vembed/entrypoints/train.py examples/models/clip/vision_clip_base.yaml \
-    --data_path data/train.jsonl \
-    --num_gpus 8 \
-    --use_fsdp
+# Distributed training with FSDP
+vembed train examples/distributed/qwen3_vl_8b_fsdp.yaml
 ```
 
-**CLI Interface**: Use standard `--key value` parameters
-
-### 4. Train with Python API (Advanced)
-
-For complete control over training, use the modular training components:
+### 4. Train with the Low-Level Modules
 
 ```python
+from accelerate import Accelerator
+
 from vembed.training import Trainer, load_and_parse_config
 from vembed.training.model_builder import build_model
 from vembed.training.optimizer_builder import build_optimizer
-from accelerate import Accelerator
 
-# Load and parse configuration
 config = load_and_parse_config()
-
-# Build components
 accelerator = Accelerator()
 model = build_model(config)
 optimizer = build_optimizer(model, config)
 
-# Create trainer
 trainer = Trainer(
     model=model,
     optimizer=optimizer,
@@ -125,120 +101,55 @@ trainer = Trainer(
     config=config,
     scheduler=scheduler,
 )
-
-# Train
 trainer.train()
 ```
-
-This gives you full control to customize the training loop. See [vembed/training/README.md](../../vembed/training/README.md) for detailed API documentation.
 
 ### 5. Use the Trained Model
 
 ```python
-from vembed import Predictor
+from vembed import VEmbedModel
 
-# Load the model
-predictor = Predictor("output/checkpoint-epoch-3")
-
-# Encode text
-text_emb = predictor.encode_text("a red cat")
-
-# Encode image
-image_emb = predictor.encode_image("cat_red.jpg")
-
-# Compute similarity
-score = (text_emb * image_emb).sum()
+model = VEmbedModel("output/checkpoint-epoch-3")
+text_emb = model.encode_text("a red cat")
+image_emb = model.encode_image("cat_red.jpg")
+score = (text_emb @ image_emb.T).item()
 print(f"Similarity: {score:.4f}")
 ```
 
-## What's Next?
+## What Changed in the Python API
 
-- **[Data Preparation Guide](data-preparation.md)** - Learn about data formats and preprocessing
-- **[Configuration Guide](configuration.md)** - Explore training options
-- **[Python API Guide](python-api.md)** - Understand different API approaches
-- **[Distributed Training Guide](distributed-training.md)** - DDP vs FSDP vs Gradient Cache
-- **[LoRA Fine-tuning](lora-finetuning.md)** - Parameter-efficient fine-tuning
-- **[FSDP Training Guide](fsdp-training.md)** - Train large 8B+ models
+- Use `Trainer` or `VEmbedTrainer` for the high-level Python interface.
+- Set `output_dir` in the constructor, not in `train()`.
+- The high-level trainer returns a result dictionary and does not provide `evaluate()`.
 
-## Supported Models
+## What Next
 
-vembed-factory works with any HuggingFace model, with built-in optimization for:
-
-- **CLIP / SigLIP**: Fast dual-encoders
-- **Qwen3-VL-Embedding**: State-of-the-art multimodal models
-- **ColPali**: Document and fine-grained retrieval
-- **Custom models**: Mix any text + image encoder
-
-## About the Training Module Refactoring
-
-The training module has been reorganized into 8 specialized components to improve maintainability and testability while maintaining 100% backward compatibility:
-
-| Module | Purpose | Lines |
-|--------|---------|-------|
-| **config.py** | Configuration loading & parsing | 60 |
-| **data_utils.py** | Batch unpacking & concatenation | 220 |
-| **optimizer_builder.py** | Optimizer & scheduler creation | 110 |
-| **model_builder.py** | Model initialization with optimizations | 200 |
-| **checkpoint.py** | Checkpoint saving & management | 60 |
-| **evaluator.py** | Validation evaluation loop | 130 |
-| **training_loop.py** | Core `Trainer` class | 490 |
-| **__init__.py** | Public API exports | - |
-
-**Total**: 1,265 lines across 8 focused modules (vs. original 790 lines in single file)
-
-### Why This Refactoring?
-
-✅ **Better maintainability** - Each module has single responsibility
-✅ **Easier testing** - Each component can be tested independently
-✅ **Better reusability** - Import and use modules independently in Python
-✅ **100% backward compatible** - All CLI commands still work
-✅ **New flexibility** - Can now compose training components programmatically
-
-### Migration Path
-
-- **If using CLI**: No changes needed! All commands work exactly as before.
-- **If using `VEmbedFactoryTrainer`**: No changes needed! Still works as before.
-- **If want full control**: New! Use `vembed.training.Trainer` directly for complete customization.
-
-See [REFACTORING_SUMMARY.md](../../REFACTORING_SUMMARY.md) for complete details.
-
----
+- [Data Preparation Guide](data-preparation.md)
+- [Configuration Guide](configuration.md)
+- [Python API Guide](python-api.md)
+- [Distributed Training Guide](distributed-training.md)
+- [LoRA Fine-tuning](lora-finetuning.md)
+- [Monitoring](monitoring.md)
 
 ## Common Issues
 
 **Q: Out of memory?**
-```bash
-# Modern interface (recommended)
-vembed train config.yaml --batch_size 8 --use_gradient_cache --gradient_checkpointing
 
-# Or use accelerate directly
-accelerate launch vembed/entrypoints/train.py config.yaml \
+```bash
+vembed train examples/quickstart/qwen3_vl_minimal.yaml \
     --batch_size 8 \
     --use_gradient_cache \
     --gradient_checkpointing
 ```
 
 **Q: How to log to W&B?**
+
 ```bash
 wandb login
-
-# Modern interface
-vembed train config.yaml --report_to wandb
-
-# Or use accelerate
-accelerate launch vembed/entrypoints/train.py config.yaml --report_to wandb
+vembed train examples/quickstart/clip_minimal.yaml --report_to wandb
 ```
 
-**Q: What's the difference between CLI parameter formats?**
+**Q: Which Python trainer should I choose?**
 
-Use the modern CLI format with shell auto-completion:
-
-```bash
-vembed train config.yaml --batch_size 64 --learning_rate 5e-5 --use_mrl
-```
-
-**Q: What's the difference between VEmbedFactoryTrainer and the new Trainer?**
-
-See [TRAINER_CLARIFICATION.md](../../TRAINER_CLARIFICATION.md) for a detailed comparison.
-
-See [Troubleshooting](../troubleshooting.md) for more help.
+- Use `Trainer` for simple Python calls.
+- Use `vembed.training.Trainer` for full control.

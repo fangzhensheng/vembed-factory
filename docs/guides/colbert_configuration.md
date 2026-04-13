@@ -384,7 +384,7 @@ score = (embeddings[q] @ embeddings[d].T).max(dim=-1).values.mean()
 ## Related Resources
 
 - [ColBERT Paper](https://arxiv.org/abs/2004.12832)
-- [Framework Architecture](../ARCHITECTURE.md)
+- [Framework Architecture](../structure.md)
 - [Training Configuration](./configuration.md)
 - [Loss Functions Reference](../../vembed/losses/)
 - [Model Backbones](../../vembed/model/backbones/)

@@ -26,7 +26,7 @@ vembed-factory/
 
 ```
 vembed/
-├── __init__.py             # Public API exports (Trainer, Predictor)
+├── __init__.py             # Public API exports (Trainer, VEmbedModel)
 ├── cli.py                  # CLI entry point & command parsing
 ├── config.py               # Runtime configuration management
 ├── trainer.py              # High-level training orchestration
@@ -217,7 +217,7 @@ Optimizer Step (gradient accumulated)
 - DDP multi-GPU support via `no_sync()`
 - Model-agnostic (works with any PyTorch model)
 
-**See**: [docs/COEXISTENCE_FIX_GUIDE.md](COEXISTENCE_FIX_GUIDE.md) for gradient_cache + gradient_checkpointing interaction.
+**See**: [distributed training guide](guides/distributed-training.md) for gradient_cache + gradient_checkpointing interaction.
 
 ### 5. Training Architecture (`vembed/training/` + `vembed/entrypoints/train.py`)
 
@@ -245,7 +245,7 @@ The training module has been refactored into 8 specialized components for better
 
 **Three Usage Patterns**:
 - **CLI** (via `vembed train` or `accelerate launch train.py`) - Recommended for production
-- **Python API (High-level)** (via `VEmbedFactoryTrainer` in `vembed/trainer.py`) - Simple prototyping
+- **Python API (High-level)** (via `Trainer` / `VEmbedTrainer` in `vembed/trainer.py`) - Simple prototyping
 - **Python API (Low-level)** (via `Trainer` in `vembed/training/training_loop.py`) - Advanced customization
 
 **Key Configuration**:
@@ -312,9 +312,9 @@ make uv-test-cov       # With coverage report
 
 **Example Launchers**:
 - `examples/quickstart/clip_minimal.yaml` - Quick start with minimal CLIP config
-- `examples/models/clip/base.yaml` - Ready-to-run CLIP training
-- `examples/models/qwen3_vl/2b_base.yaml` - Qwen3-VL-2B training (optimized)
-- `examples/models/qwen3_vl/8b_fsdp.yaml` - Qwen3-VL-8B with FSDP (distributed)
+- `examples/quickstart/clip_minimal.yaml` - Minimal CLIP training
+- `examples/quickstart/qwen3_vl_minimal.yaml` - Minimal Qwen3-VL training
+- `examples/distributed/qwen3_vl_8b_fsdp.yaml` - Qwen3-VL-8B with FSDP
 
 ---
 

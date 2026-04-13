@@ -122,7 +122,7 @@ if volatility > 0.2:
 
 ```python
 # 1. 检查模型是否加载正确
-predictor = Predictor("checkpoint")
+predictor = VEmbedModel("checkpoint")
 print(f"模型权重数: {sum(p.numel() for p in model.parameters())}")
 
 # 2. 检查 embedding 是否正常
@@ -381,8 +381,8 @@ print('✓ 模型加载成功')
 
 echo "=== 推理诊断 ==="
 python -c "
-from vembed import Predictor
-predictor = Predictor('checkpoint')
+from vembed import VEmbedModel
+predictor = VEmbedModel('checkpoint')
 emb = predictor.encode_text('test')
 print(f'✓ 推理成功，embedding 维度: {emb.shape}')
 "

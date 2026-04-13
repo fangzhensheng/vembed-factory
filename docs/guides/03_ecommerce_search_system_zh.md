@@ -170,14 +170,14 @@ watch -n 10 'ls -lht experiments/ecommerce_search_model/checkpoint* | head -5'
 ```python
 import faiss
 import numpy as np
-from vembed import Predictor
+from vembed import VEmbedModel
 
 # 加载微调模型
-predictor = Predictor("experiments/ecommerce_search_model/checkpoint-final")
+predictor = VEmbedModel("experiments/ecommerce_search_model/checkpoint-final")
 
 # 编码所有商品图片
 product_images = []  # 列表：['img1.jpg', 'img2.jpg', ...]
-embeddings = predictor.encode_image(product_images, batch_size=32)
+embeddings = predictor.encode_image(product_images)
 
 # 创建 FAISS 索引
 dimension = embeddings.shape[1]
@@ -231,7 +231,7 @@ from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 import faiss
-from vembed import Predictor
+from vembed import VEmbedModel
 import io
 from PIL import Image
 
@@ -249,7 +249,7 @@ app.add_middleware(
 # 全局变量（生产环境应使用单例）
 class SearchEngine:
     def __init__(self):
-        self.predictor = Predictor("experiments/ecommerce_search_model/checkpoint-final")
+        self.predictor = VEmbedModel("experiments/ecommerce_search_model/checkpoint-final")
         self.index = faiss.read_index("models/product_index.faiss")
         self.product_ids = np.load("models/product_ids.npy")
         self.product_metadata = self._load_metadata()
@@ -414,9 +414,9 @@ async def batch_search(queries: list):
 
 ```python
 # 使用低维 embedding 快速粗排
-predictor_fast = Predictor("checkpoint", mrl_dim=256)
+predictor_fast = VEmbedModel("checkpoint", mrl_dim=256)
 # 使用高维 embedding 精确重排
-predictor_precise = Predictor("checkpoint", mrl_dim=1536)
+predictor_precise = VEmbedModel("checkpoint", mrl_dim=1536)
 
 # 流程
 fast_emb = predictor_fast.encode_text(query)

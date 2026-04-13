@@ -302,9 +302,9 @@ persistent_workers: true
 
 ## Related Documentation
 
-- [Model Configuration](./model_configuration.md)
-- [Training Guide](./training_guide.md)
-- [Loss Functions](./loss_functions.md)
+- [Configuration Guide](./guides/configuration.md)
+- [Getting Started](./guides/getting-started.md)
+- [Loss API](./api/losses/factory.md)
 
 ## Further Reading
 

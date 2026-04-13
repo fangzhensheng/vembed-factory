@@ -7,7 +7,6 @@ def test_import_vembed():
 
     assert hasattr(vembed, "__version__")
     assert hasattr(vembed, "Trainer")
-    assert hasattr(vembed, "Predictor")
     assert hasattr(vembed, "VEmbedTrainer")
     assert hasattr(vembed, "VEmbedModel")
 

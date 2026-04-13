@@ -129,10 +129,10 @@ accelerate launch vembed/entrypoints/train.py colpali_training.yaml
 ### 4.1 单查询搜索
 
 ```python
-from vembed import Predictor
+from vembed import VEmbedModel
 import numpy as np
 
-predictor = Predictor("experiments/colpali_finetuned/checkpoint-final")
+predictor = VEmbedModel("experiments/colpali_finetuned/checkpoint-final")
 
 # 编码查询
 query = "What is the contract amount?"

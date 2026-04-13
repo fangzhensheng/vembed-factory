@@ -46,10 +46,9 @@ vembed train config.yaml \
 ```python
 from vembed.trainer import VEmbedTrainer
 
-trainer = VEmbedTrainer("openai/clip-vit-base-patch32")
+trainer = VEmbedTrainer("openai/clip-vit-base-patch32", output_dir="output")
 trainer.train(
     data_path="data/train.jsonl",
-    output_dir="output",
     epochs=3,
     batch_size=32,
     learning_rate=1e-5
@@ -139,8 +138,8 @@ topk_tokens: 32  # 0=keep all (default), >0=select top-K patches
 **For quick setup, see:** [ColBERT Configuration Guide](./colbert_configuration.md)
 
 **Example configs:**
-- [examples/dinov2_colbert.yaml](../../examples/dinov2_colbert.yaml) - Vision model
-- [examples/qwen_colbert.yaml](../../examples/qwen_colbert.yaml) - VLM model
+- [examples/strategies/late_interaction/strategy_lateint_dinov2_colbert.yaml](../../examples/strategies/late_interaction/strategy_lateint_dinov2_colbert.yaml) - Vision model
+- [examples/strategies/late_interaction/strategy_lateint_qwen3vl_colbert.yaml](../../examples/strategies/late_interaction/strategy_lateint_qwen3vl_colbert.yaml) - VLM model
 
 **Scheduler**:
 
@@ -206,9 +205,11 @@ mrl_dims: [768, 512, 256]  # Dimensions to train
 At inference, extract embeddings at any configured dimension:
 
 ```python
-predictor = Predictor("output")
-emb_768 = predictor.encode_text("query", dimension=768)
-emb_256 = predictor.encode_text("query", dimension=256)
+predictor = VEmbedModel("output")
+predictor_768 = VEmbedModel("output", mrl_dim=768)
+predictor_256 = VEmbedModel("output", mrl_dim=256)
+emb_768 = predictor_768.encode_text("query")
+emb_256 = predictor_256.encode_text("query")
 ```
 
 ## Knowledge Distillation
@@ -334,7 +335,7 @@ vembed train output/.train_config.yaml
 
 ### Fast CLIP Fine-tuning
 ```bash
-vembed train examples/models/clip/vision_clip_base.yaml \
+vembed train examples/quickstart/clip_minimal.yaml \
     --data_path data/train.jsonl \
     --batch_size 64 \
     --epochs 3
@@ -342,7 +343,7 @@ vembed train examples/models/clip/vision_clip_base.yaml \
 
 ### Large Model with Memory Optimization
 ```bash
-vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_8b_base.yaml \
+vembed train examples/distributed/qwen3_vl_8b_fsdp.yaml \
     --data_path data/train.jsonl \
     --batch_size 4 \
     --use_gradient_cache \

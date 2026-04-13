@@ -11,7 +11,7 @@ Abstract base class for all embedding models.
 | Method | Purpose |
 |--------|---------|
 | `forward()` | Forward pass returning embeddings |
-| `pool()` | Pooling strategy (mean, cls, max) |
+| `pool()` | Pooling strategy (mean, cls, last_token, none) |
 | `encode()` | Encode text or images |
 
 ## Quick Start
@@ -32,7 +32,7 @@ image_emb = model.encode_image("image.jpg")
 ```python
 model = BaseEmbeddingModel.from_pretrained(
     "model_name",
-    pooling_method="mean"  # or "cls", "max"
+    pooling_method="mean"  # or "cls", "last_token", "none"
 )
 ```
 

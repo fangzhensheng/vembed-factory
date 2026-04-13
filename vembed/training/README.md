@@ -14,7 +14,7 @@ The training module breaks down the original monolithic `train.py` into speciali
 - **evaluator.py** - Evaluation and validation
 - **training_loop.py** - Core training loop
 
-> **Note**: This `Trainer` class is different from `vembed.trainer.VEmbedFactoryTrainer` (the high-level Python API). This is the low-level training loop executor.
+> **Note**: This `Trainer` class is different from `vembed.trainer.VEmbedTrainer` and the top-level alias `vembed.Trainer`. This is the low-level training loop executor.
 
 ## Quick Start
 
@@ -22,8 +22,7 @@ The training module breaks down the original monolithic `train.py` into speciali
 
 ```bash
 accelerate launch vembed/entrypoints/train.py \
-    --config configs/train.yaml \
-    --config_override model_name=openai/clip-vit-base-patch32 \
+    --config examples/quickstart/clip_minimal.yaml \
     --gradient_checkpointing
 ```
 
@@ -187,7 +186,7 @@ avg_loss = evaluator.evaluate(val_dataloader, global_step=100)
 Core training loop.
 
 ```python
-from vembed.training.trainer import Trainer
+from vembed.training.training_loop import Trainer
 
 # Create trainer
 trainer = Trainer(
@@ -407,4 +406,4 @@ config["ddp_find_unused_parameters"] = True
 
 ---
 
-For more details, see [REFACTORING_SUMMARY.md](../REFACTORING_SUMMARY.md)
+For more details, see [../../docs/api/training/index.md](../../docs/api/training/index.md)

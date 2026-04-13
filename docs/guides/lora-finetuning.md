@@ -319,10 +319,10 @@ merged_model.save_pretrained("output/merged_model")
 ### Use with vembed-factory
 
 ```python
-from vembed import Predictor
+from vembed import VEmbedModel
 
 # Works seamlessly with LoRA checkpoints
-predictor = Predictor(model_path="output/checkpoint-3000")
+predictor = VEmbedModel(model_path="output/checkpoint-3000")
 
 text_emb = predictor.encode_text("a cat")
 image_emb = predictor.encode_image("cat.jpg")

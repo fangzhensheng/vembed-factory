@@ -143,13 +143,13 @@ vembed train distillation_config.yaml \
 ### 4.1 完整对比实验
 
 ```python
-from vembed import Predictor
+from vembed import VEmbedModel
 import numpy as np
 
 # 加载三个模型
-teacher = Predictor("experiments/qwen3_8b_finetuned")
-student_raw = Predictor("experiments/qwen3_2b_raw")
-student_distilled = Predictor("experiments/student_distilled/checkpoint-final")
+teacher = VEmbedModel("experiments/qwen3_8b_finetuned")
+student_raw = VEmbedModel("experiments/qwen3_2b_raw")
+student_distilled = VEmbedModel("experiments/student_distilled/checkpoint-final")
 
 # 编码测试数据
 queries = [...]  # 1000 个测试查询
@@ -224,8 +224,8 @@ distillation_weight: 0.3
 ```python
 # 结合多个 Teacher
 teachers = [
-    Predictor("teacher_qwen3_8b"),
-    Predictor("teacher_clip_large"),
+    VEmbedModel("teacher_qwen3_8b"),
+    VEmbedModel("teacher_clip_large"),
 ]
 
 # 集成 Teacher 的预测

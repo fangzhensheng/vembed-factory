@@ -4,56 +4,57 @@ CLI entry points for training and evaluation.
 
 ## Overview
 
-The entrypoints module provides the main functions for training, evaluation, and result generation. These are called by the CLI and can also be used programmatically for custom training workflows.
+The entrypoints module contains the concrete functions used by the CLI and by advanced programmatic integrations.
 
 ### Key Functions
 
 | Function | Purpose |
 |----------|---------|
-| `train_main()` | Main training entry point with DDP support |
-| `evaluate_main()` | Evaluation with full metrics |
-| `evaluate_simple_main()` | Quick evaluation utility |
+| `train_entrypoint()` | Core training logic from a config dictionary |
+| `main()` | CLI-compatible training entry point |
 
 ## Quick Start
 
 ### Train via CLI
+
 ```bash
-vembed train examples/clip_train.yaml
+vembed train examples/quickstart/clip_minimal.yaml
 ```
 
-### Evaluate
-```bash
-vembed train examples/clip_train.yaml --eval_only
-```
+### Train via `accelerate`
 
-### Multi-GPU Training
 ```bash
-accelerate launch --multi_gpu vembed/entrypoints/train.py examples/clip_train.yaml
+accelerate launch vembed/entrypoints/train.py     --config examples/quickstart/clip_minimal.yaml
 ```
-
-## Common Patterns
 
 ### Programmatic Training
+
 ```python
-from vembed.entrypoints.train import train_main
-import sys
+from vembed.entrypoints.train import train_entrypoint
 
-# Set up arguments
-sys.argv = ["train.py", "config.yaml", "--batch_size", "256"]
+config = {
+    "model_name": "openai/clip-vit-base-patch32",
+    "model_name_or_path": "openai/clip-vit-base-patch32",
+    "data_path": "data/train.jsonl",
+    "output_dir": "output/programmatic",
+    "epochs": 1,
+    "batch_size": 32,
+}
 
-# Run training
-train_main()
+result = train_entrypoint(config)
+print(result["model_path"])
 ```
 
-### Custom Training Loop
-```python
-from vembed.trainer import VEmbedFactoryTrainer
+### High-Level Python API
 
-trainer = VEmbedFactoryTrainer("openai/clip-vit-base-patch32")
+```python
+from vembed import Trainer
+
+trainer = Trainer("openai/clip-vit-base-patch32", output_dir="output/clip_run")
 trainer.train(data_path="data.jsonl", epochs=3)
 ```
 
----
+## API Reference
 
-::: vembed.entrypoints.train.train_main
-::: vembed.entrypoints.evaluate.evaluate_main
+::: vembed.entrypoints.train.train_entrypoint
+::: vembed.entrypoints.train.main

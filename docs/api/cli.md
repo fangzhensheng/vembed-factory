@@ -1,23 +1,17 @@
 # CLI Interface
 
-Command-line interface for training and evaluating embedding models.
+Command-line interface for training and dataset utilities.
 
 ## Overview
 
-The CLI module provides the main entry point for vembed-factory. It handles argument parsing, configuration loading, and delegates to appropriate training/evaluation commands.
-
-### Key Features
-- Simple one-command training
-- YAML configuration support
-- CLI argument overrides
-- Multi-GPU distributed training support
+The CLI handles YAML loading, CLI overrides, dataset helpers, and training launch orchestration.
 
 ### Key Functions
 
 | Function | Purpose |
 |----------|---------|
 | `main()` | Entry point for the CLI |
-| `parse_args()` | Parse command-line arguments |
+| `print_usage()` | Print top-level help |
 
 ## Quick Start
 
@@ -27,22 +21,21 @@ The CLI module provides the main entry point for vembed-factory. It handles argu
 # Using a YAML config file
 vembed train examples/quickstart/clip_minimal.yaml
 
-# Override specific parameters via CLI (modern format - recommended)
+# Override specific parameters
 vembed train examples/quickstart/clip_minimal.yaml --batch_size 64 --learning_rate 1e-5
 
-# Multi-GPU training
-accelerate launch --multi_gpu --num_processes 4 vembed/entrypoints/train.py examples/quickstart/clip_minimal.yaml
+# Distributed configuration example
+vembed train examples/distributed/qwen3_vl_8b_fsdp.yaml
 ```
 
-### Python API (using CLI directly)
+### Python Usage
 
 ```python
 from vembed.cli import main
 
-# Train using CLI entrypoint
 args = [
     "train",
-    "examples/models/clip/base.yaml",
+    "examples/quickstart/clip_minimal.yaml",
     "--batch_size", "64",
     "--learning_rate", "1e-5",
 ]
@@ -51,66 +44,44 @@ main(args)
 
 ## Common Workflows
 
-### Workflow 1: Quick Start with Defaults
+### Quick Start with Defaults
+
 ```bash
-# Train CLIP on your data with default settings
-vembed train examples/quickstart/clip_minimal.yaml \
-  --data_path your_data.jsonl \
-  --output_dir ./my_model
+vembed train examples/quickstart/clip_minimal.yaml   --data_path your_data.jsonl   --output_dir ./my_model
 ```
 
-### Workflow 2: Fine-tune Vision-Language Model
+### Fine-tune a Vision-Language Model
+
 ```bash
-# Train Qwen3-VL with memory optimization
-vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml \
-  --data_path data/train.jsonl \
-  --epochs 10 \
-  --use_gradient_cache
+vembed train examples/quickstart/qwen3_vl_minimal.yaml   --data_path data/train.jsonl   --epochs 10   --use_gradient_cache
 ```
 
-### Workflow 3: Distributed Training
-```bash
-# Train on 8 GPUs with gradient cache
-accelerate launch --multi_gpu --num_processes 8 vembed/entrypoints/train.py examples/quickstart/clip_minimal.yaml \
-  --use_gradient_cache
-```
+### Training Config Priority
 
-## Configuration Hierarchy
+The CLI respects this priority order:
 
-The CLI respects this priority order (highest to lowest):
-1. **CLI Arguments** (e.g., `--batch_size 64`)
-2. **User YAML Config** (e.g., `examples/my_config.yaml`)
-3. **Preset YAML** (e.g., `configs/clip.yaml`)
-4. **Default Config** (`configs/defaults.yaml`)
+1. CLI arguments
+2. User YAML config
+3. Base defaults
 
 ## Common Parameters
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `--config` | N/A | Path to YAML config file |
-| `--batch_size` | 32 | Batch size per GPU |
-| `--epochs` | 3 | Number of training epochs |
-| `--learning_rate` | 2e-5 | Adam learning rate |
-| `--output_dir` | `output` | Directory to save checkpoints |
-| `--report_to` | `none` | Experiment tracker: `wandb`, `tensorboard`, `none` |
-
-## Troubleshooting
-
-**Q: "No such file or directory: examples/clip_train.yaml"**
-A: Make sure you're running from the project root directory.
-
-**Q: CUDA out of memory?**
-A: Try enabling `use_gradient_cache: true` and reducing `batch_size` in your config.
-
-**Q: How to resume training from checkpoint?**
-A: Set `output_dir` to a new folder and ensure the old checkpoint has `training_args.bin`.
+| Parameter | Description |
+|-----------|-------------|
+| positional `config.yaml` | Path to the YAML config file |
+| `--batch_size` | Batch size per device |
+| `--epochs` | Number of training epochs |
+| `--learning_rate` | AdamW learning rate |
+| `--output_dir` | Directory to save checkpoints |
+| `--report_to` | Tracker: `wandb`, `swanlab`, `tensorboard`, `none` |
+| `--dry_run` | Generate the merged config without launching training |
 
 ## Related Modules
 
-- **Trainer API**: [trainer.md](../training/trainer.md) - High-level Python training interface
-- **Configuration**: [config.md](config.md) - Configuration management
-- **Training**: [entrypoints.md](entrypoints.md) - Training entry points
+- [High-Level Trainer](training/trainer.md)
+- [Training Entrypoints](entrypoints.md)
+- [Configuration](config.md)
 
----
+## API Reference
 
 ::: vembed.cli.main

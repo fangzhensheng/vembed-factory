@@ -1,103 +1,61 @@
-# 快速开始（5分钟）
+# 快速开始配置说明
 
-欢迎使用vembed-factory！本指南将帮助你在5分钟内完成第一次训练。
+docker push ai-Harbor.facethink.com/mlops-public/prepare-agent-v2:04-09-v3
 
-## 📋 前置条件
+## 可用配置
 
-- Python 3.10+
-- PyTorch with CUDA
-- 至少16GB显存（推荐24GB+）
+### CLIP 最小配置
 
-## 🚀 5分钟快速开始
-
-### Step 1: 准备数据（1分钟）
-
-创建 `my_data.jsonl` 文件，每行一个JSON对象：
-
-```jsonl
-{"query": "a photo of a dog", "positive": "path/to/dog.jpg"}
-{"query": "a cat sitting on a chair", "positive": "path/to/cat.jpg"}
-{"query": "sunset over mountains", "positive": "path/to/sunset.jpg"}
-```
-
-或者下载示例数据：
-```bash
-cd examples
-python prepare_data.py  # 下载COCO或Flickr30k
-```
-
-### Step 2: 选择配置（1分钟）
-
-**选项A：CLIP（推荐，最快）**
 ```bash
 cp examples/quickstart/clip_minimal.yaml my_config.yaml
 ```
 
-**选项B：Qwen-VL（更准确，需要24GB显存）**
-```bash
-# 从models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml复制
-cp examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml my_config.yaml
-```
-
-### Step 3: 修改配置（1分钟）
-
-编辑 `my_config.yaml`，修改数据路径：
-
-```yaml
-data_path: "path/to/my_data.jsonl"  # ← 改成你的数据路径
-output_dir: "output/my_first_training"
-```
-
-其他常见参数：
-```yaml
-batch_size: 32          # 根据显存调整（16GB用32，24GB用64）
-num_epochs: 3           # 训练轮数
-learning_rate: 5e-5     # 学习率
-```
-
-### Step 4: 启动训练（2分钟）
+### Qwen3-VL 最小配置
 
 ```bash
-python run.py my_config.yaml
+cp examples/quickstart/qwen3_vl_minimal.yaml my_config.yaml
 ```
 
-你将看到：
-```
-✓ Configuration validated
-✓ Model loaded: openai/clip-vit-base-patch32
-✓ Data loaded: 1000 samples
-✓ Training started
-[████████████────] 60% | Step 300/500 | Loss: 0.25 | ETA: 10m
+### 调试配置
+
+```bash
+cp examples/quickstart/debug_minimal.yaml my_config.yaml
 ```
 
-## ✅ 完成！
+## 推荐流程
 
-训练完后，你可以在 `output/my_first_training/` 找到：
-- `model_best/` - 最佳模型权重
-- `training_logs.txt` - 训练日志
-- `config.yaml` - 使用的配置
+### 1. 准备数据
 
-## 📚 下一步
+```jsonl
+{"query": "a photo of a dog", "positive": "path/to/dog.jpg"}
+{"query": "a cat sitting on a chair", "positive": "path/to/cat.jpg"}
+```
 
-- **调整参数**：修改 `batch_size`、`learning_rate` 等参数
-- **用不同模型**：查看 `examples/models/` 下的其他配置（vision_clip_*、multimodal_qwen3_vl_* 等）
-- **用特殊策略**：查看 `examples/strategies/` 下的硬负样本（strategy_hardneg_*）、知识蒸馏（strategy_distill_*）等
-- **分布式训练**：使用 `models/qwen3_vl/multimodal_qwen3_vl_8b_fsdp.yaml` 进行多GPU训练
+### 2. 修改关键字段
 
-## 🆘 常见问题
+```yaml
+data_path: path/to/my_data.jsonl
+image_root: path/to/images
+output_dir: output/my_first_run
+batch_size: 32
+epochs: 3
+learning_rate: 5e-5
+```
 
-**Q: 显存不够？**
-A: 减小 `batch_size`（例如从32改为16），或启用 `use_gradient_cache: true`
+### 3. 启动训练
 
-**Q: 训练太慢？**
-A: 启用 `use_gradient_cache: true` 或用CLIP模型而不是Qwen-VL
+```bash
+vembed train my_config.yaml
+```
 
-**Q: 数据格式不对？**
-A: 查看 `examples/prepare_data.py` 或 README中的数据格式说明
+### 4. 常见覆盖方式
 
-**Q: 怎么恢复中断的训练？**
-A: 添加参数 `--resume_from_checkpoint output/my_first_training/checkpoint-500`
+```bash
+vembed train examples/quickstart/clip_minimal.yaml     --data_path path/to/my_data.jsonl     --image_root path/to/images     --batch_size 64
+```
 
----
+## 下一步
 
-祝你训练顺利！有问题可以查看 `examples/README.md` 或项目README。🚀
+- 需要更多策略时，查看 `examples/strategies/`
+- 需要多 GPU/FSDP 时，查看 `examples/distributed/`
+- 需要数据集模板时，查看 `examples/datasets/`

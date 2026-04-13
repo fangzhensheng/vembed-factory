@@ -131,9 +131,9 @@ trainer.train(data_path="data/train.jsonl", epochs=3)
 ### Inference
 
 ```python
-from vembed import Predictor
+from vembed import VEmbedModel
 
-predictor = Predictor(model_path="output/checkpoint-epoch-3")
+predictor = VEmbedModel(model_path="output/checkpoint-epoch-3")
 
 text_emb = predictor.encode_text("a photo of a cat")
 image_emb = predictor.encode_image("cat.jpg")
@@ -161,22 +161,22 @@ vembed show-dataset flickr30k_t2i
 vembed train examples/quickstart/clip_minimal.yaml
 
 # Train CLIP base model
-vembed train examples/models/clip/vision_clip_base.yaml
+vembed train examples/quickstart/clip_minimal.yaml
 
 # Train Qwen3-VL 2B (Multimodal)
-vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_2b_base.yaml
+vembed train examples/quickstart/qwen3_vl_minimal.yaml
 
 # Train Qwen3-VL 8B with FSDP (Distributed)
-vembed train examples/models/qwen3_vl/multimodal_qwen3_vl_8b_fsdp.yaml
+vembed train examples/distributed/qwen3_vl_8b_fsdp.yaml
 
 # Train DINOv2 for image-to-image retrieval
-vembed train examples/models/dinov2/vision_dinov2_i2i.yaml
+vembed train examples/strategies/late_interaction/strategy_lateint_dinov2_colbert.yaml
 
 # Override parameters from CLI
-vembed train examples/models/clip/vision_clip_base.yaml --batch_size 64 --learning_rate 5e-5
+vembed train examples/quickstart/clip_minimal.yaml --batch_size 64 --learning_rate 5e-5
 
 # Dry run (generate config without training)
-vembed train examples/models/clip/vision_clip_base.yaml --dry_run
+vembed train examples/quickstart/clip_minimal.yaml --dry_run
 ```
 
 ## Data Format
@@ -201,10 +201,10 @@ Training is configured primarily via YAML files. We follow a hierarchy:
 vembed list-configs
 
 # Run with a specific config file
-vembed train examples/models/clip/vision_clip_base.yaml
+vembed train examples/quickstart/clip_minimal.yaml
 
 # Override specific settings via CLI
-vembed train examples/models/clip/vision_clip_base.yaml \
+vembed train examples/quickstart/clip_minimal.yaml \
     --batch_size 64 --learning_rate 1e-5
 ```
 
@@ -232,10 +232,10 @@ See [`configs/defaults.yaml`](configs/defaults.yaml) for the full list of availa
 
 ### Step-by-Step Guides
 
-- **[DINOv2 Image Retrieval](docs/guides/dinov2_finetune.md)** - Fine-tune DINOv2 on the SOP dataset for high-precision image search
-- **[Bidirectional Loss for Dual-Encoders](docs/guides/bidirectional_loss.md)** - Optimize both T2I and I2T directions with bidirectional training
-- **[Bidirectional Loss Decision Table](docs/guides/BIDIRECTIONAL_DECISION_TABLE.md)** - Quick reference: should you use bidirectional loss?
-- **[VLM & Bidirectional Loss Analysis](docs/guides/VLM_BIDIRECTIONAL_QUICKREF.md)** - When does bidirectional loss work in VLM models?
+- **[DINOv3 Image Retrieval](docs/guides/dinov3_finetune.md)** - Fine-tune DINOv3 on the SOP dataset for high-precision image search
+- **[Getting Started](docs/guides/getting-started.md)** - Quick setup for first training runs
+- **[Python API Guide](docs/guides/python-api.md)** - Current high-level and low-level Python APIs
+- **[Configuration Guide](docs/guides/configuration.md)** - YAML and CLI configuration reference
 - **[Jupyter Notebooks](notebooks/)** - Interactive tutorials covering various use cases
 - **[API Documentation](docs/api/)** - Detailed API reference for all modules
 
