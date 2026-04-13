@@ -155,7 +155,7 @@ exclude = ["vembed/grad_cache"]  # vendored third-party, do not lint
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
-ignore = ["E501"]  # line length handled by black
+ignore = ["E501", "UP038"]  # line length handled by black, keep (X, Y) for isinstance
 
 [tool.ruff.lint.per-file-ignores]
 "**/__init__.py" = ["F401"]  # re-exports are intentional
