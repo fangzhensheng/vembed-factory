@@ -109,7 +109,7 @@ def _split_vlm_inputs(model_input, chunk_size: int) -> list:
     if isinstance(model_input, Tensor):
         return list(model_input.split(chunk_size, dim=0))
 
-    if not isinstance(model_input, (dict, UserDict)):
+    if not isinstance(model_input, (dict, UserDict)):  # noqa: UP038
         raise NotImplementedError(f"_split_vlm_inputs not implemented for type {type(model_input)}")
 
     batch_size, batch_aligned_keys = _find_batch_size_and_keys(model_input)
