@@ -262,13 +262,13 @@ class Trainer:
             q_embs, p_embs, n_embs = self._forward_concatenated(q_inputs, p_inputs, n_inputs)
         else:
             use_no_sync = bool(self.accelerator and self.accelerator.num_processes > 1)
-            
+
             if use_no_sync and hasattr(self.model, "no_sync"):
                 with self.model.no_sync():
                     q_embs = maybe_first(self.model(**q_inputs))
                     if n_inputs:
                         p_embs = maybe_first(self.model(**p_inputs))
-                
+
                 # The last forward pass MUST NOT be in no_sync() to trigger DDP sync
                 if n_inputs:
                     n_embs = maybe_first(self.model(**n_inputs))

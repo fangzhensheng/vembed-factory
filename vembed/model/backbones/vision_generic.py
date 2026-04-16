@@ -32,9 +32,7 @@ class VisionGenericEmbeddingModel(AutoEmbeddingModel):
         **kwargs,
     ):
         if pixel_values is None:
-            raise ValueError(
-                f"{self.__class__.__name__}.forward() requires 'pixel_values'."
-            )
+            raise ValueError(f"{self.__class__.__name__}.forward() requires 'pixel_values'.")
 
         if input_ids is not None:
             logger.warning(
@@ -43,14 +41,14 @@ class VisionGenericEmbeddingModel(AutoEmbeddingModel):
 
         # Forward pass through the vision backbone
         outputs = self.backbone(pixel_values=pixel_values, **kwargs)
-        
+
         # Pool the outputs
         emb = pool(outputs, attention_mask=None, method=self.pooling_method)
-        
+
         # Apply top-K token selection if requested (for late-interaction/ColBERT)
         if self.pooling_method == "none":
             emb = self._select_tokens(emb)
-            
+
         # Apply optional projection head
         return self._project(emb)
 
