@@ -3,9 +3,9 @@ from typing import Any
 
 import torch
 
-from .auto import AutoEmbeddingModel
 from ..base import pool
 from ..registry import ModelRegistry
+from .auto import AutoEmbeddingModel
 
 logger = logging.getLogger(__name__)
 
