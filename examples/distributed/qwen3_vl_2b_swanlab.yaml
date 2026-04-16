@@ -1,11 +1,11 @@
 # Qwen3-VL with SwanLab Tracking
 # This example shows how to integrate SwanLab (Chinese-friendly) for experiment tracking
 
-dataset_name: stanford_online_products_i2i
+dataset_name: "flickr30k_t2i"
 
 model_name: Qwen/Qwen3-VL-2B-Instruct
 encoder_mode: qwen3_vl
-retrieval_mode: i2i
+retrieval_mode: t2i
 
 # Training setup
 batch_size: 32
@@ -15,7 +15,6 @@ warmup_steps: 100
 
 # Loss and retrieval
 loss_type: infonce
-retrieval_mode: t2i
 pooling_method: cls
 
 # Memory optimization (Qwen3-VL is larger)

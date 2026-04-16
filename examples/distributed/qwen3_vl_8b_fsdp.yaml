@@ -1,3 +1,5 @@
+dataset_name: "flickr30k_t2i"
+
 # Qwen3-VL-Embedding-8B Training Configuration with FSDP
 
 # Model
