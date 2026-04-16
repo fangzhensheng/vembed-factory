@@ -58,9 +58,13 @@ def unpack_query_batch(batch: dict[str, Any], retrieval_mode: str) -> dict[str, 
         if "query_input_ids" in batch and batch["query_input_ids"] is not None:
             result["input_ids"] = batch["query_input_ids"]
             result["attention_mask"] = batch["query_attention_mask"]
+            if batch.get("query_mm_token_type_ids") is not None:
+                result["mm_token_type_ids"] = batch["query_mm_token_type_ids"]
         elif "input_ids" in batch and batch["input_ids"] is not None:
             result["input_ids"] = batch["input_ids"]
             result["attention_mask"] = batch["attention_mask"]
+            if batch.get("mm_token_type_ids") is not None:
+                result["mm_token_type_ids"] = batch["mm_token_type_ids"]
         if "query_image_grid_thw" in batch and batch["query_image_grid_thw"] is not None:
             result["image_grid_thw"] = batch["query_image_grid_thw"]
         return result
@@ -70,13 +74,22 @@ def unpack_query_batch(batch: dict[str, Any], retrieval_mode: str) -> dict[str, 
             "input_ids": batch["input_ids"],
             "attention_mask": batch["attention_mask"],
         }
+        if batch.get("query_mm_token_type_ids") is not None:
+            result["mm_token_type_ids"] = batch["query_mm_token_type_ids"]
+        elif batch.get("mm_token_type_ids") is not None:
+            result["mm_token_type_ids"] = batch["mm_token_type_ids"]
         if "query_pixel_values" in batch and batch["query_pixel_values"] is not None:
             result["pixel_values"] = batch["query_pixel_values"]
         if "query_image_grid_thw" in batch and batch["query_image_grid_thw"] is not None:
             result["image_grid_thw"] = batch["query_image_grid_thw"]
         return result
 
-    return {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"]}
+    result = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"]}
+    if batch.get("query_mm_token_type_ids") is not None:
+        result["mm_token_type_ids"] = batch["query_mm_token_type_ids"]
+    elif batch.get("mm_token_type_ids") is not None:
+        result["mm_token_type_ids"] = batch["mm_token_type_ids"]
+    return result
 
 
 def unpack_positive_batch(batch: dict[str, Any], retrieval_mode: str) -> dict[str, Any]:
@@ -90,18 +103,26 @@ def unpack_positive_batch(batch: dict[str, Any], retrieval_mode: str) -> dict[st
         Dictionary with extracted positive inputs.
     """
     if retrieval_mode.endswith("t"):
-        return {"input_ids": batch["pos_input_ids"], "attention_mask": batch["pos_attention_mask"]}
+        result: dict[str, Any] = {
+            "input_ids": batch["pos_input_ids"],
+            "attention_mask": batch["pos_attention_mask"],
+        }
+        if batch.get("pos_mm_token_type_ids") is not None:
+            result["mm_token_type_ids"] = batch["pos_mm_token_type_ids"]
+        return result
 
     # Image positive: prefer prefixed keys, fallback to legacy aliases
     pv = batch.get("pos_pixel_values")
     if pv is None:
         pv = batch.get("pixel_values")
-    result: dict[str, Any] = {"pixel_values": pv}
+    result = {"pixel_values": pv}
 
     # VLMs (e.g., Qwen3-VL) also need input_ids for image items
     if "pos_input_ids" in batch and batch["pos_input_ids"] is not None:
         result["input_ids"] = batch["pos_input_ids"]
         result["attention_mask"] = batch["pos_attention_mask"]
+        if batch.get("pos_mm_token_type_ids") is not None:
+            result["mm_token_type_ids"] = batch["pos_mm_token_type_ids"]
 
     # image_grid_thw for VLMs
     grid = batch.get("pos_image_grid_thw")
@@ -129,6 +150,8 @@ def unpack_negative_batch(batch: dict[str, Any]) -> dict[str, Any] | None:
     if "neg_input_ids" in batch:
         n_inputs["input_ids"] = batch["neg_input_ids"]
         n_inputs["attention_mask"] = batch["neg_attention_mask"]
+        if batch.get("neg_mm_token_type_ids") is not None:
+            n_inputs["mm_token_type_ids"] = batch["neg_mm_token_type_ids"]
     if batch.get("neg_image_grid_thw") is not None:
         n_inputs["image_grid_thw"] = batch["neg_image_grid_thw"]
 

@@ -1,7 +1,7 @@
 """Unified constants for data and gradient handling across vembed."""
 
 # Sequence field keys that require padding to max length during concatenation
-SEQ_KEYS = {"input_ids", "token_type_ids"}
+SEQ_KEYS = {"input_ids", "token_type_ids", "mm_token_type_ids"}
 
 # Fields that get attention_mask padding alongside sequence fields
 ATTENTION_MASK_KEY = "attention_mask"
