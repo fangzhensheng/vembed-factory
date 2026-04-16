@@ -261,9 +261,24 @@ class Trainer:
         if should_concat:
             q_embs, p_embs, n_embs = self._forward_concatenated(q_inputs, p_inputs, n_inputs)
         else:
-            q_embs = maybe_first(self.model(**q_inputs))
-            p_embs = maybe_first(self.model(**p_inputs))
-            n_embs = maybe_first(self.model(**n_inputs)) if n_inputs else None
+            use_no_sync = bool(self.accelerator and self.accelerator.num_processes > 1)
+            
+            if use_no_sync and hasattr(self.model, "no_sync"):
+                with self.model.no_sync():
+                    q_embs = maybe_first(self.model(**q_inputs))
+                    if n_inputs:
+                        p_embs = maybe_first(self.model(**p_inputs))
+                
+                # The last forward pass MUST NOT be in no_sync() to trigger DDP sync
+                if n_inputs:
+                    n_embs = maybe_first(self.model(**n_inputs))
+                else:
+                    p_embs = maybe_first(self.model(**p_inputs))
+                    n_embs = None
+            else:
+                q_embs = maybe_first(self.model(**q_inputs))
+                p_embs = maybe_first(self.model(**p_inputs))
+                n_embs = maybe_first(self.model(**n_inputs)) if n_inputs else None
 
         loss_kwargs = {}
         if "labels" in batch:
@@ -329,14 +344,7 @@ class Trainer:
         pad_id = self._get_pad_token_id()
         concatenated_inputs, batch_sizes = concat_batches(batches_to_concat, pad_token_id=pad_id)
 
-        # Use no_sync() to avoid DDP parameter ready-multiple times error
-        # When concat [q, p, n], parameters are used 3x in same forward
-        use_no_sync = bool(self.accelerator and self.accelerator.num_processes > 1)
-        if use_no_sync and hasattr(self.model, "no_sync"):
-            with self.model.no_sync():
-                all_embs = maybe_first(self.model(**concatenated_inputs))
-        else:
-            all_embs = maybe_first(self.model(**concatenated_inputs))
+        all_embs = maybe_first(self.model(**concatenated_inputs))
 
         # Split concatenated output back into q, p, n embeddings
         q_embs = all_embs[: batch_sizes[0]]
