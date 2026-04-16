@@ -49,7 +49,7 @@ def _unwrap_clip_model(backbone: torch.nn.Module) -> torch.nn.Module | None:
     if hasattr(backbone, "get_base_model"):
         try:
             base = backbone.get_base_model()
-            if base is not None:
+            if base is not None and _has_clip_methods(base):
                 return base
         except AttributeError as e:
             logger.debug("Failed to get base model from PeftModel: %s", e)
