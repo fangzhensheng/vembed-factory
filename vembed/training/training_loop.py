@@ -192,6 +192,10 @@ class Trainer:
             # Save checkpoint after each epoch
             self._save_checkpoint_epoch(epoch)
 
+            # FSDP's save_state() temporarily assembles full params via ALLGATHER,
+            # causing memory fragmentation. Release it before validation.
+            torch.cuda.empty_cache()
+
             # Epoch-end validation
             if self.val_dataloader and self.eval_steps == 0:
                 metrics_dict = self.evaluator.evaluate(self.val_dataloader, global_step)

@@ -16,12 +16,6 @@ Quick Start::
 __version__ = "0.1.0"
 __author__ = "Fang Zhensheng"
 
-from vembed.inference import VEmbedModel  # noqa: F401
-from vembed.losses.factory import LossFactory  # noqa: F401
-from vembed.model.modeling import VisualRetrievalModel  # noqa: F401
-from vembed.trainer import VEmbedTrainer  # noqa: F401
-from vembed.trainer import VEmbedTrainer as Trainer
-
 __all__ = [
     "Trainer",
     "VEmbedTrainer",
@@ -30,3 +24,23 @@ __all__ = [
     "LossFactory",
     "__version__",
 ]
+
+
+def __getattr__(name: str):
+    if name == "VEmbedModel":
+        from vembed.inference import VEmbedModel
+
+        return VEmbedModel
+    if name in ("Trainer", "VEmbedTrainer"):
+        from vembed.trainer import VEmbedTrainer
+
+        return VEmbedTrainer
+    if name == "VisualRetrievalModel":
+        from vembed.model.modeling import VisualRetrievalModel
+
+        return VisualRetrievalModel
+    if name == "LossFactory":
+        from vembed.losses.factory import LossFactory
+
+        return LossFactory
+    raise AttributeError(f"module 'vembed' has no attribute {name!r}")

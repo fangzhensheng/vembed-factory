@@ -10,14 +10,6 @@ import signal
 import subprocess
 import sys
 
-import yaml
-from transformers import HfArgumentParser
-
-from vembed.config import apply_false_booleans, config_dict_to_argv, load_base_config, merge_configs
-from vembed.hparams import DataArguments, ModelArguments, TrainingArguments
-from vembed.training.config import inject_dataset_info
-from vembed.validators import validate_config
-
 logger = logging.getLogger(__name__)
 
 
@@ -112,6 +104,14 @@ def main(args_list=None):
         args_list = args_list[1:]
 
     # ── Default: training mode ──────────────────────────────────────────
+    import yaml
+    from transformers import HfArgumentParser
+
+    from vembed.config import apply_false_booleans, config_dict_to_argv, load_base_config, merge_configs
+    from vembed.hparams import DataArguments, ModelArguments, TrainingArguments
+    from vembed.training.config import inject_dataset_info
+    from vembed.validators import validate_config
+
     # ── 1. Pre-parse: config_file, debug options ──────────────────────
     pre_parser = argparse.ArgumentParser(add_help=False)
     pre_parser.add_argument("config_file", nargs="?", default=None, help="Path to YAML config file")
