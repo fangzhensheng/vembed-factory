@@ -20,55 +20,27 @@ def save_checkpoint(
     config: dict[str, Any] | None = None,
     training_state: dict[str, Any] | None = None,
 ) -> None:
-    """Save training checkpoint with model, processor, and vembed config.
-
-    Only the global main process (rank 0) saves to prevent multi-node file conflicts.
-    All ranks synchronize after save completes.
-
-    Args:
-        path: Directory path to save checkpoint.
-        model: The model to save.
-        accelerator: Accelerate instance for distributed saving.
-        processor: Optional processor to save.
-        config: Optional configuration dict for vembed-specific config.
-        training_state: Optional training state dict with global_step, epoch, best_metric, patience_counter.
-
-    Note:
-        CRITICAL for multi-node safety: Uses is_main_process (not is_local_main_process)
-        to ensure only rank 0 globally saves. Without this, multiple nodes' rank-0
-        processes could write simultaneously to shared storage, causing corruption.
-    """
-    if not accelerator.is_main_process:
-        # Wait for main rank (rank 0) to finish saving before continuing
-        accelerator.wait_for_everyone()
-        return
-
+    """Save training checkpoint with model, processor, and vembed config."""
+    # FSDP state_dict() collective ALLGATHER requires all ranks to participate.
+    # Must precede is_main_process check to avoid NCCL timeout.
     accelerator.save_state(path)
-    accelerator.unwrap_model(model).save_pretrained(path)
-    if processor:
-        processor.save_pretrained(path)
 
-    # Persist vembed-specific config (topk_tokens, pooling, etc.)
-    if config:
-        _save_vembed_config(path, config)
+    if accelerator.is_main_process:
+        accelerator.unwrap_model(model).save_pretrained(path)
+        if processor:
+            processor.save_pretrained(path)
 
-    # Persist training state for resuming
-    if training_state is not None:
-        _save_training_state(path, training_state)
+        if config:
+            _save_vembed_config(path, config)
 
-    # CRITICAL: Synchronize all ranks after checkpoint save completes.
-    # Prevents non-main processes from resuming training while main process
-    # is still writing to disk.
+        if training_state is not None:
+            _save_training_state(path, training_state)
+
     accelerator.wait_for_everyone()
 
 
 def _save_vembed_config(path: str, config: dict[str, Any]) -> None:
-    """Save vembed-specific configuration to JSON file.
-
-    Args:
-        path: Directory path to save config.
-        config: Full configuration dict.
-    """
+    """Save vembed-specific configuration to JSON file."""
     vembed_cfg = {
         "pooling_method": config.get("pooling_method"),
         "projection_dim": config.get("projection_dim"),
@@ -88,12 +60,7 @@ def _save_vembed_config(path: str, config: dict[str, Any]) -> None:
 
 
 def _save_training_state(path: str, training_state: dict[str, Any]) -> None:
-    """Save training state (global_step, epoch, metrics, etc.) to JSON file.
-
-    Args:
-        path: Directory path to save training state.
-        training_state: Dict with keys: global_step, epoch, best_metric, patience_counter.
-    """
+    """Save training state (global_step, epoch, metrics, etc.) to JSON file."""
     state_path = os.path.join(path, "training_state.json")
     with open(state_path, "w") as fp:
         json.dump(training_state, fp, indent=2)
