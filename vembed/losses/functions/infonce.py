@@ -76,13 +76,8 @@ class InfoNCELoss(BaseLoss):
         labels_view = labels.view(-1, 1)
         mask = torch.eq(labels_view, labels_view.T).float()
 
-        # Numerical stability for LogSumExp
-        logits_max, _ = torch.max(logits, dim=1, keepdim=True)
-        logits = logits - logits_max.detach()
-
-        # Denominator: Sum of exp(logits) over ALL samples
-        exp_logits = torch.exp(logits)
-        log_prob = logits - torch.log(exp_logits.sum(dim=1, keepdim=True))
+        # Numerically stable log_softmax
+        log_prob = F.log_softmax(logits, dim=1)
 
         # Numerator: Average log_prob over POSITIVE pairs (diagonal + same-label)
         mean_log_prob_pos = (mask * log_prob).sum(dim=1) / mask.sum(dim=1)

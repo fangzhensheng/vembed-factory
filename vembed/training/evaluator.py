@@ -60,8 +60,6 @@ class Evaluator:
         """
         self.model.eval()
 
-        torch.cuda.empty_cache()
-
         total_loss, num_batches = 0.0, 0
         all_q_embs, all_p_embs, all_q_labels, all_p_labels = [], [], [], []
         self.accelerator.print("\nRunning validation...")
@@ -89,23 +87,12 @@ class Evaluator:
                 total_loss += self.criterion(q_embs, p_embs, None, **loss_kwargs).item()
                 num_batches += 1
 
-                del q_batch, p_batch, batch
-                torch.cuda.empty_cache()
-
                 all_q_embs.append(self.accelerator.gather_for_metrics(q_embs).cpu())
-                del q_embs
-                torch.cuda.empty_cache()
-
                 all_p_embs.append(self.accelerator.gather_for_metrics(p_embs).cpu())
-                del p_embs
-                torch.cuda.empty_cache()
 
                 if has_labels:
                     all_q_labels.append(self.accelerator.gather_for_metrics(labels).cpu())
-                    torch.cuda.empty_cache()
                     all_p_labels.append(self.accelerator.gather_for_metrics(labels).cpu())
-                    del labels
-                    torch.cuda.empty_cache()
 
         avg_loss = torch.tensor(total_loss / max(num_batches, 1), device=self.accelerator.device)
         avg_loss = self.accelerator.reduce(avg_loss, reduction="mean").item()

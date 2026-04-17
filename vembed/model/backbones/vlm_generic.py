@@ -98,7 +98,7 @@ class GenericVLMEmbeddingModel(BaseEmbeddingModel):
             input_ids=input_ids,
             attention_mask=attention_mask,
             pixel_values=pixel_values,
-            output_hidden_states=True,
+            output_hidden_states=False,
             return_dict=True,
             **kwargs,
         )
