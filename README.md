@@ -54,16 +54,8 @@ There are excellent embedding libraries out there. Here's where **vembed-factory
 ## Core Features
 
 - **Pure Factory Mode**: Data in -> Fine-tuned Embedding Model + Evaluation Report out.
-- **Extensive Model Support**:
-  - **Dual-Encoders**: CLIP, SigLIP, EVA-CLIP
-  - **Vision-Language Models**: Qwen3-VL-Embedding (2B/8B)
-  - **Late Interaction**: ColPali, ColQwen (multi-vector fine-grained retrieval)
-  - **Composed Encoders**: Mix any Text Encoder + Image Encoder (e.g. BERT + DINOv2)
-- **Efficient Training**:
-  - **Gradient Cache**: Effective BS=512+ on 16G/24G VRAM GPUs
-  - **Matryoshka (MRL)**: One training run -> any embedding dimension (768, 512, 256, 128)
-  - **LR Scheduling**: Cosine, linear, constant with warmup
-  - **LoRA**: Parameter-efficient fine-tuning
+- **Gradient Cache**: Effective BS=512+ on 16G/24G VRAM GPUs
+- **Matryoshka (MRL)**: One training run -> any embedding dimension (768, 512, 256, 128)
 - **Universal Data Engine**: JSONL, CSV, Parquet, HuggingFace Datasets with flexible column mapping
 - **Experiment Tracking**: Built-in WandB, SwanLab and TensorBoard integration
 
