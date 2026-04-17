@@ -97,7 +97,7 @@ class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
             attention_mask=attention_mask,
             pixel_values=pixel_values,
             image_grid_thw=image_grid_thw,
-            output_hidden_states=True,
+            output_hidden_states=False,
             return_dict=True,
             **kwargs,
         )
